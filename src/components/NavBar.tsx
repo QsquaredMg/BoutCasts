@@ -1,0 +1,68 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+
+export default function NavBar() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
+
+  return (
+    <nav className="border-b border-neutral-800 bg-neutral-950 text-white">
+      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+        <Link href="/" className="text-lg font-bold tracking-tight">
+          BoutCasts
+        </Link>
+        <div className="flex items-center gap-4 text-sm">
+          <Link href="/" className="hover:text-red-400">
+            Bouts
+          </Link>
+          <Link href="/submit" className="hover:text-red-400">
+            Submit
+          </Link>
+          {loading ? null : user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-neutral-400">{user.email}</span>
+              <button
+                onClick={handleSignOut}
+                className="rounded bg-neutral-800 px-3 py-1 hover:bg-neutral-700"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded bg-red-600 px-3 py-1 font-medium hover:bg-red-500"
+            >
+              Sign in
+            </Link>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
