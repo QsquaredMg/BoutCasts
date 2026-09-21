@@ -5,6 +5,7 @@ import VotePanel from "@/components/VotePanel";
 import CrowdComments from "@/components/CrowdComments";
 import ShareButton from "@/components/ShareButton";
 import ReportButton from "@/components/ReportButton";
+import ContributeButton from "@/components/ContributeButton";
 
 export default async function BoutPage({
   params,
@@ -54,6 +55,22 @@ export default async function BoutPage({
       : null;
 
   const sponsor = bout.sponsors ?? bout.categories?.sponsors;
+
+  const { data: pool } = await supabase
+    .from("prize_pools")
+    .select("id, goal_amount")
+    .eq("bout_id", id)
+    .maybeSingle();
+
+  let poolRaised = 0;
+  if (pool) {
+    const { data: contributions } = await supabase
+      .from("pool_contributions")
+      .select("amount")
+      .eq("pool_id", pool.id);
+    poolRaised = (contributions ?? []).reduce((sum, c) => sum + c.amount, 0);
+  }
+  const poolPct = pool ? Math.min(100, Math.round((poolRaised / pool.goal_amount) * 100)) : 0;
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
@@ -158,6 +175,29 @@ export default async function BoutPage({
               Round rules
             </div>
             {bout.round_theme_rules}
+          </div>
+        )}
+
+        {pool && (
+          <div
+            className="mb-5 rounded-xl border p-3"
+            style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+          >
+            <div className="mb-1 flex items-center justify-between text-sm">
+              <span className="font-bold" style={{ fontFamily: "var(--font-display)" }}>
+                💰 Prize pool
+              </span>
+              <span style={{ color: "var(--text-faint)" }}>
+                {poolRaised} / {pool.goal_amount} BB
+              </span>
+            </div>
+            <div className="mb-2 h-2 overflow-hidden rounded-full" style={{ background: "var(--surface)" }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${poolPct}%`, background: "var(--gold)" }}
+              />
+            </div>
+            <ContributeButton poolId={pool.id} />
           </div>
         )}
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ModerationQueue from "@/components/ModerationQueue";
+import PrizePoolManager from "@/components/PrizePoolManager";
 
 export default async function ModerationPage() {
   const supabase = await createClient();
@@ -41,6 +42,27 @@ export default async function ModerationPage() {
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
+  const [{ data: allBouts }, { data: pools }, { data: contributions }] = await Promise.all([
+    supabase.from("bouts").select("id, title").order("created_at", { ascending: false }),
+    supabase.from("prize_pools").select("id, bout_id, goal_amount"),
+    supabase.from("pool_contributions").select("pool_id, amount"),
+  ]);
+
+  const boutTitleById = new Map((allBouts ?? []).map((b) => [b.id, b.title]));
+  const raisedByPool = new Map<string, number>();
+  for (const c of contributions ?? []) {
+    raisedByPool.set(c.pool_id, (raisedByPool.get(c.pool_id) ?? 0) + c.amount);
+  }
+  const poolBoutIds = new Set((pools ?? []).map((p) => p.bout_id));
+  const boutsWithoutPool = (allBouts ?? []).filter((b) => !poolBoutIds.has(b.id));
+  const poolRows = (pools ?? []).map((p) => ({
+    id: p.id,
+    bout_id: p.bout_id,
+    goal_amount: p.goal_amount,
+    raised: raisedByPool.get(p.id) ?? 0,
+    boutTitle: boutTitleById.get(p.bout_id) ?? "Unknown bout",
+  }));
+
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
       <Link href="/" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
@@ -51,6 +73,11 @@ export default async function ModerationPage() {
         Review submissions before they go live.
       </p>
       <ModerationQueue submissions={pending ?? []} />
+
+      <h2 className="mb-3 mt-10 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        Prize pools
+      </h2>
+      <PrizePoolManager boutsWithoutPool={boutsWithoutPool} initialPools={poolRows} />
 
       <h2 className="mb-3 mt-10 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
         Open reports

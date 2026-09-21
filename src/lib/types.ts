@@ -140,3 +140,18 @@ export type Notification = {
   is_read: boolean;
   created_at: string;
 };
+
+export type PrizePool = {
+  id: string;
+  bout_id: string;
+  goal_amount: number;
+  created_at: string;
+};
+
+export type PoolContribution = {
+  id: string;
+  pool_id: string;
+  user_id: string;
+  amount: number;
+  created_at: string;
+};
