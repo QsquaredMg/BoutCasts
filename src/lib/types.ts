@@ -81,6 +81,7 @@ export type Submission = {
   source_url: string | null;
   entry_type: "free" | "paid";
   entry_fee: number;
+  stripe_checkout_session_id?: string | null;
   status: "pending" | "approved" | "rejected";
   created_at: string;
   categories?: { name: string } | null;

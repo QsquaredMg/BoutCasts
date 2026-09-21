@@ -21,6 +21,7 @@ export default function SubmitPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [paidStatus, setPaidStatus] = useState<"success" | "cancelled" | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -35,6 +36,14 @@ export default function SubmitPage() {
       if (cats && cats.length > 0) setCategoryId(cats[0].id);
     }
     load();
+
+    const params = new URLSearchParams(window.location.search);
+    const paid = params.get("paid");
+    if (paid === "success" || paid === "cancelled") {
+      setPaidStatus(paid);
+      // Clean the query string so a page refresh doesn't re-show the banner.
+      window.history.replaceState({}, "", "/submit");
+    }
   }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -55,13 +64,40 @@ export default function SubmitPage() {
       return;
     }
 
+    if (entryType === "paid") {
+      // Paid entries are never inserted directly by the client. We send the
+      // draft to Stripe Checkout; the submission row is created server-side
+      // by the webhook only after payment actually succeeds.
+      try {
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            categoryId,
+            sourceType,
+            sourceUrl: sourceType === "link" ? sourceUrl : null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error ?? "Failed to start checkout");
+        }
+        window.location.href = data.url;
+      } catch (err) {
+        setLoading(false);
+        setError(err instanceof Error ? err.message : "Failed to start checkout");
+      }
+      return;
+    }
+
     const { error } = await supabase.from("submissions").insert({
       user_id: user.id,
       category_id: categoryId,
       title,
       source_type: sourceType,
       source_url: sourceType === "link" ? sourceUrl : null,
-      entry_type: entryType,
+      entry_type: "free",
     });
 
     setLoading(false);
@@ -138,10 +174,10 @@ export default function SubmitPage() {
           </div>
           {entryType === "paid" && (
             <p className="mt-2 rounded bg-amber-50 p-3 text-xs text-amber-800">
-              Paid entries carry a 50 BoutBucks fee. Real payment collection isn&apos;t
-              live yet, so nothing is charged today &mdash; but if a paid entry is
-              rejected, 50 BoutBucks is credited to your wallet rather than a cash
-              refund once payments go live.
+              Paid entries cost $5.00, charged via Stripe Checkout &mdash; you&apos;ll
+              be redirected to a secure payment page before your submission is
+              recorded. If a paid entry is later rejected, the fee is credited to
+              your wallet as BoutBucks rather than a cash refund.
             </p>
           )}
         </div>
@@ -182,6 +218,17 @@ export default function SubmitPage() {
           )}
         </div>
 
+        {paidStatus === "success" && (
+          <p className="text-sm text-green-700">
+            Payment received! Your paid entry is being recorded and will show up
+            shortly, pending review.
+          </p>
+        )}
+        {paidStatus === "cancelled" && (
+          <p className="text-sm text-amber-700">
+            Checkout was cancelled — no charge was made. You can try again below.
+          </p>
+        )}
         {error && <p className="text-sm text-red-600">{error}</p>}
         {success && (
           <p className="text-sm text-green-700">Submission received — pending review.</p>
