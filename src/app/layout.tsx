@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Rajdhani, Manrope } from "next/font/google";
 import NavBar from "@/components/NavBar";
+import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -27,8 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${rajdhani.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col antialiased">
-        <NavBar />
-        <main className="flex-1">{children}</main>
+        <ToastProvider>
+          <NavBar />
+          <main className="flex-1">{children}</main>
+        </ToastProvider>
       </body>
     </html>
   );

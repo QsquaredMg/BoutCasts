@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/Toast";
 
 type BoutOption = { id: string; title: string };
 type PoolRow = { id: string; bout_id: string; goal_amount: number; raised: number; boutTitle: string };
@@ -20,6 +21,7 @@ export default function PrizePoolManager({
   const [goal, setGoal] = useState(500);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -36,9 +38,11 @@ export default function PrizePoolManager({
     setCreating(false);
     if (error) {
       setError(error.message);
+      showToast(error.message, "error");
       return;
     }
 
+    showToast("Prize pool created", "success");
     const bout = available.find((b) => b.id === boutId);
     setPools((prev) => [
       { id: data.id, bout_id: boutId, goal_amount: goal, raised: 0, boutTitle: bout?.title ?? "" },
@@ -53,9 +57,11 @@ export default function PrizePoolManager({
     const { error } = await supabase.from("prize_pools").delete().eq("id", id);
     if (error) {
       setError(error.message);
+      showToast(error.message, "error");
       return;
     }
     setPools((prev) => prev.filter((p) => p.id !== id));
+    showToast("Prize pool removed", "info");
   }
 
   return (

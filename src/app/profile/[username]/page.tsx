@@ -5,6 +5,7 @@ import { cloutTierFor } from "@/lib/clout";
 import FollowButton from "@/components/FollowButton";
 import AppealButton from "@/components/AppealButton";
 import type { Badge, UserBadge, PointEvent, Submission } from "@/lib/types";
+import ClipSourceTag from "@/components/ClipSourceTag";
 
 const REASON_LABEL: Record<string, string> = {
   vote_cast: "Voted on a bout",
@@ -193,9 +194,12 @@ export default async function ProfilePage({
               >
                 <div className="flex-1">
                   <div className="text-sm font-bold">{s.title}</div>
-                  <div className="text-xs" style={{ color: "var(--text-faint)" }}>
-                    {s.categories?.name}
-                    {s.crew_name ? ` · Crew: ${s.crew_name}` : ""}
+                  <div className="mt-1 flex items-center gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
+                    <ClipSourceTag sourceType={s.source_type} sourceUrl={s.source_url} />
+                    <span>
+                      {s.categories?.name}
+                      {s.crew_name ? ` · Crew: ${s.crew_name}` : ""}
+                    </span>
                   </div>
                 </div>
                 {s.entry_type === "paid" && (
@@ -230,8 +234,9 @@ export default async function ProfilePage({
                 >
                   <div className="flex-1">
                     <div className="text-sm font-bold">{s.title}</div>
-                    <div className="text-xs" style={{ color: "var(--text-faint)" }}>
-                      {s.categories?.name}
+                    <div className="mt-1 flex items-center gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
+                      <ClipSourceTag sourceType={s.source_type} sourceUrl={s.source_url} />
+                      <span>{s.categories?.name}</span>
                     </div>
                     {s.status === "appealed" && s.appeal_message && (
                       <div className="mt-1 text-xs italic" style={{ color: "var(--text-faint)" }}>

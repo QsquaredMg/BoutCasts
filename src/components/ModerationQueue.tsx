@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import ClipSourceTag from "@/components/ClipSourceTag";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/Toast";
 import type { Submission } from "@/lib/types";
 
 export default function ModerationQueue({ submissions }: { submissions: Submission[] }) {
@@ -9,6 +11,7 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
   const [items, setItems] = useState(submissions);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   async function moderate(id: string, approve: boolean) {
     setBusyId(id);
@@ -19,10 +22,12 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
     });
     if (error) {
       setError(error.message);
+      showToast(error.message, "error");
       setBusyId(null);
       return;
     }
     setItems((prev) => prev.filter((s) => s.id !== id));
+    showToast(approve ? "Submission approved" : "Submission rejected", "success");
     setBusyId(null);
   }
 
@@ -62,9 +67,9 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
               </span>
             )}
           </div>
-          <div className="mb-3 text-sm" style={{ color: "var(--text-faint)" }}>
-            {s.source_type}
-            {s.source_url ? `: ${s.source_url}` : ""}
+          <div className="mb-3 flex items-center gap-2 text-sm" style={{ color: "var(--text-faint)" }}>
+            <ClipSourceTag sourceType={s.source_type} sourceUrl={s.source_url} />
+            {s.source_url && <span className="truncate">{s.source_url}</span>}
           </div>
           {s.status === "appealed" && s.appeal_message && (
             <p className="mb-3 rounded-lg p-3 text-sm italic" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>

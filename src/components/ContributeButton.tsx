@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/Toast";
 
 const PRESETS = [10, 25, 50];
 
 export default function ContributeButton({ poolId }: { poolId: string }) {
   const supabase = createClient();
   const router = useRouter();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(10);
   const [submitting, setSubmitting] = useState(false);
@@ -31,11 +33,14 @@ export default function ContributeButton({ poolId }: { poolId: string }) {
     setSubmitting(false);
 
     if (error) {
-      setError(error.message.replace(/^.*: /, ""));
+      const msg = error.message.replace(/^.*: /, "");
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
     setOpen(false);
+    showToast(`Chipped in ${amount} BB — thanks for backing this!`, "success");
     router.refresh();
   }
 

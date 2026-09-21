@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/Toast";
 
 export default function FollowButton({
   targetId,
@@ -13,6 +14,7 @@ export default function FollowButton({
   const [following, setFollowing] = useState(initialFollowing);
   const [busy, setBusy] = useState(false);
   const supabase = createClient();
+  const { showToast } = useToast();
 
   async function toggle() {
     setBusy(true);
@@ -29,11 +31,13 @@ export default function FollowButton({
         .eq("follower_id", user.id)
         .eq("followed_id", targetId);
       setFollowing(false);
+      showToast("Unfollowed", "info");
     } else {
       await supabase
         .from("follows")
         .insert({ follower_id: user.id, followed_id: targetId });
       setFollowing(true);
+      showToast("Now following", "success");
     }
     setBusy(false);
   }

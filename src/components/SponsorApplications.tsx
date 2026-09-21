@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/Toast";
 
 type Application = {
   id: string;
@@ -20,6 +21,7 @@ export default function SponsorApplications({ initial }: { initial: Application[
   const [logoUrls, setLogoUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   async function approve(id: string) {
     setError(null);
@@ -31,9 +33,11 @@ export default function SponsorApplications({ initial }: { initial: Application[
     setBusy(null);
     if (error) {
       setError(error.message);
+      showToast(error.message, "error");
       return;
     }
     setApplications((prev) => prev.filter((a) => a.id !== id));
+    showToast("Sponsor application approved — sponsor is live", "success");
   }
 
   async function reject(id: string) {
@@ -45,9 +49,11 @@ export default function SponsorApplications({ initial }: { initial: Application[
     setBusy(null);
     if (error) {
       setError(error.message);
+      showToast(error.message, "error");
       return;
     }
     setApplications((prev) => prev.filter((a) => a.id !== id));
+    showToast("Sponsor application rejected", "info");
   }
 
   if (applications.length === 0) return null;
