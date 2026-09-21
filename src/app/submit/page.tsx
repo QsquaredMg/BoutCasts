@@ -136,6 +136,14 @@ export default function SubmitPage() {
               </label>
             ))}
           </div>
+          {entryType === "paid" && (
+            <p className="mt-2 rounded bg-amber-50 p-3 text-xs text-amber-800">
+              Paid entries carry a 50 BoutBucks fee. Real payment collection isn&apos;t
+              live yet, so nothing is charged today &mdash; but if a paid entry is
+              rejected, 50 BoutBucks is credited to your wallet rather than a cash
+              refund once payments go live.
+            </p>
+          )}
         </div>
 
         <div>

@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 export default function NavBar() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -17,10 +18,11 @@ export default function NavBar() {
       if (data.user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_admin")
+          .select("is_admin, wallet_balance")
           .eq("id", data.user.id)
           .maybeSingle();
         setIsAdmin(!!profile?.is_admin);
+        setWalletBalance(profile?.wallet_balance ?? 0);
       }
       setLoading(false);
     });
@@ -62,6 +64,14 @@ export default function NavBar() {
           )}
           {loading ? null : user ? (
             <div className="flex items-center gap-3">
+              {walletBalance !== null && (
+                <span
+                  title="BoutBucks wallet balance"
+                  className="rounded-full bg-neutral-800 px-2.5 py-1 text-xs font-semibold text-amber-400"
+                >
+                  💰 {walletBalance} BB
+                </span>
+              )}
               <span className="text-neutral-400">{user.email}</span>
               <button
                 onClick={handleSignOut}

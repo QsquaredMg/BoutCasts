@@ -2,17 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-
-type Submission = {
-  id: string;
-  title: string;
-  source_type: "upload" | "link" | "record";
-  source_url: string | null;
-  entry_type: "free" | "paid";
-  status: "pending" | "approved" | "rejected";
-  created_at: string;
-  categories?: { name: string } | null;
-};
+import type { Submission } from "@/lib/types";
 
 export default function ModerationQueue({ submissions }: { submissions: Submission[] }) {
   const supabase = createClient();
@@ -51,7 +41,7 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
             </span>
             {s.entry_type === "paid" && (
               <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-bold uppercase text-amber-700">
-                Paid entry
+                Paid entry &middot; {s.entry_fee} BB
               </span>
             )}
           </div>
@@ -60,6 +50,12 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
             {s.source_type}
             {s.source_url ? `: ${s.source_url}` : ""}
           </div>
+          {s.entry_type === "paid" && (
+            <p className="mb-3 text-xs text-neutral-400">
+              Rejecting this credits {s.entry_fee} BoutBucks to the submitter&apos;s
+              wallet instead of a cash refund.
+            </p>
+          )}
           <div className="flex gap-2">
             <button
               disabled={busyId === s.id}

@@ -59,3 +59,27 @@ export type LeaderboardEntry = {
   points: number;
 };
 
+export type Submission = {
+  id: string;
+  user_id: string;
+  category_id: string;
+  title: string;
+  source_type: "upload" | "link" | "record";
+  source_url: string | null;
+  entry_type: "free" | "paid";
+  entry_fee: number;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  categories?: { name: string } | null;
+};
+
+export type WalletEvent = {
+  id: string;
+  user_id: string;
+  amount: number;
+  reason: string;
+  related_submission_id: string | null;
+  created_at: string;
+};
+
+
