@@ -65,7 +65,6 @@ export default function VotePanel({
       .insert({ bout_id: boutId, user_id: user.id, side });
 
     if (error) {
-      // Postgres unique_violation
       if (error.code === "23505") {
         setMessageKind("error");
         setMessage("You've already voted on this bout.");
@@ -88,55 +87,78 @@ export default function VotePanel({
   const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;
   const pctB = total > 0 ? 100 - pctA : 0;
 
-  return (
-    <div>
-      <div className="mb-4">
-        <div className="flex h-3 overflow-hidden rounded-full bg-neutral-200">
-          <div className="h-full bg-red-500" style={{ width: `${pctA}%` }} />
-          <div className="h-full bg-blue-500" style={{ width: `${pctB}%` }} />
-        </div>
-        <div className="mt-1 flex justify-between text-sm text-neutral-600">
-          <span>
-            {aName}: {pctA}% ({tally.a} votes)
-          </span>
-          <span>
-            {bName}: {pctB}% ({tally.b} votes)
-          </span>
-        </div>
-      </div>
+  const sides: Array<{
+    key: "a" | "b";
+    name: string;
+    pct: number;
+    count: number;
+    color: string;
+    soft: string;
+  }> = [
+    { key: "a", name: aName, pct: pctA, count: tally.a, color: "var(--red)", soft: "var(--red-soft)" },
+    { key: "b", name: bName, pct: pctB, count: tally.b, color: "var(--blue)", soft: "var(--blue-soft)" },
+  ];
 
-      {votingOpen ? (
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            disabled={pending || myVote !== null}
-            onClick={() => castVote("a")}
-            className={`rounded-lg border-2 py-3 font-semibold transition ${
-              myVote === "a"
-                ? "border-red-500 bg-red-50 text-red-700"
-                : "border-neutral-300 hover:border-red-400"
-            } disabled:cursor-not-allowed disabled:opacity-60`}
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {sides.map((s) => {
+        const voted = myVote === s.key;
+        return (
+          <div
+            key={s.key}
+            className="flex flex-col gap-3 rounded-2xl border p-4"
+            style={{
+              background: voted ? s.soft : "var(--surface)",
+              borderColor: voted ? s.color : "var(--border)",
+            }}
           >
-            {myVote === "a" ? "Voted ✓" : `Vote ${aName}`}
-          </button>
-          <button
-            disabled={pending || myVote !== null}
-            onClick={() => castVote("b")}
-            className={`rounded-lg border-2 py-3 font-semibold transition ${
-              myVote === "b"
-                ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-neutral-300 hover:border-blue-400"
-            } disabled:cursor-not-allowed disabled:opacity-60`}
-          >
-            {myVote === "b" ? "Voted ✓" : `Vote ${bName}`}
-          </button>
-        </div>
-      ) : (
-        <p className="text-sm text-neutral-500">Voting is closed for this bout.</p>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-base font-bold" style={{ fontFamily: "var(--font-display)" }}>
+                {s.name}
+              </span>
+              <span
+                className="text-lg font-bold tabular-nums"
+                style={{ fontFamily: "var(--font-display)", color: s.color }}
+              >
+                {s.pct}%
+              </span>
+            </div>
+
+            <div className="bc-vote-bar">
+              <span style={{ width: `${s.pct}%`, background: s.color }} />
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs tabular-nums" style={{ color: "var(--text-faint)" }}>
+                {s.count} votes
+              </span>
+              <button
+                disabled={!votingOpen || pending || myVote !== null}
+                onClick={() => castVote(s.key)}
+                className="rounded-[10px] border px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  borderColor: s.color,
+                  color: voted ? "#fff" : s.color,
+                  background: voted ? s.color : "transparent",
+                }}
+              >
+                {voted ? "Voted ✓" : "Cast Vote →"}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
+      {!votingOpen && (
+        <p className="col-span-full text-sm" style={{ color: "var(--text-faint)" }}>
+          Voting is closed for this bout.
+        </p>
       )}
 
       {signedIn === false && (
-        <p className="mt-3 text-sm text-neutral-500">
-          <a href="/login" className="font-medium text-red-600 underline">
+        <p className="col-span-full text-sm" style={{ color: "var(--text-faint)" }}>
+          <a href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
             Sign in
           </a>{" "}
           to cast your vote.
@@ -145,9 +167,8 @@ export default function VotePanel({
 
       {message && (
         <p
-          className={`mt-3 text-sm ${
-            messageKind === "error" ? "text-red-600" : "text-green-700"
-          }`}
+          className="col-span-full text-sm font-medium"
+          style={{ color: messageKind === "error" ? "var(--red)" : "var(--blue)" }}
         >
           {message}
         </p>

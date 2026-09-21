@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import VotePanel from "@/components/VotePanel";
+import CrowdComments from "@/components/CrowdComments";
 
 export default async function BoutPage({
   params,
@@ -50,88 +51,110 @@ export default async function BoutPage({
       ? bout.competitor_b_name
       : null;
 
+  const sponsor = bout.sponsors ?? bout.categories?.sponsors;
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <Link href="/" className="mb-4 inline-block text-sm text-neutral-500 hover:underline">
-        &larr; Back to bouts
+    <div className="mx-auto max-w-2xl px-5 py-8">
+      <Link
+        href="/"
+        className="mb-4 inline-block text-sm font-semibold"
+        style={{ color: "var(--blue)" }}
+      >
+        &larr; Back to matchups
       </Link>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase text-neutral-500">
+      <div className="bc-card p-5">
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
+          {bout.status === "live" && (
+            <>
+              <span className="bc-live-dot" />
+              <span
+                className="text-xs font-bold uppercase tracking-wide"
+                style={{ fontFamily: "var(--font-display)", color: "var(--red)" }}
+              >
+                LIVE VOTE
+              </span>
+            </>
+          )}
+          <span className="text-xs" style={{ color: "var(--text-faint)" }}>
             {bout.categories?.name ?? "Uncategorized"}
             {bout.bracket_key && (
               <>
                 {" · "}
-                <Link href={`/bracket/${bout.bracket_key}`} className="underline hover:text-red-600">
+                <Link
+                  href={`/bracket/${bout.bracket_key}`}
+                  className="underline"
+                  style={{ color: "var(--text-dim)" }}
+                >
                   Round {bout.round_number} · View bracket
                 </Link>
               </>
             )}
           </span>
-          <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs font-bold text-white uppercase">
+          <span
+            className="ml-auto rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase"
+            style={{
+              fontFamily: "var(--font-display)",
+              background: bout.status === "final" ? "var(--gold-soft)" : "var(--surface-2)",
+              color: bout.status === "final" ? "var(--gold)" : "var(--text-dim)",
+            }}
+          >
             {bout.status}
           </span>
         </div>
 
-        <h1 className="mb-1 text-xl font-bold">{bout.title}</h1>
+        <h1 className="mb-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+          {bout.title}
+        </h1>
 
-        {(bout.sponsors?.name || bout.categories?.sponsors?.name) && (
-          <p className="mb-3 text-xs font-medium text-neutral-400">
+        {sponsor && (
+          <p className="mb-4 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
             Presented by{" "}
-            {(() => {
-              const sponsor = bout.sponsors ?? bout.categories?.sponsors;
-              if (!sponsor) return null;
-              return sponsor.website_url ? (
-                <a
-                  href={sponsor.website_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline hover:text-neutral-600"
-                >
-                  {sponsor.name}
-                </a>
-              ) : (
-                sponsor.name
-              );
-            })()}
+            {sponsor.website_url ? (
+              <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="underline">
+                {sponsor.name}
+              </a>
+            ) : (
+              sponsor.name
+            )}
           </p>
         )}
 
-        <div className="mb-4 flex items-center justify-center gap-4 py-4 text-lg font-bold">
-          <span className={bout.winner_side === "a" ? "text-green-700" : ""}>
-            {bout.competitor_a_name}
-            {bout.winner_side === "a" && " 🏆"}
-          </span>
-          <span className="text-neutral-400">VS</span>
-          <span className={bout.winner_side === "b" ? "text-green-700" : ""}>
-            {bout.competitor_b_name}
-            {bout.winner_side === "b" && " 🏆"}
-          </span>
-        </div>
-
         {bout.status === "final" && winnerName && (
-          <div className="mb-4 rounded bg-green-50 p-3 text-center text-sm font-semibold text-green-800">
-            {winnerName} wins this round
+          <div
+            className="mb-4 rounded-xl p-3 text-center text-sm font-bold"
+            style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
+          >
+            🏆 {winnerName} wins this round
             {nextBoutTitle && <> — advances to &quot;{nextBoutTitle}&quot;</>}
           </div>
         )}
 
         {votingOpen && bout.closes_at && (
-          <p className="mb-4 text-center text-xs text-neutral-400">
+          <p className="mb-4 text-center text-xs" style={{ color: "var(--text-faint)" }}>
             Voting closes {new Date(bout.closes_at).toLocaleString()}
           </p>
         )}
 
         {bout.round_theme_name && (
-          <div className="mb-4 rounded bg-neutral-100 p-3 text-sm">
-            <div className="mb-1 font-semibold">Round theme: {bout.round_theme_name}</div>
+          <div
+            className="mb-3 rounded-xl border p-3 text-sm"
+            style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+          >
+            <div className="font-bold" style={{ fontFamily: "var(--font-display)" }}>
+              📜 Round theme: {bout.round_theme_name}
+            </div>
           </div>
         )}
 
         {bout.round_theme_rules && (
-          <div className="mb-6 rounded border border-neutral-200 p-3 text-sm text-neutral-600">
-            <div className="mb-1 font-semibold text-neutral-800">Round rules</div>
+          <div
+            className="mb-5 rounded-xl border p-3 text-sm"
+            style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+          >
+            <div className="mb-1 font-bold" style={{ color: "var(--text)" }}>
+              Round rules
+            </div>
             {bout.round_theme_rules}
           </div>
         )}
@@ -143,6 +166,12 @@ export default async function BoutPage({
           initialTally={tally}
           votingOpen={votingOpen}
         />
+
+        <p className="mt-4 flex items-center gap-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+          🔒 Verified voting — one vote per account
+        </p>
+
+        <CrowdComments boutId={bout.id} />
       </div>
     </div>
   );

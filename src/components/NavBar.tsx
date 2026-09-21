@@ -1,11 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
+const NAV_LINKS = [
+  { href: "/", label: "BoutCard" },
+  { href: "/submit", label: "Submit" },
+  { href: "/leaderboard", label: "Leaderboard" },
+];
+
 export default function NavBar() {
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -42,53 +50,94 @@ export default function NavBar() {
   }
 
   return (
-    <nav className="border-b border-neutral-800 bg-neutral-950 text-white">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          BoutCasts
+    <nav
+      className="border-b"
+      style={{ background: "var(--bg)", borderColor: "var(--border)" }}
+    >
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+        <Link
+          href="/"
+          className="text-xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--font-display)", color: "var(--text)" }}
+        >
+          Bout<span style={{ color: "var(--red)" }}>Casts</span>
         </Link>
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/" className="hover:text-red-400">
-            Bouts
-          </Link>
-          <Link href="/submit" className="hover:text-red-400">
-            Submit
-          </Link>
-          <Link href="/leaderboard" className="hover:text-red-400">
-            Leaderboard
-          </Link>
+
+        <div
+          className="flex gap-1 rounded-full p-1"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+        >
+          {NAV_LINKS.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  background: active ? "var(--surface-2)" : "transparent",
+                  color: active ? "var(--text)" : "var(--text-dim)",
+                  boxShadow: active ? "inset 0 0 0 1px var(--border)" : "none",
+                }}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           {isAdmin && (
             <>
-              <Link href="/admin/moderation" className="hover:text-red-400">
+              <Link
+                href="/admin/moderation"
+                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color: pathname === "/admin/moderation" ? "var(--text)" : "var(--text-dim)",
+                }}
+              >
                 Moderation
               </Link>
-              <Link href="/admin/sponsors" className="hover:text-red-400">
+              <Link
+                href="/admin/sponsors"
+                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color: pathname === "/admin/sponsors" ? "var(--text)" : "var(--text-dim)",
+                }}
+              >
                 Sponsors
               </Link>
             </>
           )}
+        </div>
+
+        <div className="flex items-center gap-3">
           {loading ? null : user ? (
-            <div className="flex items-center gap-3">
+            <>
               {walletBalance !== null && (
                 <span
                   title="BoutBucks wallet balance"
-                  className="rounded-full bg-neutral-800 px-2.5 py-1 text-xs font-semibold text-amber-400"
+                  className="rounded-full px-3 py-1.5 text-xs font-bold"
+                  style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
                 >
                   💰 {walletBalance} BB
                 </span>
               )}
-              <span className="text-neutral-400">{user.email}</span>
+              <span className="hidden text-sm sm:inline" style={{ color: "var(--text-faint)" }}>
+                {user.email}
+              </span>
               <button
                 onClick={handleSignOut}
-                className="rounded bg-neutral-800 px-3 py-1 hover:bg-neutral-700"
+                className="rounded-full border px-4 py-1.5 text-sm font-semibold"
+                style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
               >
                 Sign out
               </button>
-            </div>
+            </>
           ) : (
             <Link
               href="/login"
-              className="rounded bg-red-600 px-3 py-1 font-medium hover:bg-red-500"
+              className="bc-btn-solid rounded-full px-4 py-1.5 text-sm"
             >
               Sign in
             </Link>

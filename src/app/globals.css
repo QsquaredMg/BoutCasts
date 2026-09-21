@@ -1,26 +1,171 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --bg: #f6f4ef;
+  --bg-2: #efece3;
+  --surface: #ffffff;
+  --surface-2: #f0eee6;
+  --border: #e2ded2;
+  --line: #cdc7b8;
+  --text: #191b20;
+  --text-dim: #5c6270;
+  --text-faint: #8b8d7f;
+  --red: #d92c4c;
+  --red-soft: rgba(217, 44, 76, 0.08);
+  --blue: #1f5fd6;
+  --blue-soft: rgba(31, 95, 214, 0.07);
+  --gold: #a97a12;
+  --gold-soft: rgba(169, 122, 18, 0.12);
+
+  --background: var(--bg);
+  --foreground: var(--text);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display), "Arial Narrow", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- shared component classes (from the BoutCasts design concept) ---------- */
+
+.bc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.bc-pill {
+  border-radius: 999px;
+}
+
+.bc-btn-outline-red {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid var(--red);
+  color: var(--red);
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.bc-btn-outline-red:hover {
+  background: var(--red);
+  color: #fff5f6;
+}
+
+.bc-btn-outline-blue {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.bc-btn-outline-blue:hover {
+  background: var(--blue);
+  color: #04121f;
+}
+
+.bc-btn-solid {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--text);
+  color: var(--bg);
+  border: 1px solid var(--text);
+  border-radius: 999px;
+  transition: opacity 0.15s ease;
+}
+.bc-btn-solid:hover {
+  opacity: 0.85;
+}
+
+.bc-btn-red {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--red);
+  color: #fff5f6;
+  border: 1px solid var(--red);
+  border-radius: 12px;
+}
+.bc-btn-red:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bc-chip {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+}
+.bc-chip.active {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+.bc-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 0 rgba(217, 44, 76, 0.6);
+  animation: bc-pulse 1.8s ease-out infinite;
+  display: inline-block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bc-live-dot { animation: none; }
+}
+@keyframes bc-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(217, 44, 76, 0.5); }
+  70% { box-shadow: 0 0 0 8px rgba(217, 44, 76, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 44, 76, 0); }
+}
+
+.bc-vote-bar {
+  flex: 1;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.bc-vote-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.bc-badge-gold {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+.bc-badge-red {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.bc-badge-blue {
+  background: var(--blue-soft);
+  color: var(--blue);
 }

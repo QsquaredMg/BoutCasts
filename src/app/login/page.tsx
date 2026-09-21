@@ -30,8 +30,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm px-4 py-12">
-      <h1 className="mb-6 text-2xl font-bold">Sign in</h1>
+    <div className="mx-auto max-w-sm px-5 py-12">
+      <h1 className="mb-6 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        Sign in
+      </h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="email"
@@ -39,7 +41,8 @@ export default function LoginPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
         <input
           type="password"
@@ -47,20 +50,17 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-red-600 py-2 font-semibold text-white hover:bg-red-500 disabled:opacity-60"
-        >
+        {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
+        <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>
-      <p className="mt-4 text-sm text-neutral-500">
+      <p className="mt-4 text-sm" style={{ color: "var(--text-faint)" }}>
         No account?{" "}
-        <Link href="/signup" className="font-medium text-red-600 underline">
+        <Link href="/signup" className="font-semibold underline" style={{ color: "var(--red)" }}>
           Sign up
         </Link>
       </p>

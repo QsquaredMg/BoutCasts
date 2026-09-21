@@ -20,10 +20,10 @@ export default async function SponsorsAdminPage() {
 
   if (!profile?.is_admin) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <p className="text-neutral-500">You don&apos;t have access to this page.</p>
-        <Link href="/" className="text-sm text-red-600 underline">
-          Back to bouts
+      <div className="mx-auto max-w-2xl px-5 py-8">
+        <p style={{ color: "var(--text-faint)" }}>You don&apos;t have access to this page.</p>
+        <Link href="/" className="text-sm font-semibold underline" style={{ color: "var(--red)" }}>
+          Back to matchups
         </Link>
       </div>
     );
@@ -39,12 +39,12 @@ export default async function SponsorsAdminPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link href="/" className="mb-4 inline-block text-sm text-neutral-500 hover:underline">
-        &larr; Back to bouts
+    <div className="mx-auto max-w-3xl px-5 py-8">
+      <Link href="/" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
+        &larr; Back to matchups
       </Link>
-      <h1 className="mb-1 text-2xl font-bold">Sponsors</h1>
-      <p className="mb-6 text-neutral-500">
+      <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Sponsors</h1>
+      <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Manage sponsors and assign them to categories or individual bouts.
       </p>
       <SponsorManager

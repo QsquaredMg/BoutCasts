@@ -87,6 +87,15 @@ export type Submission = {
   categories?: { name: string } | null;
 };
 
+export type BoutComment = {
+  id: string;
+  bout_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  profiles?: { username: string | null } | null;
+};
+
 export type WalletEvent = {
   id: string;
   user_id: string;

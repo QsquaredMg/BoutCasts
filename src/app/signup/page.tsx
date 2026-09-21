@@ -21,9 +21,7 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { username: username || undefined },
-      },
+      options: { data: { username: username || undefined } },
     });
 
     setLoading(false);
@@ -36,12 +34,14 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <div className="mx-auto max-w-sm px-4 py-12">
-        <h1 className="mb-4 text-2xl font-bold">Check your account</h1>
-        <p className="text-neutral-600">
+      <div className="mx-auto max-w-sm px-5 py-12">
+        <h1 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+          Check your account
+        </h1>
+        <p style={{ color: "var(--text-dim)" }}>
           Account created. If email confirmation is required, check your inbox;
           otherwise you can{" "}
-          <Link href="/login" className="font-medium text-red-600 underline">
+          <Link href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
             sign in now
           </Link>
           .
@@ -51,15 +51,18 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm px-4 py-12">
-      <h1 className="mb-6 text-2xl font-bold">Sign up</h1>
+    <div className="mx-auto max-w-sm px-5 py-12">
+      <h1 className="mb-6 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        Sign up
+      </h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="text"
           placeholder="Username (optional)"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
         <input
           type="email"
@@ -67,7 +70,8 @@ export default function SignupPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
         <input
           type="password"
@@ -76,20 +80,17 @@ export default function SignupPage() {
           placeholder="Password (min 6 chars)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-red-600 py-2 font-semibold text-white hover:bg-red-500 disabled:opacity-60"
-        >
+        {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
+        <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Creating account..." : "Sign up"}
         </button>
       </form>
-      <p className="mt-4 text-sm text-neutral-500">
+      <p className="mt-4 text-sm" style={{ color: "var(--text-faint)" }}>
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-red-600 underline">
+        <Link href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
           Sign in
         </Link>
       </p>

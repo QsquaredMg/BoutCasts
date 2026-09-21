@@ -41,7 +41,6 @@ export default function SubmitPage() {
     const paid = params.get("paid");
     if (paid === "success" || paid === "cancelled") {
       setPaidStatus(paid);
-      // Clean the query string so a page refresh doesn't re-show the banner.
       window.history.replaceState({}, "", "/submit");
     }
   }, [supabase]);
@@ -65,9 +64,6 @@ export default function SubmitPage() {
     }
 
     if (entryType === "paid") {
-      // Paid entries are never inserted directly by the client. We send the
-      // draft to Stripe Checkout; the submission row is created server-side
-      // by the webhook only after payment actually succeeds.
       try {
         const res = await fetch("/api/checkout", {
           method: "POST",
@@ -110,13 +106,20 @@ export default function SubmitPage() {
     setSourceUrl("");
   }
 
+  const inputClass = "w-full rounded-[10px] border px-3.5 py-2.5 text-sm";
+  const inputStyle = { borderColor: "var(--border)", background: "var(--surface)" };
+  const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-wide";
+  const labelStyle = { color: "var(--text-dim)" };
+
   if (signedIn === false) {
     return (
-      <div className="mx-auto max-w-sm px-4 py-12">
-        <h1 className="mb-4 text-2xl font-bold">Submit an entry</h1>
-        <p className="text-neutral-600">
+      <div className="mx-auto max-w-sm px-5 py-12">
+        <h1 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+          Submit an entry
+        </h1>
+        <p style={{ color: "var(--text-dim)" }}>
           You need to{" "}
-          <a href="/login" className="font-medium text-red-600 underline">
+          <a href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
             sign in
           </a>{" "}
           to submit an entry.
@@ -126,28 +129,32 @@ export default function SubmitPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Submit an entry</h1>
+    <div className="mx-auto max-w-lg px-5 py-8">
+      <h1 className="mb-6 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        Submit a Bout
+      </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div>
-          <label className="mb-1 block text-sm font-semibold">Title</label>
+          <label className={labelClass} style={labelStyle}>Title</label>
           <input
             type="text"
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-3 py-2"
+            className={inputClass}
+            style={inputStyle}
             placeholder="e.g. Freestyle 60 — Iron Mic Series"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold">Category</label>
+          <label className={labelClass} style={labelStyle}>Category</label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-3 py-2"
+            className={inputClass}
+            style={inputStyle}
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -158,22 +165,37 @@ export default function SubmitPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold">Entry type</label>
-          <div className="flex gap-4">
-            {(["free", "paid"] as const).map((t) => (
-              <label key={t} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="entryType"
-                  checked={entryType === t}
-                  onChange={() => setEntryType(t)}
-                />
-                {t === "free" ? "Free entry" : "Paid entry"}
-              </label>
-            ))}
+          <label className={labelClass} style={labelStyle}>Entry type</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            {(["free", "paid"] as const).map((t) => {
+              const active = entryType === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setEntryType(t)}
+                  className="rounded-xl border p-3.5 text-left"
+                  style={{
+                    borderColor: active ? "var(--blue)" : "var(--border)",
+                    background: active ? "var(--blue-soft)" : "var(--surface)",
+                  }}
+                >
+                  <div className="flex items-center gap-2 text-sm font-bold">
+                    <span
+                      className="h-3.5 w-3.5 rounded-full border-2"
+                      style={{
+                        borderColor: active ? "var(--blue)" : "var(--border)",
+                        background: active ? "var(--blue)" : "transparent",
+                      }}
+                    />
+                    {t === "free" ? "Free entry" : "Paid entry ($5.00)"}
+                  </div>
+                </button>
+              );
+            })}
           </div>
           {entryType === "paid" && (
-            <p className="mt-2 rounded bg-amber-50 p-3 text-xs text-amber-800">
+            <p className="mt-2 rounded-xl p-3 text-xs" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}>
               Paid entries cost $5.00, charged via Stripe Checkout &mdash; you&apos;ll
               be redirected to a secure payment page before your submission is
               recorded. If a paid entry is later rejected, the fee is credited to
@@ -183,19 +205,29 @@ export default function SubmitPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold">Source</label>
-          <div className="mb-2 flex gap-4">
-            {(["upload", "link", "record"] as const).map((t) => (
-              <label key={t} className="flex items-center gap-2 text-sm capitalize">
-                <input
-                  type="radio"
-                  name="sourceType"
-                  checked={sourceType === t}
-                  onChange={() => setSourceType(t)}
-                />
-                {t}
-              </label>
-            ))}
+          <label className={labelClass} style={labelStyle}>Source</label>
+          <div
+            className="mb-3 inline-flex gap-1 rounded-full p-1"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+          >
+            {(["upload", "link", "record"] as const).map((t) => {
+              const active = sourceType === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setSourceType(t)}
+                  className="rounded-full px-3.5 py-1.5 text-sm font-semibold capitalize"
+                  style={{
+                    background: active ? "var(--surface)" : "transparent",
+                    color: active ? "var(--text)" : "var(--text-dim)",
+                    boxShadow: active ? "inset 0 0 0 1px var(--border)" : "none",
+                  }}
+                >
+                  {t}
+                </button>
+              );
+            })}
           </div>
 
           {sourceType === "link" && (
@@ -205,12 +237,13 @@ export default function SubmitPage() {
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full rounded border border-neutral-300 px-3 py-2"
+              className={inputClass}
+              style={inputStyle}
             />
           )}
 
           {(sourceType === "upload" || sourceType === "record") && (
-            <p className="rounded bg-neutral-100 p-3 text-sm text-neutral-500">
+            <p className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-faint)" }}>
               {sourceType === "upload" ? "File upload" : "In-browser recording"} is
               coming soon — this submission will be saved with no media attached
               yet.
@@ -219,26 +252,24 @@ export default function SubmitPage() {
         </div>
 
         {paidStatus === "success" && (
-          <p className="text-sm text-green-700">
+          <p className="text-sm font-medium" style={{ color: "var(--blue)" }}>
             Payment received! Your paid entry is being recorded and will show up
             shortly, pending review.
           </p>
         )}
         {paidStatus === "cancelled" && (
-          <p className="text-sm text-amber-700">
+          <p className="text-sm font-medium" style={{ color: "var(--gold)" }}>
             Checkout was cancelled — no charge was made. You can try again below.
           </p>
         )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
         {success && (
-          <p className="text-sm text-green-700">Submission received — pending review.</p>
+          <p className="text-sm font-medium" style={{ color: "var(--blue)" }}>
+            Submission received — pending review.
+          </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-red-600 py-2 font-semibold text-white hover:bg-red-500 disabled:opacity-60"
-        >
+        <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Submitting..." : "Submit entry"}
         </button>
       </form>

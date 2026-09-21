@@ -30,20 +30,29 @@ export default async function LeaderboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <Link href="/" className="mb-4 inline-block text-sm text-neutral-500 hover:underline">
-        &larr; Back to bouts
+    <div className="mx-auto max-w-2xl px-5 py-8">
+      <Link href="/" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
+        &larr; Back to matchups
       </Link>
-      <h1 className="mb-1 text-2xl font-bold">Leaderboard</h1>
-      <p className="mb-6 text-neutral-500">
+      <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        Leaderboard
+      </h1>
+      <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Points for voting and getting submissions approved.
       </p>
 
       {user && (
-        <div className="mb-8 rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="bc-card mb-8 p-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-neutral-600">Your points</span>
-            <span className="text-xl font-bold text-red-600">{myPoints ?? 0}</span>
+            <span className="text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+              Your points
+            </span>
+            <span
+              className="text-xl font-bold"
+              style={{ fontFamily: "var(--font-display)", color: "var(--red)" }}
+            >
+              {myPoints ?? 0}
+            </span>
           </div>
           {myBadges.length > 0 ? (
             <div className="flex flex-wrap gap-2">
@@ -54,7 +63,7 @@ export default async function LeaderboardPage() {
                   <span
                     key={ub.id}
                     title={badge.description}
-                    className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                    className="bc-badge-gold flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold"
                   >
                     <span>{badge.icon}</span>
                     {badge.name}
@@ -63,30 +72,42 @@ export default async function LeaderboardPage() {
               })}
             </div>
           ) : (
-            <p className="text-sm text-neutral-400">
-              No badges yet &mdash; vote on a bout to earn your first one.
+            <p className="text-sm" style={{ color: "var(--text-faint)" }}>
+              No badges yet — vote on a bout to earn your first one.
             </p>
           )}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+      <div className="bc-card overflow-hidden">
         {(topProfiles ?? []).length === 0 ? (
-          <p className="p-4 text-sm text-neutral-500">No points on the board yet.</p>
+          <p className="p-4 text-sm" style={{ color: "var(--text-faint)" }}>
+            No points on the board yet.
+          </p>
         ) : (
           <ol>
             {(topProfiles ?? []).map((p, i) => (
               <li
                 key={p.id}
-                className={`flex items-center justify-between px-4 py-3 text-sm ${
-                  i !== (topProfiles ?? []).length - 1 ? "border-b border-neutral-100" : ""
-                } ${p.id === user?.id ? "bg-red-50" : ""}`}
+                className="flex items-center gap-3.5 px-4 py-3.5"
+                style={{
+                  borderTop: i > 0 ? "1px solid var(--border)" : "none",
+                  background: p.id === user?.id ? "var(--red-soft)" : "transparent",
+                }}
               >
-                <span className="flex items-center gap-3">
-                  <span className="w-6 text-right font-mono text-neutral-400">{i + 1}</span>
-                  <span className="font-medium">{p.username}</span>
+                <span
+                  className="w-6 text-right text-base font-bold"
+                  style={{ fontFamily: "var(--font-display)", color: i === 0 ? "var(--gold)" : "var(--text-faint)" }}
+                >
+                  {i + 1}
                 </span>
-                <span className="font-bold text-neutral-800">{p.points}</span>
+                <span className="flex-1 text-sm font-bold">{p.username}</span>
+                <span
+                  className="text-base font-bold tabular-nums"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  {p.points}
+                </span>
               </li>
             ))}
           </ol>
