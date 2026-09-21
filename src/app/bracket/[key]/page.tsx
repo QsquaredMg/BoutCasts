@@ -53,6 +53,12 @@ export default async function BracketPage({
             <div className="text-center text-xs font-bold uppercase tracking-wide text-neutral-500">
               {roundLabel(rn)}
             </div>
+            <Link
+              href={`/bracket/${key}/recap/${rn}`}
+              className="text-center text-[11px] font-medium text-red-600 hover:underline"
+            >
+              🎬 Round recap
+            </Link>
             <div className="flex flex-1 flex-col justify-around gap-6">
               {(rounds.get(rn) ?? []).map((b) => (
                 <Link
