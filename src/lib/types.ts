@@ -15,6 +15,11 @@ export type Bout = {
   round_theme_rules: string | null;
   created_at: string;
   closes_at: string | null;
+  round_number: number;
+  bracket_key: string | null;
+  winner_side: "a" | "b" | null;
+  next_bout_id: string | null;
+  next_slot: "a" | "b" | null;
   categories?: { name: string } | null;
 };
 

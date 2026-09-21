@@ -77,8 +77,13 @@ export default async function Home() {
                   {STATUS_LABEL[bout.status]}
                 </span>
               </div>
-              <div className="mb-1 text-sm font-medium text-neutral-600">
+              <div className="mb-1 flex items-center gap-2 text-sm font-medium text-neutral-600">
                 {bout.title}
+                {bout.bracket_key && (
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                    🏆 Round {bout.round_number}
+                  </span>
+                )}
               </div>
               <div className="flex items-center justify-between font-semibold">
                 <span>{bout.competitor_a_name}</span>
