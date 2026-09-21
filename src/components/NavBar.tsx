@@ -7,12 +7,21 @@ import type { User } from "@supabase/supabase-js";
 
 export default function NavBar() {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user ?? null);
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", data.user.id)
+          .maybeSingle();
+        setIsAdmin(!!profile?.is_admin);
+      }
       setLoading(false);
     });
 
@@ -43,6 +52,11 @@ export default function NavBar() {
           <Link href="/submit" className="hover:text-red-400">
             Submit
           </Link>
+          {isAdmin && (
+            <Link href="/admin/moderation" className="hover:text-red-400">
+              Moderation
+            </Link>
+          )}
           {loading ? null : user ? (
             <div className="flex items-center gap-3">
               <span className="text-neutral-400">{user.email}</span>
