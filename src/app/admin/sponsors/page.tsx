@@ -29,14 +29,34 @@ export default async function SponsorsAdminPage() {
     );
   }
 
-  const [{ data: sponsors }, { data: categories }, { data: bouts }] = await Promise.all([
-    supabase.from("sponsors").select("*").order("created_at", { ascending: false }),
-    supabase.from("categories").select("*").order("sort_order"),
-    supabase
-      .from("bouts")
-      .select("id, title, status, sponsor_id")
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: sponsors }, { data: categories }, { data: bouts }, { data: boutsWithCat }, { data: votes }] =
+    await Promise.all([
+      supabase.from("sponsors").select("*").order("created_at", { ascending: false }),
+      supabase.from("categories").select("*").order("sort_order"),
+      supabase
+        .from("bouts")
+        .select("id, title, status, sponsor_id")
+        .order("created_at", { ascending: false }),
+      supabase.from("bouts").select("id, sponsor_id, category_id"),
+      supabase.from("votes").select("bout_id"),
+    ]);
+
+  // Per-sponsor vote totals: a bout counts toward a sponsor if it's
+  // sponsored directly, or its category is sponsored by them.
+  const categorySponsorMap = new Map((categories ?? []).map((c) => [c.id, c.sponsor_id]));
+  const votesByBout = new Map<string, number>();
+  for (const v of votes ?? []) {
+    votesByBout.set(v.bout_id, (votesByBout.get(v.bout_id) ?? 0) + 1);
+  }
+  const sponsorVoteTotals = new Map<string, number>();
+  const sponsorBoutCounts = new Map<string, number>();
+  for (const b of boutsWithCat ?? []) {
+    const effectiveSponsor = b.sponsor_id ?? categorySponsorMap.get(b.category_id) ?? null;
+    if (!effectiveSponsor) continue;
+    sponsorVoteTotals.set(effectiveSponsor, (sponsorVoteTotals.get(effectiveSponsor) ?? 0) + (votesByBout.get(b.id) ?? 0));
+    sponsorBoutCounts.set(effectiveSponsor, (sponsorBoutCounts.get(effectiveSponsor) ?? 0) + 1);
+  }
+  const maxVotes = Math.max(1, ...Array.from(sponsorVoteTotals.values()));
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -47,6 +67,34 @@ export default async function SponsorsAdminPage() {
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Manage sponsors and assign them to categories or individual bouts.
       </p>
+      {(sponsors ?? []).length > 0 && (
+        <div className="bc-card mb-8 p-5">
+          <h2 className="mb-4 text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Sponsor engagement
+          </h2>
+          <div className="flex flex-col gap-3">
+            {(sponsors ?? []).map((s) => {
+              const votesTotal = sponsorVoteTotals.get(s.id) ?? 0;
+              const boutCount = sponsorBoutCounts.get(s.id) ?? 0;
+              const pct = Math.round((votesTotal / maxVotes) * 100);
+              return (
+                <div key={s.id}>
+                  <div className="mb-1 flex items-baseline justify-between text-sm">
+                    <span className="font-bold">{s.name}</span>
+                    <span style={{ color: "var(--text-faint)" }}>
+                      {boutCount} bout{boutCount === 1 ? "" : "s"} · {votesTotal} votes
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--blue)" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <SponsorManager
         initialSponsors={sponsors ?? []}
         initialCategories={categories ?? []}

@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const { title, categoryId, sourceType, sourceUrl } = body ?? {};
+  const { title, categoryId, sourceType, sourceUrl, crewName, teammates } = body ?? {};
 
   if (!title || !categoryId || !sourceType) {
     return NextResponse.json(
@@ -62,6 +62,8 @@ export async function POST(req: NextRequest) {
       title,
       source_type: sourceType,
       source_url: sourceUrl ?? "",
+      crew_name: crewName ?? "",
+      teammates: Array.isArray(teammates) ? teammates.join("|") : "",
     },
   });
 

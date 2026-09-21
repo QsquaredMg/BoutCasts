@@ -3,6 +3,27 @@ import { createClient } from "@/lib/supabase/server";
 import type { Badge, UserBadge } from "@/lib/types";
 import ChallengeButton from "@/components/ChallengeButton";
 
+const CLOUT_TIERS = [
+  { name: "Rookie", min: 0 },
+  { name: "Contender", min: 50 },
+  { name: "Rising Star", min: 150 },
+  { name: "Headliner", min: 350 },
+  { name: "Legend", min: 750 },
+];
+
+function cloutTierFor(points: number) {
+  let tier = CLOUT_TIERS[0];
+  let next: typeof CLOUT_TIERS[number] | null = null;
+  for (let i = 0; i < CLOUT_TIERS.length; i++) {
+    if (points >= CLOUT_TIERS[i].min) {
+      tier = CLOUT_TIERS[i];
+      next = CLOUT_TIERS[i + 1] ?? null;
+    }
+  }
+  const pct = next ? Math.min(100, Math.round(((points - tier.min) / (next.min - tier.min)) * 100)) : 100;
+  return { tier: tier.name, next, pct };
+}
+
 export default async function LeaderboardPage() {
   const supabase = await createClient();
 
@@ -17,6 +38,8 @@ export default async function LeaderboardPage() {
 
   let myBadges: UserBadge[] = [];
   let myPoints: number | null = null;
+  let myStreak = 0;
+  let myLongestStreak = 0;
   if (user) {
     const [{ data: badgeRows }, { data: myProfile }] = await Promise.all([
       supabase
@@ -24,11 +47,19 @@ export default async function LeaderboardPage() {
         .select("*, badges(*)")
         .eq("user_id", user.id)
         .order("awarded_at", { ascending: false }),
-      supabase.from("profiles").select("points").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("points, current_streak, longest_streak")
+        .eq("id", user.id)
+        .maybeSingle(),
     ]);
     myBadges = (badgeRows ?? []) as UserBadge[];
     myPoints = myProfile?.points ?? 0;
+    myStreak = myProfile?.current_streak ?? 0;
+    myLongestStreak = myProfile?.longest_streak ?? 0;
   }
+
+  const clout = cloutTierFor(myPoints ?? 0);
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
@@ -55,6 +86,40 @@ export default async function LeaderboardPage() {
               {myPoints ?? 0}
             </span>
           </div>
+
+          {myStreak > 0 && (
+            <div
+              className="mb-3 inline-flex items-center gap-2 rounded-full px-4 py-2"
+              style={{ background: "var(--gold-soft)" }}
+            >
+              <span>🔥</span>
+              <span className="text-sm font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--gold)" }}>
+                {myStreak} day streak
+              </span>
+              {myLongestStreak > myStreak && (
+                <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                  (best: {myLongestStreak})
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="mb-4">
+            <div className="mb-1 flex items-baseline justify-between">
+              <span className="text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>
+                Clout: <span style={{ color: "var(--red)" }}>{clout.tier}</span>
+              </span>
+              {clout.next && (
+                <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                  {clout.next.min - (myPoints ?? 0)} pts to {clout.next.name}
+                </span>
+              )}
+            </div>
+            <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
+              <div className="h-full rounded-full" style={{ width: `${clout.pct}%`, background: "var(--red)" }} />
+            </div>
+          </div>
+
           {myBadges.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {myBadges.map((ub) => {

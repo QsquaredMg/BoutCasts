@@ -141,13 +141,14 @@ export default function NavBar() {
           {loading ? null : user ? (
             <>
               {walletBalance !== null && (
-                <span
+                <Link
+                  href="/wallet"
                   title="BoutBucks wallet balance"
                   className="rounded-full px-3 py-1.5 text-xs font-bold"
                   style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
                 >
                   💰 {walletBalance} BB
-                </span>
+                </Link>
               )}
               <span className="hidden text-sm sm:inline" style={{ color: "var(--text-faint)" }}>
                 {user.email}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import VotePanel from "@/components/VotePanel";
 import CrowdComments from "@/components/CrowdComments";
+import ShareButton from "@/components/ShareButton";
 
 export default async function BoutPage({
   params,
@@ -167,9 +168,12 @@ export default async function BoutPage({
           votingOpen={votingOpen}
         />
 
-        <p className="mt-4 flex items-center gap-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
-          🔒 Verified voting — one vote per account
-        </p>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+            🔒 Verified voting — one vote per account
+          </p>
+          <ShareButton title={bout.title} />
+        </div>
 
         <CrowdComments boutId={bout.id} />
       </div>

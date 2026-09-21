@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/types";
+import InAppRecorder from "@/components/InAppRecorder";
 
 export default function SubmitPage() {
   const supabase = createClient();
@@ -17,6 +18,10 @@ export default function SubmitPage() {
   const [entryType, setEntryType] = useState<"free" | "paid">("free");
   const [sourceType, setSourceType] = useState<"upload" | "link" | "record">("link");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [recordedClipUrl, setRecordedClipUrl] = useState<string | null>(null);
+  const [isCrew, setIsCrew] = useState(false);
+  const [crewName, setCrewName] = useState("");
+  const [teammates, setTeammates] = useState<string[]>([""]);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -63,6 +68,12 @@ export default function SubmitPage() {
       return;
     }
 
+    if (sourceType === "record" && !recordedClipUrl) {
+      setError("Record a clip before submitting.");
+      setLoading(false);
+      return;
+    }
+
     if (entryType === "paid") {
       try {
         const res = await fetch("/api/checkout", {
@@ -72,7 +83,9 @@ export default function SubmitPage() {
             title,
             categoryId,
             sourceType,
-            sourceUrl: sourceType === "link" ? sourceUrl : null,
+            sourceUrl: sourceType === "link" ? sourceUrl : sourceType === "record" ? recordedClipUrl : null,
+            crewName: isCrew ? crewName : null,
+            teammates: isCrew ? teammates.filter((t) => t.trim()) : null,
           }),
         });
         const data = await res.json();
@@ -92,8 +105,10 @@ export default function SubmitPage() {
       category_id: categoryId,
       title,
       source_type: sourceType,
-      source_url: sourceType === "link" ? sourceUrl : null,
+      source_url: sourceType === "link" ? sourceUrl : sourceType === "record" ? recordedClipUrl : null,
       entry_type: "free",
+      crew_name: isCrew ? crewName || null : null,
+      teammates: isCrew ? teammates.filter((t) => t.trim()) : null,
     });
 
     setLoading(false);
@@ -242,12 +257,70 @@ export default function SubmitPage() {
             />
           )}
 
-          {(sourceType === "upload" || sourceType === "record") && (
+          {sourceType === "record" && (
+            <InAppRecorder onRecorded={setRecordedClipUrl} />
+          )}
+
+          {sourceType === "upload" && (
             <p className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-faint)" }}>
-              {sourceType === "upload" ? "File upload" : "In-browser recording"} is
-              coming soon — this submission will be saved with no media attached
-              yet.
+              File upload is coming soon — this submission will be saved with no
+              media attached yet.
             </p>
+          )}
+        </div>
+
+        <div>
+          <label className="flex items-center gap-2 text-sm font-bold" style={{ color: "var(--text-dim)" }}>
+            <input
+              type="checkbox"
+              checked={isCrew}
+              onChange={(e) => setIsCrew(e.target.checked)}
+            />
+            This is a crew/team entry
+          </label>
+          {isCrew && (
+            <div className="mt-3 flex flex-col gap-2.5">
+              <input
+                type="text"
+                value={crewName}
+                onChange={(e) => setCrewName(e.target.value)}
+                placeholder="Crew name"
+                className={inputClass}
+                style={inputStyle}
+              />
+              {teammates.map((t, i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={t}
+                    onChange={(e) =>
+                      setTeammates((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))
+                    }
+                    placeholder="Teammate handle"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                  {teammates.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setTeammates((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="flex-shrink-0 rounded-[10px] border px-3 text-sm"
+                      style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setTeammates((prev) => [...prev, ""])}
+                className="self-start text-xs font-semibold"
+                style={{ color: "var(--blue)" }}
+              >
+                + Add teammate
+              </button>
+            </div>
           )}
         </div>
 

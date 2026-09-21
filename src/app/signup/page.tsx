@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,9 +9,15 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) setReferralCode(ref.toUpperCase());
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +27,12 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username: username || undefined } },
+      options: {
+        data: {
+          username: username || undefined,
+          referral_code: referralCode || undefined,
+        },
+      },
     });
 
     setLoading(false);
@@ -55,6 +66,14 @@ export default function SignupPage() {
       <h1 className="mb-6 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
         Sign up
       </h1>
+      {referralCode && (
+        <p
+          className="mb-4 rounded-xl p-3 text-xs"
+          style={{ background: "var(--blue-soft)", color: "var(--blue)" }}
+        >
+          Signing up with invite code <strong>{referralCode}</strong>
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="text"

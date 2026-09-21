@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
     const title = metadata.title;
     const sourceType = metadata.source_type;
     const sourceUrl = metadata.source_url || null;
+    const crewName = metadata.crew_name || null;
+    const teammates = metadata.teammates ? metadata.teammates.split("|").filter(Boolean) : null;
     const amountPaid = session.amount_total ?? 0;
 
     if (!userId || !categoryId || !title || !sourceType) {
@@ -63,6 +65,8 @@ export async function POST(req: NextRequest) {
         entry_type: "paid",
         entry_fee: amountPaid,
         stripe_checkout_session_id: session.id,
+        crew_name: crewName,
+        teammates: teammates,
       });
 
       if (error) {

@@ -51,6 +51,11 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
           </div>
           <div className="mb-1 font-bold" style={{ fontFamily: "var(--font-display)" }}>
             {s.title}
+            {s.crew_name && (
+              <span className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>
+                🎤 {s.crew_name}{s.teammates && s.teammates.length > 0 ? ` + ${s.teammates.join(", ")}` : ""}
+              </span>
+            )}
           </div>
           <div className="mb-3 text-sm" style={{ color: "var(--text-faint)" }}>
             {s.source_type}
