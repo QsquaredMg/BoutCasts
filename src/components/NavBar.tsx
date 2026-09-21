@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: "/", label: "BoutCard" },
   { href: "/submit", label: "Submit" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/how-it-works", label: "How it works" },
 ];
 
 export default function NavBar() {
