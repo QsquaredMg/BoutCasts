@@ -27,3 +27,35 @@ export type VoteTally = {
   a: number;
   b: number;
 };
+
+export type Badge = {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  icon: string;
+};
+
+export type UserBadge = {
+  id: string;
+  user_id: string;
+  badge_id: string;
+  awarded_at: string;
+  badges?: Badge | null;
+};
+
+export type PointEvent = {
+  id: string;
+  user_id: string;
+  points: number;
+  reason: string;
+  related_bout_id: string | null;
+  created_at: string;
+};
+
+export type LeaderboardEntry = {
+  id: string;
+  username: string;
+  points: number;
+};
+

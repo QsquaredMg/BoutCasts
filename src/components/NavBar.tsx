@@ -52,6 +52,9 @@ export default function NavBar() {
           <Link href="/submit" className="hover:text-red-400">
             Submit
           </Link>
+          <Link href="/leaderboard" className="hover:text-red-400">
+            Leaderboard
+          </Link>
           {isAdmin && (
             <Link href="/admin/moderation" className="hover:text-red-400">
               Moderation
