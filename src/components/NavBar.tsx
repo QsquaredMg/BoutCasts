@@ -16,6 +16,7 @@ export default function NavBar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [pendingChallenges, setPendingChallenges] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -27,11 +28,12 @@ export default function NavBar() {
       if (data.user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_admin, wallet_balance")
+          .select("is_admin, wallet_balance, username")
           .eq("id", data.user.id)
           .maybeSingle();
         setIsAdmin(!!profile?.is_admin);
         setWalletBalance(profile?.wallet_balance ?? 0);
+        setUsername(profile?.username ?? null);
 
         const { count } = await supabase
           .from("challenges")
@@ -150,9 +152,15 @@ export default function NavBar() {
                   💰 {walletBalance} BB
                 </Link>
               )}
-              <span className="hidden text-sm sm:inline" style={{ color: "var(--text-faint)" }}>
-                {user.email}
-              </span>
+              {username && (
+                <Link
+                  href={`/profile/${username}`}
+                  className="hidden text-sm font-semibold sm:inline hover:underline"
+                  style={{ color: "var(--text-dim)" }}
+                >
+                  {username}
+                </Link>
+              )}
               <button
                 onClick={handleSignOut}
                 className="rounded-full border px-4 py-1.5 text-sm font-semibold"
