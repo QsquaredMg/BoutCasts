@@ -19,7 +19,7 @@ export default async function Home() {
 
   const { data: bouts, error } = await supabase
     .from("bouts")
-    .select("*, categories(name)")
+    .select("*, categories(name, sponsor_id, sponsors(name)), sponsors(name)")
     .order("created_at", { ascending: false });
 
   const boutIds = (bouts ?? []).map((b) => b.id);
@@ -85,6 +85,11 @@ export default async function Home() {
                   </span>
                 )}
               </div>
+              {(bout.sponsors?.name || bout.categories?.sponsors?.name) && (
+                <div className="mb-2 text-[11px] font-medium text-neutral-400">
+                  Presented by {bout.sponsors?.name ?? bout.categories?.sponsors?.name}
+                </div>
+              )}
               <div className="flex items-center justify-between font-semibold">
                 <span>{bout.competitor_a_name}</span>
                 <span className="text-neutral-400">vs</span>

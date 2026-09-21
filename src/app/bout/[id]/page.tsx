@@ -13,7 +13,7 @@ export default async function BoutPage({
 
   const { data: bout } = await supabase
     .from("bouts")
-    .select("*, categories(name)")
+    .select("*, categories(name, sponsor_id, sponsors(name, website_url)), sponsors(name, website_url)")
     .eq("id", id)
     .maybeSingle();
 
@@ -75,6 +75,28 @@ export default async function BoutPage({
         </div>
 
         <h1 className="mb-1 text-xl font-bold">{bout.title}</h1>
+
+        {(bout.sponsors?.name || bout.categories?.sponsors?.name) && (
+          <p className="mb-3 text-xs font-medium text-neutral-400">
+            Presented by{" "}
+            {(() => {
+              const sponsor = bout.sponsors ?? bout.categories?.sponsors;
+              if (!sponsor) return null;
+              return sponsor.website_url ? (
+                <a
+                  href={sponsor.website_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-neutral-600"
+                >
+                  {sponsor.name}
+                </a>
+              ) : (
+                sponsor.name
+              );
+            })()}
+          </p>
+        )}
 
         <div className="mb-4 flex items-center justify-center gap-4 py-4 text-lg font-bold">
           <span className={bout.winner_side === "a" ? "text-green-700" : ""}>

@@ -58,9 +58,14 @@ export default function NavBar() {
             Leaderboard
           </Link>
           {isAdmin && (
-            <Link href="/admin/moderation" className="hover:text-red-400">
-              Moderation
-            </Link>
+            <>
+              <Link href="/admin/moderation" className="hover:text-red-400">
+                Moderation
+              </Link>
+              <Link href="/admin/sponsors" className="hover:text-red-400">
+                Sponsors
+              </Link>
+            </>
           )}
           {loading ? null : user ? (
             <div className="flex items-center gap-3">

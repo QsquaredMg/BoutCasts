@@ -1,7 +1,18 @@
+export type Sponsor = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  website_url: string | null;
+  tier: "title" | "standard";
+  created_at: string;
+};
+
 export type Category = {
   id: string;
   name: string;
   sort_order: number;
+  sponsor_id: string | null;
+  sponsors?: Sponsor | null;
 };
 
 export type Bout = {
@@ -20,7 +31,9 @@ export type Bout = {
   winner_side: "a" | "b" | null;
   next_bout_id: string | null;
   next_slot: "a" | "b" | null;
-  categories?: { name: string } | null;
+  sponsor_id: string | null;
+  categories?: { name: string; sponsor_id?: string | null; sponsors?: Sponsor | null } | null;
+  sponsors?: Sponsor | null;
 };
 
 export type VoteTally = {
