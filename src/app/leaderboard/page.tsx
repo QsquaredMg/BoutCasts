@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Badge, UserBadge } from "@/lib/types";
+import ChallengeButton from "@/components/ChallengeButton";
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
@@ -102,6 +103,9 @@ export default async function LeaderboardPage() {
                   {i + 1}
                 </span>
                 <span className="flex-1 text-sm font-bold">{p.username}</span>
+                {user && p.id !== user.id && (
+                  <ChallengeButton opponentId={p.id} opponentName={p.username ?? "this creator"} />
+                )}
                 <span
                   className="text-base font-bold tabular-nums"
                   style={{ fontFamily: "var(--font-display)" }}

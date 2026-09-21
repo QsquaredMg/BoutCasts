@@ -87,6 +87,20 @@ export type Submission = {
   categories?: { name: string } | null;
 };
 
+export type Challenge = {
+  id: string;
+  challenger_id: string;
+  opponent_id: string;
+  category_id: string | null;
+  message: string | null;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+  responded_at: string | null;
+  challenger?: { username: string | null } | null;
+  opponent?: { username: string | null } | null;
+  categories?: { name: string } | null;
+};
+
 export type BoutComment = {
   id: string;
   bout_id: string;

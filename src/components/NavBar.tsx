@@ -17,6 +17,7 @@ export default function NavBar() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [pendingChallenges, setPendingChallenges] = useState(0);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -31,6 +32,13 @@ export default function NavBar() {
           .maybeSingle();
         setIsAdmin(!!profile?.is_admin);
         setWalletBalance(profile?.wallet_balance ?? 0);
+
+        const { count } = await supabase
+          .from("challenges")
+          .select("id", { count: "exact", head: true })
+          .eq("opponent_id", data.user.id)
+          .eq("status", "pending");
+        setPendingChallenges(count ?? 0);
       }
       setLoading(false);
     });
@@ -112,6 +120,24 @@ export default function NavBar() {
         </div>
 
         <div className="flex items-center gap-3">
+          {user && (
+            <Link
+              href="/challenges"
+              className="relative rounded-full border px-3 py-1.5 text-xs font-bold"
+              style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+              title="Challenges"
+            >
+              🥊
+              {pendingChallenges > 0 && (
+                <span
+                  className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                  style={{ background: "var(--red)" }}
+                >
+                  {pendingChallenges}
+                </span>
+              )}
+            </Link>
+          )}
           {loading ? null : user ? (
             <>
               {walletBalance !== null && (
