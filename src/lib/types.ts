@@ -84,7 +84,9 @@ export type Submission = {
   stripe_checkout_session_id?: string | null;
   crew_name?: string | null;
   teammates?: string[] | null;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "appealed";
+  appeal_message?: string | null;
+  appealed_at?: string | null;
   created_at: string;
   categories?: { name: string } | null;
 };

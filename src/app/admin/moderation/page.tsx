@@ -32,6 +32,12 @@ export default async function ModerationPage() {
   const { data: pending } = await supabase
     .from("submissions")
     .select("*, categories(name)")
+    .in("status", ["pending", "appealed"])
+    .order("created_at", { ascending: true });
+
+  const { data: openReports } = await supabase
+    .from("reports")
+    .select("*, profiles(username)")
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
@@ -45,6 +51,34 @@ export default async function ModerationPage() {
         Review submissions before they go live.
       </p>
       <ModerationQueue submissions={pending ?? []} />
+
+      <h2 className="mb-3 mt-10 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        Open reports
+      </h2>
+      {(openReports ?? []).length === 0 ? (
+        <p style={{ color: "var(--text-faint)" }}>No open reports.</p>
+      ) : (
+        <div className="bc-card overflow-hidden">
+          {(openReports ?? []).map((r, i) => (
+            <div key={r.id} className="px-4 py-3" style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold">
+                  {r.reason} &middot; <span style={{ color: "var(--text-faint)" }}>{r.target_type}</span>
+                </span>
+                <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                  reported by {r.profiles?.username ?? "unknown"}
+                </span>
+              </div>
+              {r.details && (
+                <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>{r.details}</p>
+              )}
+              <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
+                Target ID: {r.target_id}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

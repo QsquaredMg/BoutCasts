@@ -49,6 +49,11 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
               </span>
             )}
           </div>
+          {s.status === "appealed" && (
+            <div className="mb-2 rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: "var(--gold-soft)", color: "var(--gold)", display: "inline-block" }}>
+              ⚖️ Appealed
+            </div>
+          )}
           <div className="mb-1 font-bold" style={{ fontFamily: "var(--font-display)" }}>
             {s.title}
             {s.crew_name && (
@@ -61,6 +66,11 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
             {s.source_type}
             {s.source_url ? `: ${s.source_url}` : ""}
           </div>
+          {s.status === "appealed" && s.appeal_message && (
+            <p className="mb-3 rounded-lg p-3 text-sm italic" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+              &ldquo;{s.appeal_message}&rdquo;
+            </p>
+          )}
           {s.entry_type === "paid" && (
             <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
               Rejecting this credits {s.entry_fee} BoutBucks to the submitter&apos;s

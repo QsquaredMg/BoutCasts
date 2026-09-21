@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cloutTierFor } from "@/lib/clout";
 import FollowButton from "@/components/FollowButton";
+import AppealButton from "@/components/AppealButton";
 import type { Badge, UserBadge, PointEvent, Submission } from "@/lib/types";
 
 const REASON_LABEL: Record<string, string> = {
@@ -42,6 +43,7 @@ export default async function ProfilePage({
     { count: followerCount },
     { count: followingCount },
     { data: viewerFollow },
+    { data: otherRows },
   ] = await Promise.all([
     supabase
       .from("user_badges")
@@ -76,11 +78,20 @@ export default async function ProfilePage({
           .eq("followed_id", profile.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    isOwnProfile
+      ? supabase
+          .from("submissions")
+          .select("*, categories(name)")
+          .eq("user_id", profile.id)
+          .in("status", ["pending", "rejected", "appealed"])
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: null }),
   ]);
 
   const badges = (badgeRows ?? []) as UserBadge[];
   const pointEvents = (pointRows ?? []) as PointEvent[];
   const submissions = (submissionRows ?? []) as Submission[];
+  const otherSubmissions = (otherRows ?? []) as Submission[];
   const clout = cloutTierFor(profile.points ?? 0);
   const initial = (profile.username ?? "?").slice(0, 1).toUpperCase();
   const memberSince = new Date(profile.created_at).toLocaleDateString("en-US", {
@@ -194,6 +205,50 @@ export default async function ProfilePage({
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {isOwnProfile && otherSubmissions.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Your other submissions
+          </h2>
+          <div className="bc-card overflow-hidden">
+            {otherSubmissions.map((s, i) => {
+              const statusStyle =
+                s.status === "pending"
+                  ? { background: "var(--surface-2)", color: "var(--text-dim)" }
+                  : s.status === "appealed"
+                  ? { background: "var(--gold-soft)", color: "var(--gold)" }
+                  : { background: "var(--red-soft)", color: "var(--red)" };
+              return (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
+                >
+                  <div className="flex-1">
+                    <div className="text-sm font-bold">{s.title}</div>
+                    <div className="text-xs" style={{ color: "var(--text-faint)" }}>
+                      {s.categories?.name}
+                    </div>
+                    {s.status === "appealed" && s.appeal_message && (
+                      <div className="mt-1 text-xs italic" style={{ color: "var(--text-faint)" }}>
+                        Your appeal: &ldquo;{s.appeal_message}&rdquo;
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase"
+                    style={{ fontFamily: "var(--font-display)", ...statusStyle }}
+                  >
+                    {s.status}
+                  </span>
+                  {s.status === "rejected" && <AppealButton submissionId={s.id} />}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

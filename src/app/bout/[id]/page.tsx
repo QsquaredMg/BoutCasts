@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import VotePanel from "@/components/VotePanel";
 import CrowdComments from "@/components/CrowdComments";
 import ShareButton from "@/components/ShareButton";
+import ReportButton from "@/components/ReportButton";
 
 export default async function BoutPage({
   params,
@@ -172,7 +173,10 @@ export default async function BoutPage({
           <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
             🔒 Verified voting — one vote per account
           </p>
-          <ShareButton title={bout.title} />
+          <div className="flex items-center gap-3">
+            <ShareButton title={bout.title} />
+            <ReportButton targetType="bout" targetId={bout.id} />
+          </div>
         </div>
 
         <CrowdComments boutId={bout.id} />
