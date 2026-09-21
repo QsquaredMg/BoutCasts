@@ -123,6 +123,14 @@ export default function NavBar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/search"
+            className="rounded-full border px-3 py-1.5 text-xs font-bold"
+            style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+            title="Search"
+          >
+            🔍
+          </Link>
           {user && <NotificationBell userId={user.id} />}
           {user && (
             <Link
