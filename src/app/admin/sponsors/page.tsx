@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SponsorManager from "@/components/SponsorManager";
+import SponsorApplications from "@/components/SponsorApplications";
 
 export default async function SponsorsAdminPage() {
   const supabase = await createClient();
@@ -29,7 +30,7 @@ export default async function SponsorsAdminPage() {
     );
   }
 
-  const [{ data: sponsors }, { data: categories }, { data: bouts }, { data: boutsWithCat }, { data: votes }] =
+  const [{ data: sponsors }, { data: categories }, { data: bouts }, { data: boutsWithCat }, { data: votes }, { data: applications }] =
     await Promise.all([
       supabase.from("sponsors").select("*").order("created_at", { ascending: false }),
       supabase.from("categories").select("*").order("sort_order"),
@@ -39,6 +40,11 @@ export default async function SponsorsAdminPage() {
         .order("created_at", { ascending: false }),
       supabase.from("bouts").select("id, sponsor_id, category_id"),
       supabase.from("votes").select("bout_id"),
+      supabase
+        .from("sponsor_applications")
+        .select("id, company_name, website_url, contact_email, tier, message, amount_paid, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: true }),
     ]);
 
   // Per-sponsor vote totals: a bout counts toward a sponsor if it's
@@ -94,6 +100,8 @@ export default async function SponsorsAdminPage() {
           </div>
         </div>
       )}
+
+      <SponsorApplications initial={applications ?? []} />
 
       <SponsorManager
         initialSponsors={sponsors ?? []}

@@ -110,12 +110,20 @@ export default function HowItWorksPage() {
         moderator to take another look.
       </p>
 
-      <Link
-        href="/submit"
-        className="bc-btn-solid mt-6 inline-block rounded-full px-5 py-2.5 text-sm"
-      >
-        Submit your first entry
-      </Link>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href="/submit"
+          className="bc-btn-solid inline-block rounded-full px-5 py-2.5 text-sm"
+        >
+          Submit your first entry
+        </Link>
+        <Link
+          href="/sponsor"
+          className="bc-btn-outline-blue inline-block rounded-full px-5 py-2.5 text-sm"
+        >
+          Sponsor a category
+        </Link>
+      </div>
     </div>
   );
 }

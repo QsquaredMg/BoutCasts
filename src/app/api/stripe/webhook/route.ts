@@ -32,6 +32,38 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata ?? {};
 
+    if (metadata.kind === "sponsorship") {
+      const admin = createAdminClient();
+
+      const { data: existing } = await admin
+        .from("sponsor_applications")
+        .select("id")
+        .eq("stripe_checkout_session_id", session.id)
+        .maybeSingle();
+
+      if (!existing) {
+        const { error } = await admin.from("sponsor_applications").insert({
+          company_name: metadata.company_name,
+          website_url: metadata.website_url || null,
+          contact_email: metadata.contact_email,
+          tier: metadata.tier,
+          message: metadata.message || null,
+          stripe_checkout_session_id: session.id,
+          amount_paid: session.amount_total ?? 0,
+        });
+
+        if (error) {
+          console.error("Stripe webhook: failed to insert sponsor application", error);
+          return NextResponse.json(
+            { error: "Failed to record sponsor application" },
+            { status: 500 }
+          );
+        }
+      }
+
+      return NextResponse.json({ received: true });
+    }
+
     const userId = metadata.user_id;
     const categoryId = metadata.category_id;
     const title = metadata.title;
