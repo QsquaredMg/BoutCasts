@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NotificationBell from "@/components/NotificationBell";
 import type { User } from "@supabase/supabase-js";
 
 const NAV_LINKS = [
@@ -122,6 +123,7 @@ export default function NavBar() {
         </div>
 
         <div className="flex items-center gap-3">
+          {user && <NotificationBell userId={user.id} />}
           {user && (
             <Link
               href="/challenges"

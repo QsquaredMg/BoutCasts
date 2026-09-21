@@ -127,3 +127,14 @@ export type Follow = {
   followed_id: string;
   created_at: string;
 };
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  actor_id: string | null;
+  type: string;
+  body: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+};
