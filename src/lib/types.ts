@@ -155,3 +155,28 @@ export type PoolContribution = {
   amount: number;
   created_at: string;
 };
+
+export type CashWalletEvent = {
+  id: string;
+  user_id: string;
+  amount_cents: number;
+  reason: string;
+  status: "pending" | "available";
+  related_bout_id: string | null;
+  created_at: string;
+  released_at: string | null;
+};
+
+export type CashRedemption = {
+  id: string;
+  user_id: string;
+  redemption_type: "cash" | "gift_card";
+  gift_card_brand: string | null;
+  amount_cents: number;
+  payout_method: string | null;
+  status: "pending" | "fulfilled" | "rejected";
+  admin_note: string | null;
+  created_at: string;
+  fulfilled_at: string | null;
+  profiles?: { username: string | null } | null;
+};

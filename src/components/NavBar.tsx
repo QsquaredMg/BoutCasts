@@ -119,6 +119,16 @@ export default function NavBar() {
               >
                 Sponsors
               </Link>
+              <Link
+                href="/admin/cash"
+                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color: pathname === "/admin/cash" ? "var(--text)" : "var(--text-dim)",
+                }}
+              >
+                Cash
+              </Link>
             </>
           )}
         </div>
