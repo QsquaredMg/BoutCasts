@@ -43,9 +43,13 @@ export default async function OGImage({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2 }}>
-            Bout<span style={{ color: "#d92c4c" }}>Casts</span>
-          </div>
+          <img
+            src="https://www.boutcasts.com/boutcasts-logo.png"
+            width={148}
+            height={81}
+            alt="BoutCasts"
+            style={{ display: "flex" }}
+          />
           <div
             style={{
               fontSize: 18,

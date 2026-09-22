@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRoundRecap, roundLabelFor } from "@/lib/recap";
 import VersusCard from "@/components/VersusCard";
+import RecapVideoPlayer from "@/components/RecapVideoPlayer";
 
 export default async function RoundRecapPage({
   params,
@@ -53,6 +54,29 @@ export default async function RoundRecapPage({
         >
           This round is still in progress — the recap fills in as bouts close.
         </p>
+      )}
+
+      {recap.bouts.length > 0 && (
+        <div className="mb-6">
+          <RecapVideoPlayer
+            categoryName={recap.categoryName}
+            levelLabel={label}
+            sponsorName={recap.sponsorName}
+            bouts={recap.bouts.map((b) => {
+              const total = b.tally_a + b.tally_b;
+              const pctA = total > 0 ? Math.round((b.tally_a / total) * 100) : 0;
+              const pctB = total > 0 ? 100 - pctA : 0;
+              return {
+                id: b.id,
+                aName: b.competitor_a_name,
+                bName: b.competitor_b_name,
+                pctA,
+                pctB,
+                winnerSide: b.winner_side,
+              };
+            })}
+          />
+        </div>
       )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -71,12 +72,15 @@ export default function NavBar() {
       style={{ background: "var(--bg)", borderColor: "var(--border)" }}
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <Link
-          href="/"
-          className="text-xl font-bold tracking-tight"
-          style={{ fontFamily: "var(--font-display)", color: "var(--text)" }}
-        >
-          Bout<span style={{ color: "var(--red)" }}>Casts</span>
+        <Link href="/" className="flex items-center" aria-label="BoutCasts home">
+          <Image
+            src="/boutcasts-logo.png"
+            alt="BoutCasts"
+            width={170}
+            height={93}
+            priority
+            className="h-9 w-auto sm:h-10"
+          />
         </Link>
 
         <div
