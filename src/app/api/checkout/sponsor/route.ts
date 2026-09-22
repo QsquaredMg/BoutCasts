@@ -11,7 +11,8 @@ const PLANS: Record<string, { label: string; priceCents: number; badgeTier: "sta
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const { companyName, websiteUrl, contactEmail, plan, message } = body ?? {};
+  const { companyName, websiteUrl, contactEmail, plan, message, opportunityType, categoryId, bannerStyle } =
+    body ?? {};
 
   if (!companyName || !contactEmail || !plan || !PLANS[plan]) {
     return NextResponse.json(
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest) {
       tier: badgeTier,
       plan_name: label,
       message: (message || "").slice(0, 450),
+      opportunity_type: opportunityType || "",
+      category_id: categoryId || "",
+      banner_style: bannerStyle || "",
     },
   });
 

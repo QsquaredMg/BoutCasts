@@ -14,7 +14,24 @@ type Application = {
   message: string | null;
   amount_paid: number | null;
   created_at: string;
+  opportunity_type: string | null;
+  category_id: string | null;
+  banner_style: string | null;
+  categories?: { name: string }[] | { name: string } | null;
 };
+
+const OPP_LABEL: Record<string, string> = {
+  commercial: "Platform-wide commercial",
+  bracket: "Sponsor a full bracket",
+  bout: "Sponsor a single bout",
+  curated: "Fully curated bout",
+  prizes: "Prizes, powered by you",
+};
+
+function categoryName(categories: Application["categories"]): string | null {
+  if (!categories) return null;
+  return Array.isArray(categories) ? categories[0]?.name ?? null : categories.name ?? null;
+}
 
 export default function SponsorApplications({ initial }: { initial: Application[] }) {
   const supabase = createClient();
@@ -98,6 +115,13 @@ export default function SponsorApplications({ initial }: { initial: Application[
               {a.contact_email}
               {a.website_url && <> · {a.website_url}</>}
             </div>
+            {a.opportunity_type && (
+              <div className="text-xs" style={{ color: "var(--text-dim)" }}>
+                {OPP_LABEL[a.opportunity_type] ?? a.opportunity_type}
+                {categoryName(a.categories) && <> · {categoryName(a.categories)}</>}
+                {a.banner_style && <> · {a.banner_style} banner</>}
+              </div>
+            )}
             {a.message && (
               <p className="text-xs italic" style={{ color: "var(--text-dim)" }}>
                 &ldquo;{a.message}&rdquo;

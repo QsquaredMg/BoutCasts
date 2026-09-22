@@ -94,6 +94,9 @@ export async function POST(req: NextRequest) {
           stripe_checkout_session_id: session.id,
           stripe_subscription_id: typeof session.subscription === "string" ? session.subscription : null,
           amount_paid: session.amount_total ?? 0,
+          opportunity_type: metadata.opportunity_type || null,
+          category_id: metadata.category_id || null,
+          banner_style: metadata.banner_style || null,
         });
 
         if (error) {
