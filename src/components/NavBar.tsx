@@ -134,48 +134,16 @@ export default function NavBar() {
             Profile
           </Link>
           {isAdmin && (
-            <>
-              <Link
-                href="/admin/moderation"
-                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  color: pathname === "/admin/moderation" ? "var(--text)" : "var(--text-dim)",
-                }}
-              >
-                Moderation
-              </Link>
-              <Link
-                href="/admin/sponsors"
-                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  color: pathname === "/admin/sponsors" ? "var(--text)" : "var(--text-dim)",
-                }}
-              >
-                Sponsors
-              </Link>
-              <Link
-                href="/admin/cash"
-                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  color: pathname === "/admin/cash" ? "var(--text)" : "var(--text-dim)",
-                }}
-              >
-                Cash
-              </Link>
-              <Link
-                href="/admin/bouts"
-                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  color: pathname === "/admin/bouts" ? "var(--text)" : "var(--text-dim)",
-                }}
-              >
-                Bouts
-              </Link>
-            </>
+            <Link
+              href="/admin"
+              className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+              style={{
+                fontFamily: "var(--font-display)",
+                color: pathname.startsWith("/admin") ? "var(--text)" : "var(--text-dim)",
+              }}
+            >
+              Admin
+            </Link>
           )}
         </div>
 
@@ -304,17 +272,8 @@ export default function NavBar() {
           {isAdmin && (
             <>
               <div className="my-1 border-t" style={{ borderColor: "var(--border)" }} />
-              <Link href="/admin/moderation" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
-                Moderation
-              </Link>
-              <Link href="/admin/sponsors" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
-                Sponsors
-              </Link>
-              <Link href="/admin/cash" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
-                Cash
-              </Link>
-              <Link href="/admin/bouts" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
-                Bouts
+              <Link href="/admin" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+                Admin
               </Link>
             </>
           )}
