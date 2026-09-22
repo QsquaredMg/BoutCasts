@@ -9,8 +9,9 @@ import type { User } from "@supabase/supabase-js";
 
 const NAV_LINKS = [
   { href: "/", label: "BoutCard" },
-  { href: "/submit", label: "Submit" },
+  { href: "/matchups", label: "Matchups" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/sponsor", label: "For Brands" },
   { href: "/how-it-works", label: "How it works" },
 ];
 
@@ -61,12 +62,15 @@ export default function NavBar() {
     window.location.href = "/";
   }
 
+  const profileHref = username ? `/profile/${username}` : "/login";
+  const profileActive = username ? pathname === `/profile/${username}` : false;
+
   return (
     <nav
       className="border-b"
       style={{ background: "var(--bg)", borderColor: "var(--border)" }}
     >
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
         <Link
           href="/"
           className="text-xl font-bold tracking-tight"
@@ -76,7 +80,7 @@ export default function NavBar() {
         </Link>
 
         <div
-          className="flex gap-1 rounded-full p-1"
+          className="flex flex-wrap gap-1 rounded-full p-1"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           {NAV_LINKS.map((link) => {
@@ -97,6 +101,18 @@ export default function NavBar() {
               </Link>
             );
           })}
+          <Link
+            href={profileHref}
+            className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+            style={{
+              fontFamily: "var(--font-display)",
+              background: profileActive ? "var(--surface-2)" : "transparent",
+              color: profileActive ? "var(--text)" : "var(--text-dim)",
+              boxShadow: profileActive ? "inset 0 0 0 1px var(--border)" : "none",
+            }}
+          >
+            Profile
+          </Link>
           {isAdmin && (
             <>
               <Link
@@ -198,6 +214,13 @@ export default function NavBar() {
               Sign in
             </Link>
           )}
+          <Link
+            href="/submit"
+            className="rounded-full px-4 py-1.5 text-sm font-bold text-white"
+            style={{ background: "var(--red)" }}
+          >
+            + Submit a Bout
+          </Link>
         </div>
       </div>
     </nav>

@@ -1,188 +1,113 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
-import { getCategoryIcon } from "@/lib/categoryIcon";
-import ContributeButton from "@/components/ContributeButton";
-import StopPropagation from "@/components/StopPropagation";
-import PrizeTag from "@/components/PrizeTag";
+import FeaturedBout from "@/components/FeaturedBout";
+import BracketTree from "@/components/BracketTree";
 
-const STATUS_LABEL: Record<Bout["status"], string> = {
-  live: "LIVE",
-  upcoming: "UPCOMING",
-  final: "FINAL",
-};
-
+// The "BoutCard" landing page — mirrors the concept mockup's default view:
+// a featured live duel up top, its tournament bracket underneath, with a
+// way to jump into the full flat feed of every other matchup.
 export default async function Home() {
   const supabase = await createClient();
 
-  const { data: bouts, error } = await supabase
+  // Feature the most relevant bout: a live one first, then the next
+  // upcoming one, then just whatever's most recent.
+  const { data: liveBout } = await supabase
     .from("bouts")
-    .select("*, categories(name, sponsor_id, sponsors(name, opportunity_type, banner_style)), sponsors(name, opportunity_type, banner_style)")
-    .order("created_at", { ascending: false });
+    .select("id, bracket_key, categories(name)")
+    .eq("status", "live")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  const boutIds = (bouts ?? []).map((b) => b.id);
-  const tallies: Record<string, { a: number; b: number }> = {};
-  const poolByBout = new Map<string, { id: string; goal_amount: number; raised: number }>();
+  type FeaturedRow = { id: string; bracket_key: string | null; categories: { name: string }[] | { name: string } | null };
+  function categoryName(categories: FeaturedRow["categories"]): string | null {
+    if (!categories) return null;
+    return Array.isArray(categories) ? categories[0]?.name ?? null : categories.name ?? null;
+  }
 
-  if (boutIds.length > 0) {
-    const [{ data: votes }, { data: pools }] = await Promise.all([
-      supabase.from("votes").select("bout_id, side").in("bout_id", boutIds),
-      supabase.from("prize_pools").select("id, bout_id, goal_amount").in("bout_id", boutIds),
-    ]);
+  let featured = liveBout as FeaturedRow | null;
+  if (!featured) {
+    const { data: upcoming } = await supabase
+      .from("bouts")
+      .select("id, bracket_key, categories(name)")
+      .eq("status", "upcoming")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    featured = upcoming as FeaturedRow | null;
+  }
+  if (!featured) {
+    const { data: any } = await supabase
+      .from("bouts")
+      .select("id, bracket_key, categories(name)")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    featured = any as FeaturedRow | null;
+  }
 
-    for (const v of votes ?? []) {
-      if (!tallies[v.bout_id]) tallies[v.bout_id] = { a: 0, b: 0 };
-      tallies[v.bout_id][v.side as "a" | "b"]++;
-    }
-
-    if (pools && pools.length > 0) {
-      const { data: contributions } = await supabase
-        .from("pool_contributions")
-        .select("pool_id, amount")
-        .in("pool_id", pools.map((p) => p.id));
-      const raisedByPool = new Map<string, number>();
-      for (const c of contributions ?? []) {
-        raisedByPool.set(c.pool_id, (raisedByPool.get(c.pool_id) ?? 0) + c.amount);
-      }
-      for (const p of pools) {
-        poolByBout.set(p.bout_id, { id: p.id, goal_amount: p.goal_amount, raised: raisedByPool.get(p.id) ?? 0 });
-      }
-    }
+  let bracketBouts: Bout[] = [];
+  if (featured?.bracket_key) {
+    const { data: boutsRaw } = await supabase
+      .from("bouts")
+      .select("*, categories(name)")
+      .eq("bracket_key", featured.bracket_key)
+      .order("round_number", { ascending: true })
+      .order("created_at", { ascending: true });
+    bracketBouts = (boutsRaw as Bout[]) ?? [];
   }
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
-      <h1
-        className="mb-1 text-2xl font-bold"
-        style={{ fontFamily: "var(--font-display)", color: "var(--text)" }}
-      >
-        Matchups
-      </h1>
-      <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Head-to-head clip battles. Vote on the current round&apos;s winner.
-      </p>
-
-      {error && (
-        <p
-          className="rounded-lg p-3 text-sm"
-          style={{ background: "var(--red-soft)", color: "var(--red)" }}
-        >
-          Failed to load bouts: {error.message}
-        </p>
+      {!featured && (
+        <div className="bc-card p-8 text-center" style={{ color: "var(--text-faint)" }}>
+          No bouts yet.{" "}
+          <Link href="/submit" className="font-semibold underline" style={{ color: "var(--blue)" }}>
+            Submit the first one
+          </Link>
+          .
+        </div>
       )}
 
-      {!error && (!bouts || bouts.length === 0) && (
-        <p style={{ color: "var(--text-faint)" }}>No bouts yet.</p>
-      )}
+      {featured && (
+        <>
+          <FeaturedBout boutId={featured.id} />
 
-      <div className="bc-card flex flex-col overflow-hidden">
-        {bouts?.map((bout: Bout, i: number) => {
-          const tally = tallies[bout.id] ?? { a: 0, b: 0 };
-          const total = tally.a + tally.b;
-          const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;
-          const pctB = total > 0 ? 100 - pctA : 0;
-          const effectiveSponsor = bout.sponsors ?? bout.categories?.sponsors;
-          const sponsorName = effectiveSponsor?.name;
-          const isPrizeSponsor = effectiveSponsor?.opportunity_type === "prizes" && effectiveSponsor?.banner_style;
-
-          return (
-            <Link
-              key={bout.id}
-              href={`/bout/${bout.id}`}
-              className="flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--surface-2)]"
-              style={{
-                borderTop: i > 0 ? "1px solid var(--border)" : "none",
-              }}
-            >
-              <div
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] text-lg"
-                style={{ background: "var(--surface-2)" }}
-              >
-                {getCategoryIcon(bout.categories?.name)}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-sm font-bold">
-                  <span>{bout.competitor_a_name}</span>
-                  <span style={{ color: "var(--text-faint)" }}>vs</span>
-                  <span>{bout.competitor_b_name}</span>
-                  {bout.bracket_key && (
-                    <span
-                      className="bc-badge-gold rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
-                    >
-                      🏆 Round {bout.round_number}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-0.5 text-xs" style={{ color: "var(--text-faint)" }}>
-                  <span className="font-semibold" style={{ color: "var(--text-dim)" }}>
-                    {bout.categories?.name ?? "Uncategorized"}
-                  </span>
-                  {sponsorName && !isPrizeSponsor && <span> · Presented by {sponsorName}</span>}
-                </div>
-                {isPrizeSponsor && (
-                  <div className="mt-1.5">
-                    <PrizeTag style={effectiveSponsor!.banner_style!} brand={sponsorName!} />
-                  </div>
-                )}
-                {poolByBout.has(bout.id) && (() => {
-                  const pool = poolByBout.get(bout.id)!;
-                  const pct = Math.min(100, Math.round((pool.raised / pool.goal_amount) * 100));
-                  return (
-                    <div className="mt-2 flex max-w-[300px] items-center gap-2">
-                      <span className="whitespace-nowrap text-[11px] font-bold" style={{ color: "var(--text-dim)" }}>
-                        🪙 {pool.raised} of {pool.goal_amount} BB
-                      </span>
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--blue)" }} />
-                      </div>
-                      <StopPropagation>
-                        <ContributeButton poolId={pool.id} compact />
-                      </StopPropagation>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                <span
-                  className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    background:
-                      bout.status === "live"
-                        ? "var(--red-soft)"
-                        : bout.status === "final"
-                        ? "var(--gold-soft)"
-                        : "var(--surface-2)",
-                    color:
-                      bout.status === "live"
-                        ? "var(--red)"
-                        : bout.status === "final"
-                        ? "var(--gold)"
-                        : "var(--text-dim)",
-                  }}
+          {bracketBouts.length > 0 && featured.bracket_key && (
+            <section className="mt-8">
+              <div className="mb-1 flex items-baseline justify-between gap-3">
+                <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>
+                  {categoryName(featured.categories) ?? "Bracket"}
+                </h2>
+                <Link
+                  href={`/bracket/${featured.bracket_key}`}
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--blue)" }}
                 >
-                  {bout.status === "live" && <span className="bc-live-dot mr-1" />}
-                  {STATUS_LABEL[bout.status]}
-                </span>
-                {total > 0 ? (
-                  <span
-                    className="text-xs font-variant-tabular"
-                    style={{ color: "var(--text-faint)" }}
-                  >
-                    {pctA}% / {pctB}%
-                  </span>
-                ) : (
-                  <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-                    No votes yet
-                  </span>
-                )}
+                  Full bracket →
+                </Link>
               </div>
+              <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
+                Tournament bracket — winners advance automatically when voting closes.
+              </p>
+              <div className="bc-card p-5">
+                <BracketTree bouts={bracketBouts} bracketKey={featured.bracket_key} />
+              </div>
+            </section>
+          )}
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/matchups"
+              className="rounded-full border px-5 py-2.5 text-sm font-bold"
+              style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+            >
+              Browse all matchups →
             </Link>
-          );
-        })}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

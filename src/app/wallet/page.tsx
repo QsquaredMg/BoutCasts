@@ -42,7 +42,7 @@ export default async function WalletPage() {
 
   return (
     <div className="mx-auto max-w-lg px-5 py-8">
-      <Link href="/" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
+      <Link href="/matchups" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
         &larr; Back to matchups
       </Link>
       <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
