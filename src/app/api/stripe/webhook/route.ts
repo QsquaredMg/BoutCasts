@@ -28,9 +28,51 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const admin = createAdminClient();
+
+    const { error } = await admin
+      .from("profiles")
+      .update({ tier: "fan", stripe_subscription_id: null, pro_active_until: null })
+      .eq("stripe_subscription_id", subscription.id);
+
+    if (error) {
+      console.error("Stripe webhook: failed to downgrade profile on subscription cancellation", error);
+    }
+
+    return NextResponse.json({ received: true });
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata ?? {};
+
+    if (metadata.kind === "pro_membership") {
+      const admin = createAdminClient();
+      const userId = metadata.user_id;
+
+      if (!userId) {
+        console.error("Stripe webhook: pro_membership session missing user_id", session.id);
+        return NextResponse.json({ received: true });
+      }
+
+      const { error } = await admin
+        .from("profiles")
+        .update({
+          tier: "pro",
+          stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
+          stripe_subscription_id: typeof session.subscription === "string" ? session.subscription : null,
+        })
+        .eq("id", userId);
+
+      if (error) {
+        console.error("Stripe webhook: failed to upgrade profile to pro", error);
+        return NextResponse.json({ error: "Failed to activate membership" }, { status: 500 });
+      }
+
+      return NextResponse.json({ received: true });
+    }
 
     if (metadata.kind === "sponsorship") {
       const admin = createAdminClient();

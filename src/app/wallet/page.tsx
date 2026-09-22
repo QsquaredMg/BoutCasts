@@ -2,10 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { WalletEvent } from "@/lib/types";
+import ProMembershipCard from "@/components/ProMembershipCard";
 
 const REASON_LABEL: Record<string, string> = {
   submission_rejected_refund: "Paid entry refund (credit)",
   referral_signup: "Referral bonus",
+  pool_contribution: "Chipped in to a prize pool",
 };
 
 export default async function WalletPage() {
@@ -17,7 +19,7 @@ export default async function WalletPage() {
   }
 
   const [{ data: profile }, { data: events }] = await Promise.all([
-    supabase.from("profiles").select("wallet_balance, referral_code").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("wallet_balance, referral_code, tier").eq("id", user.id).maybeSingle(),
     supabase
       .from("wallet_events")
       .select("*")
@@ -37,6 +39,8 @@ export default async function WalletPage() {
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         BoutBucks earned from referrals and refunded paid entries.
       </p>
+
+      <ProMembershipCard isPro={profile?.tier === "pro"} />
 
       <div
         className="mb-6 rounded-2xl p-5 text-center"

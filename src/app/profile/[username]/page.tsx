@@ -25,7 +25,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, points, current_streak, longest_streak, created_at")
+    .select("id, username, points, current_streak, longest_streak, created_at, tier")
     .eq("username", username)
     .maybeSingle();
 
@@ -114,8 +114,16 @@ export default async function ProfilePage({
           {initial}
         </div>
         <div className="min-w-[180px] flex-1">
-          <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+          <h1 className="flex items-center gap-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
             {profile.username}
+            {profile.tier === "pro" && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
+              >
+                ⭐ Pro
+              </span>
+            )}
           </h1>
           <p className="text-sm" style={{ color: "var(--text-faint)" }}>
             Member since {memberSince} &middot; {followerCount ?? 0} follower{(followerCount ?? 0) === 1 ? "" : "s"} &middot; {followingCount ?? 0} following
