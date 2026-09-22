@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
+import { getCategoryIcon } from "@/lib/categoryIcon";
+import ContributeButton from "@/components/ContributeButton";
+import StopPropagation from "@/components/StopPropagation";
 
 const STATUS_LABEL: Record<Bout["status"], string> = {
   live: "LIVE",
@@ -18,16 +21,31 @@ export default async function Home() {
 
   const boutIds = (bouts ?? []).map((b) => b.id);
   const tallies: Record<string, { a: number; b: number }> = {};
+  const poolByBout = new Map<string, { id: string; goal_amount: number; raised: number }>();
 
   if (boutIds.length > 0) {
-    const { data: votes } = await supabase
-      .from("votes")
-      .select("bout_id, side")
-      .in("bout_id", boutIds);
+    const [{ data: votes }, { data: pools }] = await Promise.all([
+      supabase.from("votes").select("bout_id, side").in("bout_id", boutIds),
+      supabase.from("prize_pools").select("id, bout_id, goal_amount").in("bout_id", boutIds),
+    ]);
 
     for (const v of votes ?? []) {
       if (!tallies[v.bout_id]) tallies[v.bout_id] = { a: 0, b: 0 };
       tallies[v.bout_id][v.side as "a" | "b"]++;
+    }
+
+    if (pools && pools.length > 0) {
+      const { data: contributions } = await supabase
+        .from("pool_contributions")
+        .select("pool_id, amount")
+        .in("pool_id", pools.map((p) => p.id));
+      const raisedByPool = new Map<string, number>();
+      for (const c of contributions ?? []) {
+        raisedByPool.set(c.pool_id, (raisedByPool.get(c.pool_id) ?? 0) + c.amount);
+      }
+      for (const p of pools) {
+        poolByBout.set(p.bout_id, { id: p.id, goal_amount: p.goal_amount, raised: raisedByPool.get(p.id) ?? 0 });
+      }
     }
   }
 
@@ -77,7 +95,7 @@ export default async function Home() {
                 className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] text-lg"
                 style={{ background: "var(--surface-2)" }}
               >
-                🥊
+                {getCategoryIcon(bout.categories?.name)}
               </div>
 
               <div className="min-w-0 flex-1">
@@ -99,6 +117,23 @@ export default async function Home() {
                   </span>
                   {sponsorName && <span> · Presented by {sponsorName}</span>}
                 </div>
+                {poolByBout.has(bout.id) && (() => {
+                  const pool = poolByBout.get(bout.id)!;
+                  const pct = Math.min(100, Math.round((pool.raised / pool.goal_amount) * 100));
+                  return (
+                    <div className="mt-2 flex max-w-[300px] items-center gap-2">
+                      <span className="whitespace-nowrap text-[11px] font-bold" style={{ color: "var(--text-dim)" }}>
+                        🪙 {pool.raised} of {pool.goal_amount} BB
+                      </span>
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--blue)" }} />
+                      </div>
+                      <StopPropagation>
+                        <ContributeButton poolId={pool.id} compact />
+                      </StopPropagation>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex flex-shrink-0 flex-col items-end gap-1">

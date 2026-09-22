@@ -7,7 +7,7 @@ import { useToast } from "@/components/Toast";
 
 const PRESETS = [10, 25, 50];
 
-export default function ContributeButton({ poolId }: { poolId: string }) {
+export default function ContributeButton({ poolId, compact }: { poolId: string; compact?: boolean }) {
   const supabase = createClient();
   const router = useRouter();
   const { showToast } = useToast();
@@ -48,10 +48,10 @@ export default function ContributeButton({ poolId }: { poolId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-full px-3 py-1.5 text-xs font-bold"
-        style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
+        className={compact ? "whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold" : "rounded-full px-3 py-1.5 text-xs font-bold"}
+        style={{ background: "var(--blue)", color: "#fff" }}
       >
-        💰 Chip in
+        Chip in
       </button>
     );
   }

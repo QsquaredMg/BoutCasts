@@ -185,16 +185,16 @@ export default async function BoutPage({
           >
             <div className="mb-1 flex items-center justify-between text-sm">
               <span className="font-bold" style={{ fontFamily: "var(--font-display)" }}>
-                💰 Prize pool
+                🪙 Prize pool
               </span>
               <span style={{ color: "var(--text-faint)" }}>
-                {poolRaised} / {pool.goal_amount} BB
+                {poolRaised} of {pool.goal_amount} BB
               </span>
             </div>
             <div className="mb-2 h-2 overflow-hidden rounded-full" style={{ background: "var(--surface)" }}>
               <div
                 className="h-full rounded-full"
-                style={{ width: `${poolPct}%`, background: "var(--gold)" }}
+                style={{ width: `${poolPct}%`, background: "var(--blue)" }}
               />
             </div>
             <ContributeButton poolId={pool.id} />
