@@ -270,6 +270,15 @@ export default async function FeaturedBout({
           🔒 Verified voting — one vote per account
         </p>
         <div className="flex items-center gap-3">
+          <a
+            href={`/api/bouts/${bout.id}/vote-card`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold"
+            style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+          >
+            📊 Vote graphic
+          </a>
           <ShareButton title={bout.title} />
           <ReportButton targetType="bout" targetId={bout.id} />
         </div>
