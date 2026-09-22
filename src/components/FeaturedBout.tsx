@@ -7,7 +7,9 @@ import ShareButton from "@/components/ShareButton";
 import ReportButton from "@/components/ReportButton";
 import ContributeButton from "@/components/ContributeButton";
 import ClipSourceTag from "@/components/ClipSourceTag";
+import ClipPlayer from "@/components/ClipPlayer";
 import AdBanner from "@/components/AdBanner";
+import { getClipSourceTag } from "@/lib/clipSource";
 
 // The full "duel" card — vote bars, sponsor banner, prize pool, comments —
 // shared between the standalone /bout/[id] page and the BoutCard homepage,
@@ -49,6 +51,17 @@ export default async function FeaturedBout({
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  // A player only makes sense for clips we host ourselves (uploaded or
+  // recorded in-app) — an external link just opens on its own site, so
+  // there's no playback here to gate with a pre-roll.
+  function playableClip(sub: { source_type: string; source_url: string | null } | null) {
+    if (!sub?.source_url) return null;
+    if (sub.source_type !== "upload" && sub.source_type !== "record") return null;
+    return { url: sub.source_url, isAudio: getClipSourceTag(sub.source_type, sub.source_url).isAudio };
+  }
+  const playableA = playableClip(subA);
+  const playableB = playableClip(subB);
 
   const { data: votes } = await supabase.from("votes").select("side").eq("bout_id", boutId);
 
@@ -246,6 +259,25 @@ export default async function FeaturedBout({
               </span>
             )}
             {subB && <ClipSourceTag sourceType={subB.source_type} sourceUrl={subB.source_url} />}
+          </div>
+        </div>
+      )}
+
+      {(playableA || playableB) && (
+        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          <div>
+            {playableA ? (
+              <ClipPlayer src={playableA.url} isAudio={playableA.isAudio} label={bout.competitor_a_name} />
+            ) : (
+              <div />
+            )}
+          </div>
+          <div>
+            {playableB ? (
+              <ClipPlayer src={playableB.url} isAudio={playableB.isAudio} label={bout.competitor_b_name} />
+            ) : (
+              <div />
+            )}
           </div>
         </div>
       )}
