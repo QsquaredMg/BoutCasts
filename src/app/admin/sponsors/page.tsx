@@ -42,7 +42,7 @@ export default async function SponsorsAdminPage() {
       supabase.from("votes").select("bout_id"),
       supabase
         .from("sponsor_applications")
-        .select("id, company_name, website_url, contact_email, tier, message, amount_paid, created_at")
+        .select("id, company_name, website_url, contact_email, tier, plan_name, message, amount_paid, created_at")
         .eq("status", "pending")
         .order("created_at", { ascending: true }),
     ]);

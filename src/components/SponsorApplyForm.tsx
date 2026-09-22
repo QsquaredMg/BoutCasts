@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 
-const TIERS: { key: "standard" | "title"; label: string; price: string; perks: string[] }[] = [
+const PLANS: { key: "bronze" | "silver" | "gold"; label: string; price: string; perks: string[] }[] = [
   {
-    key: "standard",
-    label: "Standard",
-    price: "$299",
+    key: "bronze",
+    label: "Bronze",
+    price: "$500/mo",
     perks: [
       "Logo + link on a category of your choice",
       "\"Presented by\" credit on that category's bouts",
@@ -14,11 +14,21 @@ const TIERS: { key: "standard" | "title"; label: string; price: string; perks: s
     ],
   },
   {
-    key: "title",
-    label: "Title sponsor",
-    price: "$999",
+    key: "silver",
+    label: "Silver",
+    price: "$1,500/mo",
     perks: [
-      "Everything in Standard",
+      "Everything in Bronze",
+      "Sponsor a full bracket, not just one category",
+      "Monthly engagement report (votes, reach)",
+    ],
+  },
+  {
+    key: "gold",
+    label: "Gold",
+    price: "$5,000/mo",
+    perks: [
+      "Everything in Silver",
       "Title-sponsor badge across the whole platform",
       "First pick of bracket or bout to sponsor",
       "Priority placement in sponsor engagement reporting",
@@ -27,7 +37,7 @@ const TIERS: { key: "standard" | "title"; label: string; price: string; perks: s
 ];
 
 export default function SponsorApplyForm() {
-  const [tier, setTier] = useState<"standard" | "title">("standard");
+  const [plan, setPlan] = useState<"bronze" | "silver" | "gold">("bronze");
   const [companyName, setCompanyName] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -43,7 +53,7 @@ export default function SponsorApplyForm() {
       const res = await fetch("/api/checkout/sponsor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName, websiteUrl, contactEmail, tier, message }),
+        body: JSON.stringify({ companyName, websiteUrl, contactEmail, plan, message }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) {
@@ -58,23 +68,23 @@ export default function SponsorApplyForm() {
 
   return (
     <div>
-      <div className="mb-8 grid gap-4 sm:grid-cols-2">
-        {TIERS.map((t) => (
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        {PLANS.map((t) => (
           <button
             key={t.key}
             type="button"
-            onClick={() => setTier(t.key)}
+            onClick={() => setPlan(t.key)}
             className="rounded-xl border p-4 text-left transition"
             style={{
-              borderColor: tier === t.key ? "var(--gold)" : "var(--border)",
-              background: tier === t.key ? "var(--gold-soft)" : "var(--surface)",
+              borderColor: plan === t.key ? "var(--blue)" : "var(--border)",
+              background: plan === t.key ? "var(--blue-soft)" : "var(--surface)",
             }}
           >
             <div className="mb-1 flex items-baseline justify-between">
               <span className="text-base font-bold" style={{ fontFamily: "var(--font-display)" }}>
                 {t.label}
               </span>
-              <span className="text-sm font-bold" style={{ color: "var(--gold)" }}>
+              <span className="text-sm font-bold" style={{ color: "var(--blue)" }}>
                 {t.price}
               </span>
             </div>
@@ -132,11 +142,11 @@ export default function SponsorApplyForm() {
           disabled={submitting}
           className="bc-btn-solid self-start rounded-full px-5 py-2.5 text-sm disabled:opacity-60"
         >
-          {submitting ? "Starting checkout…" : `Become a ${tier === "title" ? "title" : "standard"} sponsor`}
+          {submitting ? "Starting checkout…" : `Start ${plan[0].toUpperCase()}${plan.slice(1)} sponsorship`}
         </button>
         <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          You&apos;ll pay securely via Stripe. Our team reviews and activates every sponsorship
-          within one business day of payment.
+          Billed monthly via Stripe, cancel anytime. Our team reviews and activates every
+          sponsorship within one business day of your first payment.
         </p>
       </form>
     </div>

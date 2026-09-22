@@ -10,6 +10,7 @@ type Application = {
   website_url: string | null;
   contact_email: string;
   tier: "title" | "standard";
+  plan_name: string | null;
   message: string | null;
   amount_paid: number | null;
   created_at: string;
@@ -86,11 +87,11 @@ export default function SponsorApplications({ initial }: { initial: Application[
                 <span
                   className="bc-badge-gold ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
                 >
-                  {a.tier}
+                  {a.plan_name ?? a.tier}
                 </span>
               </span>
               <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-                {a.amount_paid ? `$${(a.amount_paid / 100).toFixed(2)} paid` : "—"}
+                {a.amount_paid ? `$${(a.amount_paid / 100).toFixed(2)}/mo` : "—"}
               </span>
             </div>
             <div className="text-xs" style={{ color: "var(--text-faint)" }}>

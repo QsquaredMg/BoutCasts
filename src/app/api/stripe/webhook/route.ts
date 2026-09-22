@@ -89,8 +89,10 @@ export async function POST(req: NextRequest) {
           website_url: metadata.website_url || null,
           contact_email: metadata.contact_email,
           tier: metadata.tier,
+          plan_name: metadata.plan_name || null,
           message: metadata.message || null,
           stripe_checkout_session_id: session.id,
+          stripe_subscription_id: typeof session.subscription === "string" ? session.subscription : null,
           amount_paid: session.amount_total ?? 0,
         });
 
