@@ -145,6 +145,16 @@ export default function NavBar() {
               >
                 Cash
               </Link>
+              <Link
+                href="/admin/bouts"
+                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color: pathname === "/admin/bouts" ? "var(--text)" : "var(--text-dim)",
+                }}
+              >
+                Bouts
+              </Link>
             </>
           )}
         </div>

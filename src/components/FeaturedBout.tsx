@@ -6,6 +6,7 @@ import CrowdComments from "@/components/CrowdComments";
 import ShareButton from "@/components/ShareButton";
 import ReportButton from "@/components/ReportButton";
 import ContributeButton from "@/components/ContributeButton";
+import ClipSourceTag from "@/components/ClipSourceTag";
 
 // The full "duel" card — vote bars, sponsor banner, prize pool, comments —
 // shared between the standalone /bout/[id] page and the BoutCard homepage,
@@ -30,6 +31,23 @@ export default async function FeaturedBout({
   if (!bout) {
     return null;
   }
+
+  const [{ data: subA }, { data: subB }] = await Promise.all([
+    bout.competitor_a_submission_id
+      ? supabase
+          .from("submissions")
+          .select("source_type, source_url")
+          .eq("id", bout.competitor_a_submission_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    bout.competitor_b_submission_id
+      ? supabase
+          .from("submissions")
+          .select("source_type, source_url")
+          .eq("id", bout.competitor_b_submission_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const { data: votes } = await supabase.from("votes").select("side").eq("bout_id", boutId);
 
@@ -209,6 +227,33 @@ export default async function FeaturedBout({
             />
           </div>
           <ContributeButton poolId={pool.id} />
+        </div>
+      )}
+
+      {(bout.seed_a || subA || bout.seed_b || subB) && (
+        <div className="mb-3 grid gap-3 sm:grid-cols-2">
+          <div className="flex items-center gap-2">
+            {bout.seed_a && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{ background: "var(--surface-2)", color: "var(--text-faint)" }}
+              >
+                #{bout.seed_a} SEED
+              </span>
+            )}
+            {subA && <ClipSourceTag sourceType={subA.source_type} sourceUrl={subA.source_url} />}
+          </div>
+          <div className="flex items-center gap-2">
+            {bout.seed_b && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{ background: "var(--surface-2)", color: "var(--text-faint)" }}
+              >
+                #{bout.seed_b} SEED
+              </span>
+            )}
+            {subB && <ClipSourceTag sourceType={subB.source_type} sourceUrl={subB.source_url} />}
+          </div>
         </div>
       )}
 

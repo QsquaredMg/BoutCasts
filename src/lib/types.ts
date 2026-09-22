@@ -34,6 +34,10 @@ export type Bout = {
   next_bout_id: string | null;
   next_slot: "a" | "b" | null;
   sponsor_id: string | null;
+  competitor_a_submission_id?: string | null;
+  competitor_b_submission_id?: string | null;
+  seed_a?: number | null;
+  seed_b?: number | null;
   categories?: { name: string; sponsor_id?: string | null; sponsors?: Sponsor | null } | null;
   sponsors?: Sponsor | null;
 };

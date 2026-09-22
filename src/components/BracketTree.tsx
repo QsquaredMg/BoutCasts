@@ -152,7 +152,10 @@ export default function BracketTree({ bouts, bracketKey }: { bouts: Bout[]; brac
                   borderBottom: "1px solid var(--border)",
                 }}
               >
-                <span className="truncate">{b.competitor_a_name || "TBD"}</span>
+                <span className="truncate">
+                  {b.seed_a && <span style={{ opacity: 0.6 }}>#{b.seed_a} </span>}
+                  {b.competitor_a_name || "TBD"}
+                </span>
                 {b.winner_side === "a" && <span>🏆</span>}
               </div>
               <div
@@ -163,7 +166,10 @@ export default function BracketTree({ bouts, bracketKey }: { bouts: Bout[]; brac
                   fontWeight: b.winner_side === "b" ? 700 : 500,
                 }}
               >
-                <span className="truncate">{b.competitor_b_name || "TBD"}</span>
+                <span className="truncate">
+                  {b.seed_b && <span style={{ opacity: 0.6 }}>#{b.seed_b} </span>}
+                  {b.competitor_b_name || "TBD"}
+                </span>
                 {b.winner_side === "b" && <span>🏆</span>}
               </div>
               <div
