@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/types";
 import InAppRecorder from "@/components/InAppRecorder";
+import FileUploadPicker from "@/components/FileUploadPicker";
 
 export default function SubmitPage() {
   const supabase = createClient();
@@ -16,9 +17,10 @@ export default function SubmitPage() {
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [entryType, setEntryType] = useState<"free" | "paid">("free");
-  const [sourceType, setSourceType] = useState<"link" | "record">("link");
+  const [sourceType, setSourceType] = useState<"upload" | "link" | "record">("link");
   const [sourceUrl, setSourceUrl] = useState("");
   const [recordedClipUrl, setRecordedClipUrl] = useState<string | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [isCrew, setIsCrew] = useState(false);
   const [crewName, setCrewName] = useState("");
   const [teammates, setTeammates] = useState<string[]>([""]);
@@ -74,6 +76,15 @@ export default function SubmitPage() {
       return;
     }
 
+    if (sourceType === "upload" && !uploadedFileUrl) {
+      setError("Upload a file before submitting.");
+      setLoading(false);
+      return;
+    }
+
+    const resolvedSourceUrl =
+      sourceType === "link" ? sourceUrl : sourceType === "record" ? recordedClipUrl : uploadedFileUrl;
+
     if (entryType === "paid") {
       try {
         const res = await fetch("/api/checkout", {
@@ -83,7 +94,7 @@ export default function SubmitPage() {
             title,
             categoryId,
             sourceType,
-            sourceUrl: sourceType === "link" ? sourceUrl : sourceType === "record" ? recordedClipUrl : null,
+            sourceUrl: resolvedSourceUrl,
             crewName: isCrew ? crewName : null,
             teammates: isCrew ? teammates.filter((t) => t.trim()) : null,
           }),
@@ -105,7 +116,7 @@ export default function SubmitPage() {
       category_id: categoryId,
       title,
       source_type: sourceType,
-      source_url: sourceType === "link" ? sourceUrl : sourceType === "record" ? recordedClipUrl : null,
+      source_url: resolvedSourceUrl,
       entry_type: "free",
       crew_name: isCrew ? crewName || null : null,
       teammates: isCrew ? teammates.filter((t) => t.trim()) : null,
@@ -225,7 +236,7 @@ export default function SubmitPage() {
             className="mb-3 inline-flex gap-1 rounded-full p-1"
             style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
           >
-            {(["link", "record"] as const).map((t) => {
+            {(["upload", "link", "record"] as const).map((t) => {
               const active = sourceType === t;
               return (
                 <button
@@ -259,6 +270,10 @@ export default function SubmitPage() {
 
           {sourceType === "record" && (
             <InAppRecorder onRecorded={setRecordedClipUrl} />
+          )}
+
+          {sourceType === "upload" && (
+            <FileUploadPicker onUploaded={setUploadedFileUrl} />
           )}
 
         </div>

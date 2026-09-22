@@ -24,7 +24,12 @@ export default function NavBar() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [pendingChallenges, setPendingChallenges] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createClient();
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -83,8 +88,19 @@ export default function NavBar() {
           />
         </Link>
 
+        <button
+          type="button"
+          onClick={() => setMobileOpen((v) => !v)}
+          className="flex h-9 w-9 items-center justify-center rounded-full border md:hidden"
+          style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
+        >
+          {mobileOpen ? "✕" : "☰"}
+        </button>
+
         <div
-          className="flex flex-wrap gap-1 rounded-full p-1"
+          className="hidden flex-wrap gap-1 rounded-full p-1 md:flex"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           {NAV_LINKS.map((link) => {
@@ -163,7 +179,7 @@ export default function NavBar() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/search"
             className="rounded-full border px-3 py-1.5 text-xs font-bold"
@@ -237,6 +253,97 @@ export default function NavBar() {
           </Link>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div
+          className="flex flex-col gap-1 border-t px-5 py-4 md:hidden"
+          style={{ borderColor: "var(--border)", background: "var(--bg)" }}
+        >
+          {NAV_LINKS.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-lg px-3 py-2.5 text-sm font-semibold"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  background: active ? "var(--surface-2)" : "transparent",
+                  color: active ? "var(--text)" : "var(--text-dim)",
+                }}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+          <Link
+            href={profileHref}
+            className="rounded-lg px-3 py-2.5 text-sm font-semibold"
+            style={{
+              fontFamily: "var(--font-display)",
+              background: profileActive ? "var(--surface-2)" : "transparent",
+              color: profileActive ? "var(--text)" : "var(--text-dim)",
+            }}
+          >
+            Profile
+          </Link>
+          <Link href="/search" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+            🔍 Search
+          </Link>
+          {user && (
+            <Link href="/challenges" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+              🥊 Challenges{pendingChallenges > 0 ? ` (${pendingChallenges})` : ""}
+            </Link>
+          )}
+          {user && walletBalance !== null && (
+            <Link href="/wallet" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--gold)" }}>
+              💰 Wallet — {walletBalance} BB
+            </Link>
+          )}
+
+          {isAdmin && (
+            <>
+              <div className="my-1 border-t" style={{ borderColor: "var(--border)" }} />
+              <Link href="/admin/moderation" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+                Moderation
+              </Link>
+              <Link href="/admin/sponsors" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+                Sponsors
+              </Link>
+              <Link href="/admin/cash" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+                Cash
+              </Link>
+              <Link href="/admin/bouts" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+                Bouts
+              </Link>
+            </>
+          )}
+
+          <div className="my-1 border-t" style={{ borderColor: "var(--border)" }} />
+
+          <Link
+            href="/submit"
+            className="rounded-lg px-3 py-2.5 text-center text-sm font-bold text-white"
+            style={{ background: "var(--red)" }}
+          >
+            + Submit a Bout
+          </Link>
+
+          {loading ? null : user ? (
+            <button
+              onClick={handleSignOut}
+              className="rounded-lg border px-3 py-2.5 text-sm font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link href="/login" className="bc-btn-solid rounded-lg px-3 py-2.5 text-center text-sm">
+              Sign in
+            </Link>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
