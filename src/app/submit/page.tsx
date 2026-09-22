@@ -16,7 +16,7 @@ export default function SubmitPage() {
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [entryType, setEntryType] = useState<"free" | "paid">("free");
-  const [sourceType, setSourceType] = useState<"upload" | "link" | "record">("link");
+  const [sourceType, setSourceType] = useState<"link" | "record">("link");
   const [sourceUrl, setSourceUrl] = useState("");
   const [recordedClipUrl, setRecordedClipUrl] = useState<string | null>(null);
   const [isCrew, setIsCrew] = useState(false);
@@ -225,7 +225,7 @@ export default function SubmitPage() {
             className="mb-3 inline-flex gap-1 rounded-full p-1"
             style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
           >
-            {(["upload", "link", "record"] as const).map((t) => {
+            {(["link", "record"] as const).map((t) => {
               const active = sourceType === t;
               return (
                 <button
@@ -261,12 +261,6 @@ export default function SubmitPage() {
             <InAppRecorder onRecorded={setRecordedClipUrl} />
           )}
 
-          {sourceType === "upload" && (
-            <p className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-faint)" }}>
-              File upload is coming soon — this submission will be saved with no
-              media attached yet.
-            </p>
-          )}
         </div>
 
         <div>
