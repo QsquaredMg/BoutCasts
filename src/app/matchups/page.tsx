@@ -4,7 +4,8 @@ import type { Bout } from "@/lib/types";
 import { getCategoryIcon } from "@/lib/categoryIcon";
 import ContributeButton from "@/components/ContributeButton";
 import StopPropagation from "@/components/StopPropagation";
-import PrizeTag from "@/components/PrizeTag";
+import SponsorBadge from "@/components/SponsorBadge";
+import AdBanner from "@/components/AdBanner";
 
 const STATUS_LABEL: Record<Bout["status"], string> = {
   live: "LIVE",
@@ -17,7 +18,7 @@ export default async function MatchupsPage() {
 
   const { data: bouts, error } = await supabase
     .from("bouts")
-    .select("*, categories(name, sponsor_id, sponsors(name, opportunity_type, banner_style)), sponsors(name, opportunity_type, banner_style)")
+    .select("*, categories(name, sponsor_id, sponsors(name, logo_url, opportunity_type, banner_style)), sponsors(name, logo_url, opportunity_type, banner_style)")
     .order("created_at", { ascending: false });
 
   const boutIds = (bouts ?? []).map((b) => b.id);
@@ -62,6 +63,8 @@ export default async function MatchupsPage() {
         Head-to-head clip battles. Vote on the current round&apos;s winner.
       </p>
 
+      <AdBanner />
+
       {error && (
         <p
           className="rounded-lg p-3 text-sm"
@@ -82,8 +85,6 @@ export default async function MatchupsPage() {
           const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;
           const pctB = total > 0 ? 100 - pctA : 0;
           const effectiveSponsor = bout.sponsors ?? bout.categories?.sponsors;
-          const sponsorName = effectiveSponsor?.name;
-          const isPrizeSponsor = effectiveSponsor?.opportunity_type === "prizes" && effectiveSponsor?.banner_style;
 
           return (
             <Link
@@ -118,11 +119,10 @@ export default async function MatchupsPage() {
                   <span className="font-semibold" style={{ color: "var(--text-dim)" }}>
                     {bout.categories?.name ?? "Uncategorized"}
                   </span>
-                  {sponsorName && !isPrizeSponsor && <span> · Presented by {sponsorName}</span>}
                 </div>
-                {isPrizeSponsor && (
-                  <div className="mt-1.5">
-                    <PrizeTag style={effectiveSponsor!.banner_style!} brand={sponsorName!} />
+                {effectiveSponsor && (
+                  <div className="mt-1.5 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
+                    <SponsorBadge sponsor={effectiveSponsor} />
                   </div>
                 )}
                 {poolByBout.has(bout.id) && (() => {

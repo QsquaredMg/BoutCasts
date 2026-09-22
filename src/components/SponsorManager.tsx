@@ -25,6 +25,10 @@ export default function SponsorManager({
   const [logoUrl, setLogoUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [tier, setTier] = useState<"title" | "standard">("standard");
+  const [opportunityType, setOpportunityType] = useState<
+    "" | "commercial" | "bracket" | "bout" | "curated" | "prizes"
+  >("");
+  const [bannerStyle, setBannerStyle] = useState<"minimal" | "bold" | "badge">("minimal");
   const [creating, setCreating] = useState(false);
 
   async function handleCreate(e: React.FormEvent) {
@@ -39,6 +43,8 @@ export default function SponsorManager({
         logo_url: logoUrl || null,
         website_url: websiteUrl || null,
         tier,
+        opportunity_type: opportunityType || null,
+        banner_style: opportunityType === "prizes" ? bannerStyle : null,
       })
       .select()
       .single();
@@ -53,6 +59,8 @@ export default function SponsorManager({
     setLogoUrl("");
     setWebsiteUrl("");
     setTier("standard");
+    setOpportunityType("");
+    setBannerStyle("minimal");
   }
 
   async function handleDelete(id: string) {
@@ -142,6 +150,31 @@ export default function SponsorManager({
             onChange={(e) => setWebsiteUrl(e.target.value)}
             className="rounded border border-neutral-300 px-3 py-2 text-sm"
           />
+          <div className="flex gap-3">
+            <select
+              value={opportunityType}
+              onChange={(e) => setOpportunityType(e.target.value as typeof opportunityType)}
+              className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
+            >
+              <option value="">No opportunity type (plain &quot;Presented by&quot;)</option>
+              <option value="commercial">Commercial partner</option>
+              <option value="bracket">Bracket sponsor</option>
+              <option value="bout">Bout sponsor</option>
+              <option value="curated">Curated bout</option>
+              <option value="prizes">Prize sponsor</option>
+            </select>
+            {opportunityType === "prizes" && (
+              <select
+                value={bannerStyle}
+                onChange={(e) => setBannerStyle(e.target.value as "minimal" | "bold" | "badge")}
+                className="rounded border border-neutral-300 px-3 py-2 text-sm"
+              >
+                <option value="minimal">Minimal tag</option>
+                <option value="bold">Bold banner</option>
+                <option value="badge">Icon badge</option>
+              </select>
+            )}
+          </div>
           <button
             type="submit"
             disabled={creating}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import PrizeTag from "@/components/PrizeTag";
+import SponsorBadge from "@/components/SponsorBadge";
 import { createClient } from "@/lib/supabase/server";
 import VotePanel from "@/components/VotePanel";
 import CrowdComments from "@/components/CrowdComments";
@@ -7,6 +7,7 @@ import ShareButton from "@/components/ShareButton";
 import ReportButton from "@/components/ReportButton";
 import ContributeButton from "@/components/ContributeButton";
 import ClipSourceTag from "@/components/ClipSourceTag";
+import AdBanner from "@/components/AdBanner";
 
 // The full "duel" card — vote bars, sponsor banner, prize pool, comments —
 // shared between the standalone /bout/[id] page and the BoutCard homepage,
@@ -23,7 +24,7 @@ export default async function FeaturedBout({
   const { data: bout } = await supabase
     .from("bouts")
     .select(
-      "*, categories(name, sponsor_id, sponsors(name, website_url, opportunity_type, banner_style)), sponsors(name, website_url, opportunity_type, banner_style)"
+      "*, categories(name, sponsor_id, sponsors(name, logo_url, website_url, opportunity_type, banner_style)), sponsors(name, logo_url, website_url, opportunity_type, banner_style)"
     )
     .eq("id", boutId)
     .maybeSingle();
@@ -76,7 +77,6 @@ export default async function FeaturedBout({
       : null;
 
   const sponsor = bout.sponsors ?? bout.categories?.sponsors;
-  const isPrizeSponsor = sponsor?.opportunity_type === "prizes" && sponsor?.banner_style;
 
   const { data: pool } = await supabase
     .from("prize_pools")
@@ -149,22 +149,15 @@ export default async function FeaturedBout({
         {bout.title}
       </h1>
 
-      {sponsor && !isPrizeSponsor && (
-        <p className="mb-4 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
-          Presented by{" "}
+      {sponsor && (
+        <div className="mb-4 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
           {sponsor.website_url ? (
             <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="underline">
-              {sponsor.name}
+              <SponsorBadge sponsor={sponsor} />
             </a>
           ) : (
-            sponsor.name
+            <SponsorBadge sponsor={sponsor} />
           )}
-        </p>
-      )}
-
-      {sponsor && isPrizeSponsor && (
-        <div className="mb-4">
-          <PrizeTag style={sponsor.banner_style!} brand={sponsor.name} />
         </div>
       )}
 
@@ -264,6 +257,10 @@ export default async function FeaturedBout({
         initialTally={tally}
         votingOpen={votingOpen}
       />
+
+      <div className="mt-4">
+        <AdBanner />
+      </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-faint)" }}>

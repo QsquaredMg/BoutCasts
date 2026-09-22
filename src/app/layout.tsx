@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Rajdhani, Manrope } from "next/font/google";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import AdInterstitial from "@/components/AdInterstitial";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <NavBar />
           <main className="flex-1">{children}</main>
           <Footer />
+          <AdInterstitial />
         </ToastProvider>
       </body>
     </html>
