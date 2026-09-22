@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/types";
+import PrizeTag from "@/components/PrizeTag";
 
 const PLANS: { key: "bronze" | "silver" | "gold"; label: string; price: string; perks: string[] }[] = [
   {
@@ -91,52 +92,6 @@ const BANNER_STYLES: { key: "minimal" | "bold" | "badge"; label: string }[] = [
   { key: "bold", label: "Bold Banner" },
   { key: "badge", label: "Icon Badge" },
 ];
-
-function PrizeTagPreview({ style, brand }: { style: "minimal" | "bold" | "badge"; brand: string }) {
-  const safeBrand = brand.trim() || "DoorDash";
-  if (style === "bold") {
-    return (
-      <span
-        className="inline-flex w-full items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold text-white"
-        style={{ background: "var(--blue)" }}
-      >
-        🎁 Prizes brought to you by <span className="font-bold">{safeBrand}</span>
-      </span>
-    );
-  }
-  if (style === "badge") {
-    return (
-      <span
-        className="inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3"
-        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-      >
-        <span
-          className="flex h-5.5 w-5.5 items-center justify-center rounded-full text-xs text-white"
-          style={{ background: "var(--blue)", width: 22, height: 22 }}
-        >
-          🎁
-        </span>
-        <span className="flex flex-col leading-tight">
-          <span
-            className="text-[9px] font-extrabold uppercase tracking-wide"
-            style={{ color: "var(--text-faint)" }}
-          >
-            Prize Sponsor
-          </span>
-          <span className="text-xs font-bold">{safeBrand}</span>
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold"
-      style={{ color: "var(--blue)", background: "var(--blue-soft)" }}
-    >
-      🎁 Prizes brought to you by <span className="font-bold">{safeBrand}</span>
-    </span>
-  );
-}
 
 export default function SponsorApplyForm() {
   const supabase = createClient();
@@ -338,7 +293,7 @@ export default function SponsorApplyForm() {
                     className="flex min-h-[44px] items-center justify-center rounded-lg p-2"
                     style={{ background: "var(--surface-2)" }}
                   >
-                    <PrizeTagPreview style={b.key} brand={companyName} />
+                    <PrizeTag style={b.key} brand={companyName} />
                   </div>
                 </button>
               ))}

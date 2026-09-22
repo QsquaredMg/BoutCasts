@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PrizeTag from "@/components/PrizeTag";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import VotePanel from "@/components/VotePanel";
@@ -17,7 +18,7 @@ export default async function BoutPage({
 
   const { data: bout } = await supabase
     .from("bouts")
-    .select("*, categories(name, sponsor_id, sponsors(name, website_url)), sponsors(name, website_url)")
+    .select("*, categories(name, sponsor_id, sponsors(name, website_url, opportunity_type, banner_style)), sponsors(name, website_url, opportunity_type, banner_style)")
     .eq("id", id)
     .maybeSingle();
 
@@ -55,6 +56,7 @@ export default async function BoutPage({
       : null;
 
   const sponsor = bout.sponsors ?? bout.categories?.sponsors;
+  const isPrizeSponsor = sponsor?.opportunity_type === "prizes" && sponsor?.banner_style;
 
   const { data: pool } = await supabase
     .from("prize_pools")
@@ -126,7 +128,7 @@ export default async function BoutPage({
           {bout.title}
         </h1>
 
-        {sponsor && (
+        {sponsor && !isPrizeSponsor && (
           <p className="mb-4 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
             Presented by{" "}
             {sponsor.website_url ? (
@@ -137,6 +139,12 @@ export default async function BoutPage({
               sponsor.name
             )}
           </p>
+        )}
+
+        {sponsor && isPrizeSponsor && (
+          <div className="mb-4">
+            <PrizeTag style={sponsor.banner_style!} brand={sponsor.name} />
+          </div>
         )}
 
         {bout.status === "final" && winnerName && (

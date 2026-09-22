@@ -5,6 +5,8 @@ export type Sponsor = {
   website_url: string | null;
   tier: "title" | "standard";
   created_at: string;
+  opportunity_type?: string | null;
+  banner_style?: string | null;
 };
 
 export type Category = {

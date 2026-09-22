@@ -4,6 +4,7 @@ import type { Bout } from "@/lib/types";
 import { getCategoryIcon } from "@/lib/categoryIcon";
 import ContributeButton from "@/components/ContributeButton";
 import StopPropagation from "@/components/StopPropagation";
+import PrizeTag from "@/components/PrizeTag";
 
 const STATUS_LABEL: Record<Bout["status"], string> = {
   live: "LIVE",
@@ -16,7 +17,7 @@ export default async function Home() {
 
   const { data: bouts, error } = await supabase
     .from("bouts")
-    .select("*, categories(name, sponsor_id, sponsors(name)), sponsors(name)")
+    .select("*, categories(name, sponsor_id, sponsors(name, opportunity_type, banner_style)), sponsors(name, opportunity_type, banner_style)")
     .order("created_at", { ascending: false });
 
   const boutIds = (bouts ?? []).map((b) => b.id);
@@ -80,7 +81,9 @@ export default async function Home() {
           const total = tally.a + tally.b;
           const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;
           const pctB = total > 0 ? 100 - pctA : 0;
-          const sponsorName = bout.sponsors?.name ?? bout.categories?.sponsors?.name;
+          const effectiveSponsor = bout.sponsors ?? bout.categories?.sponsors;
+          const sponsorName = effectiveSponsor?.name;
+          const isPrizeSponsor = effectiveSponsor?.opportunity_type === "prizes" && effectiveSponsor?.banner_style;
 
           return (
             <Link
@@ -115,8 +118,13 @@ export default async function Home() {
                   <span className="font-semibold" style={{ color: "var(--text-dim)" }}>
                     {bout.categories?.name ?? "Uncategorized"}
                   </span>
-                  {sponsorName && <span> · Presented by {sponsorName}</span>}
+                  {sponsorName && !isPrizeSponsor && <span> · Presented by {sponsorName}</span>}
                 </div>
+                {isPrizeSponsor && (
+                  <div className="mt-1.5">
+                    <PrizeTag style={effectiveSponsor!.banner_style!} brand={sponsorName!} />
+                  </div>
+                )}
                 {poolByBout.has(bout.id) && (() => {
                   const pool = poolByBout.get(bout.id)!;
                   const pct = Math.min(100, Math.round((pool.raised / pool.goal_amount) * 100));
