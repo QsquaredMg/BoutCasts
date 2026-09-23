@@ -130,7 +130,7 @@ export default function VotePanel({
 
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs tabular-nums" style={{ color: "var(--text-faint)" }}>
-                {s.count} votes
+                {s.count} {s.count === 1 ? "vote" : "votes"}
               </span>
               <button
                 disabled={!votingOpen || pending || myVote !== null}
