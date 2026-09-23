@@ -8,7 +8,7 @@ type Props = {
 };
 
 const ACCEPT = "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm,image/jpeg,image/png,image/webp";
-const MAX_BYTES = 200 * 1024 * 1024; // 200MB, matches the storage bucket's limit
+const MAX_BYTES = 777 * 1024 * 1024; // 777MB, matches the storage bucket's limit
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -30,7 +30,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
     if (!picked) return;
 
     if (picked.size > MAX_BYTES) {
-      setError(`That file is ${formatBytes(picked.size)} — the limit is 200 MB.`);
+      setError(`That file is ${formatBytes(picked.size)} — the limit is 777 MB.`);
       return;
     }
 
@@ -111,7 +111,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
           <span className="text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
             Tap to choose a video, audio, or image file
           </span>
-          <span className="text-xs">MP4, WebM, MOV, MP3, WAV, JPG, PNG — up to 200 MB</span>
+          <span className="text-xs">MP4, WebM, MOV, MP3, WAV, JPG, PNG — up to 777 MB</span>
         </label>
       )}
 

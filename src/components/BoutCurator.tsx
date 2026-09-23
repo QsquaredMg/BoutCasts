@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Bout, Category } from "@/lib/types";
+import FileUploadPicker from "@/components/FileUploadPicker";
 
 type SubmissionRow = {
   id: string;
@@ -19,8 +20,10 @@ const EMPTY_FORM = {
   title: "",
   competitor_a_name: "",
   competitor_a_submission_id: "",
+  competitor_a_upload_url: "",
   competitor_b_name: "",
   competitor_b_submission_id: "",
+  competitor_b_upload_url: "",
   status: "live" as "upcoming" | "live" | "final",
   closes_at: "",
   round_theme_name: "",
@@ -51,6 +54,7 @@ export default function BoutCurator({
     ...EMPTY_FORM,
     category_id: categories[0]?.id ?? "",
   });
+  const [formResetKey, setFormResetKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -68,6 +72,47 @@ export default function BoutCurator({
     return categories.find((c) => c.id === id)?.name ?? "Uncategorized";
   }
 
+  // Creates a new `submissions` row for a clip the admin just uploaded
+  // directly in BoutCurator, and immediately approves it (via the
+  // moderate_submission RPC) so it's visible to everyone, not just the
+  // admin/owner, per the submissions_select_approved_or_own_or_admin policy.
+  async function createApprovedSubmission(
+    categoryId: string,
+    title: string,
+    sourceUrl: string
+  ): Promise<{ id: string } | { error: string }> {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return { error: "You must be signed in to attach an uploaded clip." };
+
+    const { data, error } = await supabase
+      .from("submissions")
+      .insert({
+        user_id: user.id,
+        category_id: categoryId,
+        title,
+        source_type: "upload",
+        source_url: sourceUrl,
+        entry_type: "free",
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return { error: error?.message ?? "Could not save the uploaded clip." };
+    }
+
+    const { error: modError } = await supabase.rpc("moderate_submission", {
+      p_submission_id: data.id,
+      p_approve: true,
+    });
+    if (modError) {
+      return { error: `Clip uploaded but couldn't be approved: ${modError.message}` };
+    }
+
+    return { id: data.id as string };
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -78,15 +123,46 @@ export default function BoutCurator({
     }
 
     setCreating(true);
+
+    let aSubmissionId = form.competitor_a_submission_id || null;
+    if (!aSubmissionId && form.competitor_a_upload_url) {
+      const result = await createApprovedSubmission(
+        form.category_id,
+        `${form.title.trim()} — ${form.competitor_a_name.trim()}`,
+        form.competitor_a_upload_url
+      );
+      if ("error" in result) {
+        setCreating(false);
+        setError(`Competitor A clip: ${result.error}`);
+        return;
+      }
+      aSubmissionId = result.id;
+    }
+
+    let bSubmissionId = form.competitor_b_submission_id || null;
+    if (!bSubmissionId && form.competitor_b_upload_url) {
+      const result = await createApprovedSubmission(
+        form.category_id,
+        `${form.title.trim()} — ${form.competitor_b_name.trim()}`,
+        form.competitor_b_upload_url
+      );
+      if ("error" in result) {
+        setCreating(false);
+        setError(`Competitor B clip: ${result.error}`);
+        return;
+      }
+      bSubmissionId = result.id;
+    }
+
     const { data, error } = await supabase
       .from("bouts")
       .insert({
         category_id: form.category_id,
         title: form.title.trim(),
         competitor_a_name: form.competitor_a_name.trim(),
-        competitor_a_submission_id: form.competitor_a_submission_id || null,
+        competitor_a_submission_id: aSubmissionId,
         competitor_b_name: form.competitor_b_name.trim(),
-        competitor_b_submission_id: form.competitor_b_submission_id || null,
+        competitor_b_submission_id: bSubmissionId,
         status: form.status,
         closes_at: form.closes_at ? new Date(form.closes_at).toISOString() : null,
         round_theme_name: form.round_theme_name.trim() || null,
@@ -103,6 +179,7 @@ export default function BoutCurator({
     }
     setBouts((prev) => [data as Bout, ...prev]);
     setForm({ ...EMPTY_FORM, category_id: categories[0]?.id ?? "" });
+    setFormResetKey((k) => k + 1);
   }
 
   function startEdit(b: Bout) {
@@ -112,8 +189,10 @@ export default function BoutCurator({
       title: b.title,
       competitor_a_name: b.competitor_a_name,
       competitor_a_submission_id: b.competitor_a_submission_id ?? "",
+      competitor_a_upload_url: "",
       competitor_b_name: b.competitor_b_name,
       competitor_b_submission_id: b.competitor_b_submission_id ?? "",
+      competitor_b_upload_url: "",
       status: b.status,
       closes_at: b.closes_at ? b.closes_at.slice(0, 16) : "",
       round_theme_name: b.round_theme_name ?? "",
@@ -125,15 +204,46 @@ export default function BoutCurator({
   async function saveEdit(id: string) {
     setError(null);
     setBusyId(id);
+
+    let aSubmissionId = editForm.competitor_a_submission_id || null;
+    if (!aSubmissionId && editForm.competitor_a_upload_url) {
+      const result = await createApprovedSubmission(
+        editForm.category_id,
+        `${editForm.title.trim()} — ${editForm.competitor_a_name.trim()}`,
+        editForm.competitor_a_upload_url
+      );
+      if ("error" in result) {
+        setBusyId(null);
+        setError(`Competitor A clip: ${result.error}`);
+        return;
+      }
+      aSubmissionId = result.id;
+    }
+
+    let bSubmissionId = editForm.competitor_b_submission_id || null;
+    if (!bSubmissionId && editForm.competitor_b_upload_url) {
+      const result = await createApprovedSubmission(
+        editForm.category_id,
+        `${editForm.title.trim()} — ${editForm.competitor_b_name.trim()}`,
+        editForm.competitor_b_upload_url
+      );
+      if ("error" in result) {
+        setBusyId(null);
+        setError(`Competitor B clip: ${result.error}`);
+        return;
+      }
+      bSubmissionId = result.id;
+    }
+
     const { error } = await supabase
       .from("bouts")
       .update({
         category_id: editForm.category_id,
         title: editForm.title.trim(),
         competitor_a_name: editForm.competitor_a_name.trim(),
-        competitor_a_submission_id: editForm.competitor_a_submission_id || null,
+        competitor_a_submission_id: aSubmissionId,
         competitor_b_name: editForm.competitor_b_name.trim(),
-        competitor_b_submission_id: editForm.competitor_b_submission_id || null,
+        competitor_b_submission_id: bSubmissionId,
         status: editForm.status,
         closes_at: editForm.closes_at ? new Date(editForm.closes_at).toISOString() : null,
         round_theme_name: editForm.round_theme_name.trim() || null,
@@ -149,7 +259,13 @@ export default function BoutCurator({
       setError(error.message);
       return;
     }
-    setBouts((prev) => prev.map((b) => (b.id === id ? { ...b, ...editForm, category_id: editForm.category_id } as Bout : b)));
+    setBouts((prev) =>
+      prev.map((b) =>
+        b.id === id
+          ? ({ ...b, ...editForm, competitor_a_submission_id: aSubmissionId, competitor_b_submission_id: bSubmissionId } as Bout)
+          : b
+      )
+    );
     setEditingId(null);
   }
 
@@ -230,7 +346,9 @@ export default function BoutCurator({
               />
               <select
                 value={form.competitor_a_submission_id}
-                onChange={(e) => setForm((f) => ({ ...f, competitor_a_submission_id: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, competitor_a_submission_id: e.target.value, competitor_a_upload_url: "" }))
+                }
                 className="rounded border border-neutral-300 px-2 py-1.5 text-xs"
               >
                 <option value="">Not linked to a submission</option>
@@ -240,6 +358,17 @@ export default function BoutCurator({
                   </option>
                 ))}
               </select>
+              {!form.competitor_a_submission_id && (
+                <div className="mt-1">
+                  <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
+                    Or upload a clip directly
+                  </p>
+                  <FileUploadPicker
+                    key={`a-${formResetKey}`}
+                    onUploaded={(url) => setForm((f) => ({ ...f, competitor_a_upload_url: url ?? "" }))}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex flex-col gap-2 rounded border border-neutral-200 p-3">
               <input
@@ -252,7 +381,9 @@ export default function BoutCurator({
               />
               <select
                 value={form.competitor_b_submission_id}
-                onChange={(e) => setForm((f) => ({ ...f, competitor_b_submission_id: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, competitor_b_submission_id: e.target.value, competitor_b_upload_url: "" }))
+                }
                 className="rounded border border-neutral-300 px-2 py-1.5 text-xs"
               >
                 <option value="">Not linked to a submission</option>
@@ -262,6 +393,17 @@ export default function BoutCurator({
                   </option>
                 ))}
               </select>
+              {!form.competitor_b_submission_id && (
+                <div className="mt-1">
+                  <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
+                    Or upload a clip directly
+                  </p>
+                  <FileUploadPicker
+                    key={`b-${formResetKey}`}
+                    onUploaded={(url) => setForm((f) => ({ ...f, competitor_b_upload_url: url ?? "" }))}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -419,7 +561,13 @@ export default function BoutCurator({
                           />
                           <select
                             value={editForm.competitor_a_submission_id}
-                            onChange={(e) => setEditForm((f) => ({ ...f, competitor_a_submission_id: e.target.value }))}
+                            onChange={(e) =>
+                              setEditForm((f) => ({
+                                ...f,
+                                competitor_a_submission_id: e.target.value,
+                                competitor_a_upload_url: "",
+                              }))
+                            }
                             className="rounded border border-neutral-300 px-2 py-1.5 text-xs"
                           >
                             <option value="">Not linked to a submission</option>
@@ -429,6 +577,18 @@ export default function BoutCurator({
                               </option>
                             ))}
                           </select>
+                          {!editForm.competitor_a_submission_id && (
+                            <div className="mt-1">
+                              <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
+                                Or upload a clip directly
+                              </p>
+                              <FileUploadPicker
+                                onUploaded={(url) =>
+                                  setEditForm((f) => ({ ...f, competitor_a_upload_url: url ?? "" }))
+                                }
+                              />
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-col gap-2 rounded border border-neutral-200 p-3">
                           <input
@@ -439,7 +599,13 @@ export default function BoutCurator({
                           />
                           <select
                             value={editForm.competitor_b_submission_id}
-                            onChange={(e) => setEditForm((f) => ({ ...f, competitor_b_submission_id: e.target.value }))}
+                            onChange={(e) =>
+                              setEditForm((f) => ({
+                                ...f,
+                                competitor_b_submission_id: e.target.value,
+                                competitor_b_upload_url: "",
+                              }))
+                            }
                             className="rounded border border-neutral-300 px-2 py-1.5 text-xs"
                           >
                             <option value="">Not linked to a submission</option>
@@ -449,6 +615,18 @@ export default function BoutCurator({
                               </option>
                             ))}
                           </select>
+                          {!editForm.competitor_b_submission_id && (
+                            <div className="mt-1">
+                              <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
+                                Or upload a clip directly
+                              </p>
+                              <FileUploadPicker
+                                onUploaded={(url) =>
+                                  setEditForm((f) => ({ ...f, competitor_b_upload_url: url ?? "" }))
+                                }
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-3">
