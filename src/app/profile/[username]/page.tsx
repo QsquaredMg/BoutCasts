@@ -25,7 +25,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, points, current_streak, longest_streak, created_at, tier")
+    .select("id, username, points, current_streak, longest_streak, created_at")
     .eq("username", username)
     .maybeSingle();
 
@@ -93,6 +93,21 @@ export default async function ProfilePage({
   const pointEvents = (pointRows ?? []) as PointEvent[];
   const submissions = (submissionRows ?? []) as Submission[];
   const otherSubmissions = (otherRows ?? []) as Submission[];
+
+  const submissionIds = submissions.map((s) => s.id);
+  const { data: tiedBoutRows } = submissionIds.length
+    ? await supabase
+        .from("bouts")
+        .select("id, title, status, bout_mode, competitor_a_submission_id, competitor_b_submission_id")
+        .or(
+          `competitor_a_submission_id.in.(${submissionIds.join(",")}),competitor_b_submission_id.in.(${submissionIds.join(",")})`
+        )
+    : { data: [] as { id: string; title: string; status: string; bout_mode: string; competitor_a_submission_id: string | null; competitor_b_submission_id: string | null }[] };
+  const boutBySubmissionId = new Map<string, { id: string; title: string; status: string; bout_mode: string }>();
+  for (const b of tiedBoutRows ?? []) {
+    if (b.competitor_a_submission_id) boutBySubmissionId.set(b.competitor_a_submission_id, b);
+    if (b.competitor_b_submission_id) boutBySubmissionId.set(b.competitor_b_submission_id, b);
+  }
   const clout = cloutTierFor(profile.points ?? 0);
   const initial = (profile.username ?? "?").slice(0, 1).toUpperCase();
   const memberSince = new Date(profile.created_at).toLocaleDateString("en-US", {
@@ -116,14 +131,6 @@ export default async function ProfilePage({
         <div className="min-w-[180px] flex-1">
           <h1 className="flex items-center gap-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
             {profile.username}
-            {profile.tier === "pro" && (
-              <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                style={{ background: "var(--gold-soft)", color: "var(--gold)" }}
-              >
-                ⭐ Pro
-              </span>
-            )}
           </h1>
           <p className="text-sm" style={{ color: "var(--text-faint)" }}>
             Member since {memberSince} &middot; {followerCount ?? 0} follower{(followerCount ?? 0) === 1 ? "" : "s"} &middot; {followingCount ?? 0} following
@@ -191,32 +198,47 @@ export default async function ProfilePage({
       {submissions.length > 0 && (
         <div className="mb-8">
           <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>
-            Approved bouts
+            Bouts &amp; videos
           </h2>
           <div className="bc-card overflow-hidden">
-            {submissions.map((s, i) => (
-              <div
-                key={s.id}
-                className="flex items-center gap-3 px-4 py-3"
-                style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
-              >
-                <div className="flex-1">
-                  <div className="text-sm font-bold">{s.title}</div>
-                  <div className="mt-1 flex items-center gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
-                    <ClipSourceTag sourceType={s.source_type} sourceUrl={s.source_url} />
-                    <span>
-                      {s.categories?.name}
-                      {s.crew_name ? ` · Crew: ${s.crew_name}` : ""}
-                    </span>
+            {submissions.map((s, i) => {
+              const bout = boutBySubmissionId.get(s.id);
+              return (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
+                >
+                  <div className="flex-1">
+                    <div className="text-sm font-bold">{s.title}</div>
+                    <div className="mt-1 flex items-center gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
+                      <ClipSourceTag sourceType={s.source_type} sourceUrl={s.source_url} />
+                      <span>
+                        {s.categories?.name}
+                        {s.crew_name ? ` · Crew: ${s.crew_name}` : ""}
+                      </span>
+                    </div>
                   </div>
+                  {bout ? (
+                    <Link
+                      href={`/bout/${bout.id}`}
+                      className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        background: bout.status === "final" ? "var(--gold-soft)" : "var(--red-soft)",
+                        color: bout.status === "final" ? "var(--gold)" : "var(--red)",
+                      }}
+                    >
+                      {bout.bout_mode === "open" ? "Open bout" : "Bout"} &rarr;
+                    </Link>
+                  ) : (
+                    <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase" style={{ background: "var(--surface-2)", color: "var(--text-faint)" }}>
+                      Awaiting match
+                    </span>
+                  )}
                 </div>
-                {s.entry_type === "paid" && (
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}>
-                    PAID ENTRY
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

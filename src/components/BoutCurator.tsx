@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Bout, Category } from "@/lib/types";
-import FileUploadPicker from "@/components/FileUploadPicker";
+import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 
 type SubmissionRow = {
   id: string;
@@ -20,10 +20,10 @@ const EMPTY_FORM = {
   title: "",
   competitor_a_name: "",
   competitor_a_submission_id: "",
-  competitor_a_upload_url: "",
+  competitor_a_clip: { sourceType: "upload", sourceUrl: null } as ClipSourceValue,
   competitor_b_name: "",
   competitor_b_submission_id: "",
-  competitor_b_upload_url: "",
+  competitor_b_clip: { sourceType: "upload", sourceUrl: null } as ClipSourceValue,
   status: "live" as "upcoming" | "live" | "final",
   closes_at: "",
   round_theme_name: "",
@@ -73,6 +73,15 @@ export default function BoutCurator({
     return categories.find((c) => c.id === id)?.name ?? "Uncategorized";
   }
 
+  // Voting windows are capped at 42h server-side (a check constraint on
+  // bouts.closes_at); this just reflects that cap in the datetime picker
+  // so the admin isn't surprised by a rejected save.
+  function maxClosesAtLocal(from: Date): string {
+    const max = new Date(from.getTime() + 42 * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${max.getFullYear()}-${pad(max.getMonth() + 1)}-${pad(max.getDate())}T${pad(max.getHours())}:${pad(max.getMinutes())}`;
+  }
+
   // Creates a new `submissions` row for a clip the admin just uploaded
   // directly in BoutCurator, and immediately approves it (via the
   // moderate_submission RPC) so it's visible to everyone, not just the
@@ -80,11 +89,12 @@ export default function BoutCurator({
   async function createApprovedSubmission(
     categoryId: string,
     title: string,
+    sourceType: "upload" | "link" | "record",
     sourceUrl: string
   ): Promise<{ id: string } | { error: string }> {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
-    if (!user) return { error: "You must be signed in to attach an uploaded clip." };
+    if (!user) return { error: "You must be signed in to attach a clip." };
 
     const { data, error } = await supabase
       .from("submissions")
@@ -92,23 +102,25 @@ export default function BoutCurator({
         user_id: user.id,
         category_id: categoryId,
         title,
-        source_type: "upload",
+        source_type: sourceType,
         source_url: sourceUrl,
-        entry_type: "free",
       })
       .select("id")
       .single();
 
     if (error || !data) {
-      return { error: error?.message ?? "Could not save the uploaded clip." };
+      return { error: error?.message ?? "Could not save the clip." };
     }
 
+    // p_skip_autopair: true — this is a curated closed-bout clip, not an
+    // open submission waiting to be auto-matched against someone else's.
     const { error: modError } = await supabase.rpc("moderate_submission", {
       p_submission_id: data.id,
       p_approve: true,
+      p_skip_autopair: true,
     });
     if (modError) {
-      return { error: `Clip uploaded but couldn't be approved: ${modError.message}` };
+      return { error: `Clip saved but couldn't be approved: ${modError.message}` };
     }
 
     return { id: data.id as string };
@@ -126,11 +138,12 @@ export default function BoutCurator({
     setCreating(true);
 
     let aSubmissionId = form.competitor_a_submission_id || null;
-    if (!aSubmissionId && form.competitor_a_upload_url) {
+    if (!aSubmissionId && form.competitor_a_clip.sourceUrl) {
       const result = await createApprovedSubmission(
         form.category_id,
         `${form.title.trim()} — ${form.competitor_a_name.trim()}`,
-        form.competitor_a_upload_url
+        form.competitor_a_clip.sourceType,
+        form.competitor_a_clip.sourceUrl
       );
       if ("error" in result) {
         setCreating(false);
@@ -141,11 +154,12 @@ export default function BoutCurator({
     }
 
     let bSubmissionId = form.competitor_b_submission_id || null;
-    if (!bSubmissionId && form.competitor_b_upload_url) {
+    if (!bSubmissionId && form.competitor_b_clip.sourceUrl) {
       const result = await createApprovedSubmission(
         form.category_id,
         `${form.title.trim()} — ${form.competitor_b_name.trim()}`,
-        form.competitor_b_upload_url
+        form.competitor_b_clip.sourceType,
+        form.competitor_b_clip.sourceUrl
       );
       if ("error" in result) {
         setCreating(false);
@@ -160,6 +174,7 @@ export default function BoutCurator({
       .insert({
         category_id: form.category_id,
         title: form.title.trim(),
+        bout_mode: "closed",
         competitor_a_name: form.competitor_a_name.trim(),
         competitor_a_submission_id: aSubmissionId,
         competitor_b_name: form.competitor_b_name.trim(),
@@ -191,10 +206,10 @@ export default function BoutCurator({
       title: b.title,
       competitor_a_name: b.competitor_a_name,
       competitor_a_submission_id: b.competitor_a_submission_id ?? "",
-      competitor_a_upload_url: "",
+      competitor_a_clip: { sourceType: "upload", sourceUrl: null } as ClipSourceValue,
       competitor_b_name: b.competitor_b_name,
       competitor_b_submission_id: b.competitor_b_submission_id ?? "",
-      competitor_b_upload_url: "",
+      competitor_b_clip: { sourceType: "upload", sourceUrl: null } as ClipSourceValue,
       status: b.status,
       closes_at: b.closes_at ? b.closes_at.slice(0, 16) : "",
       round_theme_name: b.round_theme_name ?? "",
@@ -209,11 +224,12 @@ export default function BoutCurator({
     setBusyId(id);
 
     let aSubmissionId = editForm.competitor_a_submission_id || null;
-    if (!aSubmissionId && editForm.competitor_a_upload_url) {
+    if (!aSubmissionId && editForm.competitor_a_clip.sourceUrl) {
       const result = await createApprovedSubmission(
         editForm.category_id,
         `${editForm.title.trim()} — ${editForm.competitor_a_name.trim()}`,
-        editForm.competitor_a_upload_url
+        editForm.competitor_a_clip.sourceType,
+        editForm.competitor_a_clip.sourceUrl
       );
       if ("error" in result) {
         setBusyId(null);
@@ -224,11 +240,12 @@ export default function BoutCurator({
     }
 
     let bSubmissionId = editForm.competitor_b_submission_id || null;
-    if (!bSubmissionId && editForm.competitor_b_upload_url) {
+    if (!bSubmissionId && editForm.competitor_b_clip.sourceUrl) {
       const result = await createApprovedSubmission(
         editForm.category_id,
         `${editForm.title.trim()} — ${editForm.competitor_b_name.trim()}`,
-        editForm.competitor_b_upload_url
+        editForm.competitor_b_clip.sourceType,
+        editForm.competitor_b_clip.sourceUrl
       );
       if ("error" in result) {
         setBusyId(null);
@@ -394,11 +411,14 @@ export default function BoutCurator({
               {!form.competitor_a_submission_id && (
                 <div className="mt-1">
                   <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
-                    Or upload a clip directly
+                    Or attach a clip directly
                   </p>
-                  <FileUploadPicker
+                  <ClipSourcePicker
                     key={`a-${formResetKey}`}
-                    onUploaded={(url) => setForm((f) => ({ ...f, competitor_a_upload_url: url ?? "" }))}
+                    value={form.competitor_a_clip}
+                    onChange={(next) => setForm((f) => ({ ...f, competitor_a_clip: next }))}
+                    inputClass="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+                    inputStyle={{}}
                   />
                 </div>
               )}
@@ -429,11 +449,14 @@ export default function BoutCurator({
               {!form.competitor_b_submission_id && (
                 <div className="mt-1">
                   <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
-                    Or upload a clip directly
+                    Or attach a clip directly
                   </p>
-                  <FileUploadPicker
+                  <ClipSourcePicker
                     key={`b-${formResetKey}`}
-                    onUploaded={(url) => setForm((f) => ({ ...f, competitor_b_upload_url: url ?? "" }))}
+                    value={form.competitor_b_clip}
+                    onChange={(next) => setForm((f) => ({ ...f, competitor_b_clip: next }))}
+                    inputClass="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+                    inputStyle={{}}
                   />
                 </div>
               )}
@@ -453,8 +476,9 @@ export default function BoutCurator({
               type="datetime-local"
               value={form.closes_at}
               onChange={(e) => setForm((f) => ({ ...f, closes_at: e.target.value }))}
+              max={maxClosesAtLocal(new Date())}
               className="rounded border border-neutral-300 px-3 py-2 text-sm"
-              title="Voting closes at"
+              title="Voting closes at (max 42h from now)"
             />
             <input
               type="text"
@@ -641,12 +665,13 @@ export default function BoutCurator({
                           {!editForm.competitor_a_submission_id && (
                             <div className="mt-1">
                               <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
-                                Or upload a clip directly
+                                Or attach a clip directly
                               </p>
-                              <FileUploadPicker
-                                onUploaded={(url) =>
-                                  setEditForm((f) => ({ ...f, competitor_a_upload_url: url ?? "" }))
-                                }
+                              <ClipSourcePicker
+                                value={editForm.competitor_a_clip}
+                                onChange={(next) => setEditForm((f) => ({ ...f, competitor_a_clip: next }))}
+                                inputClass="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+                                inputStyle={{}}
                               />
                             </div>
                           )}
@@ -679,12 +704,13 @@ export default function BoutCurator({
                           {!editForm.competitor_b_submission_id && (
                             <div className="mt-1">
                               <p className="mb-1 text-[11px] font-semibold uppercase text-neutral-400">
-                                Or upload a clip directly
+                                Or attach a clip directly
                               </p>
-                              <FileUploadPicker
-                                onUploaded={(url) =>
-                                  setEditForm((f) => ({ ...f, competitor_b_upload_url: url ?? "" }))
-                                }
+                              <ClipSourcePicker
+                                value={editForm.competitor_b_clip}
+                                onChange={(next) => setEditForm((f) => ({ ...f, competitor_b_clip: next }))}
+                                inputClass="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+                                inputStyle={{}}
                               />
                             </div>
                           )}
@@ -704,7 +730,9 @@ export default function BoutCurator({
                           type="datetime-local"
                           value={editForm.closes_at}
                           onChange={(e) => setEditForm((f) => ({ ...f, closes_at: e.target.value }))}
+                          max={maxClosesAtLocal(new Date(b.created_at))}
                           className="rounded border border-neutral-300 px-3 py-2 text-sm"
+                          title="Voting closes at (max 42h from when the bout was created)"
                         />
                         <input
                           type="text"

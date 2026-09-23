@@ -48,11 +48,6 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
             <span className="text-xs font-semibold uppercase" style={{ color: "var(--text-faint)" }}>
               {s.categories?.name ?? "Uncategorized"}
             </span>
-            {s.entry_type === "paid" && (
-              <span className="bc-badge-gold rounded-full px-2 py-0.5 text-xs font-bold uppercase">
-                Paid entry &middot; {s.entry_fee} BB
-              </span>
-            )}
           </div>
           {s.status === "appealed" && (
             <div className="mb-2 rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: "var(--gold-soft)", color: "var(--gold)", display: "inline-block" }}>
@@ -74,12 +69,6 @@ export default function ModerationQueue({ submissions }: { submissions: Submissi
           {s.status === "appealed" && s.appeal_message && (
             <p className="mb-3 rounded-lg p-3 text-sm italic" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
               &ldquo;{s.appeal_message}&rdquo;
-            </p>
-          )}
-          {s.entry_type === "paid" && (
-            <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
-              Rejecting this credits {s.entry_fee} BoutBucks to the submitter&apos;s
-              wallet instead of a cash refund.
             </p>
           )}
           <div className="flex gap-2">

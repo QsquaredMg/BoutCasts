@@ -54,7 +54,7 @@ export default function TermsPage() {
         Payments, prizes &amp; BoutBucks
       </h2>
       <ul className={`${BODY} list-disc space-y-1 pl-5`} style={{ color: "var(--text-dim)" }}>
-        <li>Paid entries, BoutCasts Pro subscriptions, and sponsorships are billed through Stripe. Subscriptions renew automatically until cancelled.</li>
+        <li>Sponsorships are billed through Stripe. Subscriptions renew automatically until cancelled.</li>
         <li>BoutBucks are an in-platform balance with no cash value and cannot be redeemed for cash or transferred between accounts.</li>
         <li>Some bouts offer a prize donated and fulfilled directly by a sponsor. BoutCasts does not process, guarantee, or pay out cash prizes — sponsor prizes are the sponsor&apos;s responsibility, and we may delay or deny recognition of a result if we suspect fraud or a Terms violation.</li>
         <li>All sales and completed sponsorship payments are final except where required otherwise by law.</li>

@@ -24,6 +24,7 @@ export type Bout = {
   competitor_a_name: string;
   competitor_b_name: string;
   status: "upcoming" | "live" | "final";
+  bout_mode: "open" | "closed";
   round_theme_name: string | null;
   round_theme_rules: string | null;
   created_at: string;
@@ -88,9 +89,7 @@ export type Submission = {
   title: string;
   source_type: "upload" | "link" | "record";
   source_url: string | null;
-  entry_type: "free" | "paid";
-  entry_fee: number;
-  stripe_checkout_session_id?: string | null;
+  matched_bout_id?: string | null;
   crew_name?: string | null;
   teammates?: string[] | null;
   status: "pending" | "approved" | "rejected" | "appealed";

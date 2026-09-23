@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         <li>Account information: email address, username, and password (stored securely, hashed, via our authentication provider).</li>
         <li>Content you submit: clips, links, titles, descriptions, comments, and other material you post to compete in or comment on bouts.</li>
         <li>Voting and engagement activity: which bouts you vote on, points earned, badges, and challenges you send or receive.</li>
-        <li>Payment information: if you subscribe to BoutCasts Pro, enter a paid bout, or sponsor a category, payments are processed by Stripe. We do not store your card number — Stripe handles and stores that directly.</li>
+        <li>Payment information: if you sponsor a category, payments are processed by Stripe. We do not store your card number — Stripe handles and stores that directly.</li>
         <li>Wallet activity: your BoutBucks balance and history.</li>
         <li>Usage data: pages visited, device/browser type, and similar technical information collected automatically.</li>
       </ul>
