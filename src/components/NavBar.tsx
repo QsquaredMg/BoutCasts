@@ -32,30 +32,49 @@ export default function NavBar() {
   }, [pathname]);
 
   useEffect(() => {
+    async function loadProfile(u: User) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin, wallet_balance, username")
+        .eq("id", u.id)
+        .maybeSingle();
+      setIsAdmin(!!profile?.is_admin);
+      setWalletBalance(profile?.wallet_balance ?? 0);
+      setUsername(profile?.username ?? null);
+
+      const { count } = await supabase
+        .from("challenges")
+        .select("id", { count: "exact", head: true })
+        .eq("opponent_id", u.id)
+        .eq("status", "pending");
+      setPendingChallenges(count ?? 0);
+    }
+
     supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user ?? null);
       if (data.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_admin, wallet_balance, username")
-          .eq("id", data.user.id)
-          .maybeSingle();
-        setIsAdmin(!!profile?.is_admin);
-        setWalletBalance(profile?.wallet_balance ?? 0);
-        setUsername(profile?.username ?? null);
-
-        const { count } = await supabase
-          .from("challenges")
-          .select("id", { count: "exact", head: true })
-          .eq("opponent_id", data.user.id)
-          .eq("status", "pending");
-        setPendingChallenges(count ?? 0);
+        await loadProfile(data.user);
       }
       setLoading(false);
     });
 
+    // Re-fetch the profile (username, admin flag, wallet) whenever auth state
+    // changes, not just on first mount. Without this, signing in via a
+    // client-side navigation (no full page reload) left username/isAdmin
+    // permanently null for the rest of the session, which in turn made the
+    // "Profile" nav link fall back to /login even though the user was
+    // signed in.
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
+        loadProfile(nextUser);
+      } else {
+        setIsAdmin(false);
+        setWalletBalance(null);
+        setUsername(null);
+        setPendingChallenges(0);
+      }
     });
 
     return () => {
