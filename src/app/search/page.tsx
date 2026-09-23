@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
+import SearchBar from "@/components/SearchBar";
 
 export default async function SearchPage({
   searchParams,
@@ -58,21 +59,7 @@ export default async function SearchPage({
         Find bouts, competitors, categories, and profiles.
       </p>
 
-      <form action="/search" method="get" className="mb-8">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q}
-          autoFocus
-          placeholder="Search BoutCasts…"
-          className="w-full rounded-full border px-5 py-3 text-sm outline-none"
-          style={{
-            background: "var(--surface)",
-            borderColor: "var(--border)",
-            color: "var(--text)",
-          }}
-        />
-      </form>
+      <SearchBar initialQuery={q} />
 
       {q.length === 0 && (
         <p style={{ color: "var(--text-faint)" }}>

@@ -60,6 +60,13 @@ export default async function Home() {
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
+      <div className="mb-5 flex items-center justify-center gap-2 text-center text-xs" style={{ color: "var(--text-faint)" }}>
+        <span>New here?</span>
+        <Link href="/how-it-works" className="font-semibold underline" style={{ color: "var(--blue)" }}>
+          See how BoutCasts works →
+        </Link>
+      </div>
+
       {!featured && (
         <div className="bc-card p-8 text-center" style={{ color: "var(--text-faint)" }}>
           No bouts yet.{" "}
