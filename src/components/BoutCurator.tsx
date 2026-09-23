@@ -29,6 +29,7 @@ const EMPTY_FORM = {
   round_theme_name: "",
   round_theme_rules: "",
   sponsor_id: "",
+  sponsor_prize_description: "",
 };
 
 type FormState = typeof EMPTY_FORM;
@@ -168,6 +169,7 @@ export default function BoutCurator({
         round_theme_name: form.round_theme_name.trim() || null,
         round_theme_rules: form.round_theme_rules.trim() || null,
         sponsor_id: form.sponsor_id || null,
+        sponsor_prize_description: form.sponsor_prize_description.trim() || null,
       })
       .select()
       .single();
@@ -198,6 +200,7 @@ export default function BoutCurator({
       round_theme_name: b.round_theme_name ?? "",
       round_theme_rules: b.round_theme_rules ?? "",
       sponsor_id: b.sponsor_id ?? "",
+      sponsor_prize_description: b.sponsor_prize_description ?? "",
     });
   }
 
@@ -249,6 +252,7 @@ export default function BoutCurator({
         round_theme_name: editForm.round_theme_name.trim() || null,
         round_theme_rules: editForm.round_theme_rules.trim() || null,
         sponsor_id: editForm.sponsor_id || null,
+        sponsor_prize_description: editForm.sponsor_prize_description.trim() || null,
       })
       .eq("id", id)
       .select()
@@ -293,6 +297,25 @@ export default function BoutCurator({
     setBouts((prev) => prev.filter((b) => b.id !== id));
   }
 
+  async function markPrizeFulfilled(id: string) {
+    setError(null);
+    setBusyId(id);
+    const { error } = await supabase
+      .from("bouts")
+      .update({ sponsor_prize_fulfilled: true, sponsor_prize_fulfilled_at: new Date().toISOString() })
+      .eq("id", id);
+    setBusyId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setBouts((prev) =>
+      prev.map((b) =>
+        b.id === id ? { ...b, sponsor_prize_fulfilled: true, sponsor_prize_fulfilled_at: new Date().toISOString() } : b
+      )
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
       {error && <p className="rounded bg-red-100 p-3 text-sm text-red-700">{error}</p>}
@@ -333,6 +356,16 @@ export default function BoutCurator({
               ))}
             </select>
           </div>
+
+          {form.sponsor_id && (
+            <input
+              type="text"
+              placeholder='Sponsor prize for the winner (e.g. "$100 gift card from Acme Co.")'
+              value={form.sponsor_prize_description}
+              onChange={(e) => setForm((f) => ({ ...f, sponsor_prize_description: e.target.value }))}
+              className="rounded border border-neutral-300 px-3 py-2 text-sm"
+            />
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-2 rounded border border-neutral-200 p-3">
@@ -478,6 +511,16 @@ export default function BoutCurator({
                             </span>
                           )}
                         </p>
+                        {b.sponsor_prize_description && (
+                          <p className="mt-1 text-xs text-amber-700">
+                            🏆 {b.sponsor_prize_description}
+                            {b.sponsor_prize_fulfilled ? (
+                              <span className="ml-1 font-semibold text-green-700">(fulfilled)</span>
+                            ) : (
+                              <span className="ml-1 font-semibold text-amber-500">(not yet fulfilled)</span>
+                            )}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
@@ -507,6 +550,15 @@ export default function BoutCurator({
                             className="rounded border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
                           >
                             Close &amp; decide winner
+                          </button>
+                        )}
+                        {b.sponsor_prize_description && !b.sponsor_prize_fulfilled && (
+                          <button
+                            onClick={() => markPrizeFulfilled(b.id)}
+                            disabled={busyId === b.id}
+                            className="rounded border border-green-300 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50"
+                          >
+                            Mark prize fulfilled
                           </button>
                         )}
                         <button
@@ -551,6 +603,15 @@ export default function BoutCurator({
                           ))}
                         </select>
                       </div>
+                      {editForm.sponsor_id && (
+                        <input
+                          type="text"
+                          placeholder='Sponsor prize for the winner (e.g. "$100 gift card from Acme Co.")'
+                          value={editForm.sponsor_prize_description}
+                          onChange={(e) => setEditForm((f) => ({ ...f, sponsor_prize_description: e.target.value }))}
+                          className="rounded border border-neutral-300 px-3 py-2 text-sm"
+                        />
+                      )}
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-2 rounded border border-neutral-200 p-3">
                           <input

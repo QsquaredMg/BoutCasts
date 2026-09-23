@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { WalletEvent } from "@/lib/types";
 import ProMembershipCard from "@/components/ProMembershipCard";
-import CashWalletCard from "@/components/CashWalletCard";
-import type { CashRedemption } from "@/lib/types";
 
 const REASON_LABEL: Record<string, string> = {
   submission_rejected_refund: "Paid entry refund (credit)",
@@ -20,20 +18,14 @@ export default async function WalletPage() {
     redirect("/login");
   }
 
-  const [{ data: profile }, { data: events }, { data: redemptions }] = await Promise.all([
+  const [{ data: profile }, { data: events }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("wallet_balance, referral_code, tier, cash_available_cents, cash_pending_cents, cash_lifetime_cents")
+      .select("wallet_balance, referral_code, tier")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
       .from("wallet_events")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("cash_redemptions")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -53,13 +45,6 @@ export default async function WalletPage() {
       </p>
 
       <ProMembershipCard isPro={profile?.tier === "pro"} />
-
-      <CashWalletCard
-        availableCents={profile?.cash_available_cents ?? 0}
-        pendingCents={profile?.cash_pending_cents ?? 0}
-        lifetimeCents={profile?.cash_lifetime_cents ?? 0}
-        redemptions={(redemptions as CashRedemption[]) ?? []}
-      />
 
       <div
         className="mb-6 rounded-2xl p-5 text-center"

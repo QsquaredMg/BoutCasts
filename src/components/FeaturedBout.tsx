@@ -163,7 +163,7 @@ export default async function FeaturedBout({
       </h1>
 
       {sponsor && (
-        <div className="mb-4 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
+        <div className="mb-2 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
           {sponsor.website_url ? (
             <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="underline">
               <SponsorBadge sponsor={sponsor} />
@@ -171,6 +171,15 @@ export default async function FeaturedBout({
           ) : (
             <SponsorBadge sponsor={sponsor} />
           )}
+        </div>
+      )}
+
+      {bout.sponsor_prize_description && (
+        <div
+          className="mb-4 rounded-xl border p-3 text-sm font-semibold"
+          style={{ borderColor: "var(--gold)", background: "var(--gold-soft)", color: "var(--gold)" }}
+        >
+          🏆 Sponsored prize: {bout.sponsor_prize_description}
         </div>
       )}
 

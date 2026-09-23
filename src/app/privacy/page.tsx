@@ -32,7 +32,7 @@ export default function PrivacyPage() {
         <li>Content you submit: clips, links, titles, descriptions, comments, and other material you post to compete in or comment on bouts.</li>
         <li>Voting and engagement activity: which bouts you vote on, points earned, badges, and challenges you send or receive.</li>
         <li>Payment information: if you subscribe to BoutCasts Pro, enter a paid bout, or sponsor a category, payments are processed by Stripe. We do not store your card number — Stripe handles and stores that directly.</li>
-        <li>Wallet and cash-prize activity: BoutBucks balance, cash redemption requests, and payout method (e.g. gift card brand) you choose.</li>
+        <li>Wallet activity: your BoutBucks balance and history.</li>
         <li>Usage data: pages visited, device/browser type, and similar technical information collected automatically.</li>
       </ul>
 
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
       </h2>
       <ul className={`${BODY} list-disc space-y-1 pl-5`} style={{ color: "var(--text-dim)" }}>
         <li>To operate the Service — running bouts, tallying votes, tracking points/badges, and resolving challenges.</li>
-        <li>To process payments, cash-prize payouts, and sponsorship billing.</li>
+        <li>To process payments and sponsorship billing.</li>
         <li>To moderate submitted content and enforce our Terms of Service.</li>
         <li>To communicate with you about your account, submissions, or support requests.</li>
         <li>To improve the Service and understand how it&apos;s used.</li>

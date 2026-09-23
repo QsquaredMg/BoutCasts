@@ -11,8 +11,6 @@ type AdminProfileRow = {
   is_suspended: boolean;
   points: number;
   wallet_balance: number;
-  cash_available_cents: number;
-  cash_lifetime_cents: number;
   created_at: string;
 };
 
@@ -101,8 +99,7 @@ export default function UserManager({ initialUsers }: { initialUsers: AdminProfi
                 )}
               </div>
               <p className="mt-1 text-xs text-neutral-400">
-                {u.points} pts · wallet {u.wallet_balance} · cash avail ${(u.cash_available_cents / 100).toFixed(2)} ·
-                lifetime ${(u.cash_lifetime_cents / 100).toFixed(2)} · joined{" "}
+                {u.points} pts · wallet {u.wallet_balance} BB · joined{" "}
                 {new Date(u.created_at).toLocaleDateString()}
               </p>
             </div>

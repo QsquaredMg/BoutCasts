@@ -38,6 +38,9 @@ export type Bout = {
   competitor_b_submission_id?: string | null;
   seed_a?: number | null;
   seed_b?: number | null;
+  sponsor_prize_description?: string | null;
+  sponsor_prize_fulfilled?: boolean;
+  sponsor_prize_fulfilled_at?: string | null;
   categories?: { name: string; sponsor_id?: string | null; sponsors?: Sponsor | null } | null;
   sponsors?: Sponsor | null;
 };
@@ -162,27 +165,3 @@ export type PoolContribution = {
   created_at: string;
 };
 
-export type CashWalletEvent = {
-  id: string;
-  user_id: string;
-  amount_cents: number;
-  reason: string;
-  status: "pending" | "available";
-  related_bout_id: string | null;
-  created_at: string;
-  released_at: string | null;
-};
-
-export type CashRedemption = {
-  id: string;
-  user_id: string;
-  redemption_type: "cash" | "gift_card";
-  gift_card_brand: string | null;
-  amount_cents: number;
-  payout_method: string | null;
-  status: "pending" | "fulfilled" | "rejected";
-  admin_note: string | null;
-  created_at: string;
-  fulfilled_at: string | null;
-  profiles?: { username: string | null } | null;
-};

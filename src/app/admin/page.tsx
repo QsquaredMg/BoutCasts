@@ -9,8 +9,7 @@ export default async function AdminDashboardPage() {
     { count: openReports },
     { count: liveBouts },
     { count: pendingSponsorApps },
-    { count: pendingCashEvents },
-    { count: pendingRedemptions },
+    { count: unfulfilledSponsorPrizes },
     { count: totalUsers },
     { data: pools },
     { data: contributions },
@@ -19,8 +18,11 @@ export default async function AdminDashboardPage() {
     supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("bouts").select("*", { count: "exact", head: true }).eq("status", "live"),
     supabase.from("sponsor_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("cash_wallet_events").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("cash_redemptions").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase
+      .from("bouts")
+      .select("*", { count: "exact", head: true })
+      .not("sponsor_prize_description", "is", null)
+      .eq("sponsor_prize_fulfilled", false),
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("prize_pools").select("id, goal_amount"),
     supabase.from("pool_contributions").select("pool_id, amount"),
@@ -34,8 +36,7 @@ export default async function AdminDashboardPage() {
     { label: "Open reports", value: openReports ?? 0, href: "/admin/moderation" },
     { label: "Live bouts", value: liveBouts ?? 0, href: "/admin/bouts" },
     { label: "Pending sponsor applications", value: pendingSponsorApps ?? 0, href: "/admin/sponsors" },
-    { label: "Pending cash payouts", value: pendingCashEvents ?? 0, href: "/admin/cash" },
-    { label: "Pending redemptions", value: pendingRedemptions ?? 0, href: "/admin/cash" },
+    { label: "Unfulfilled sponsor prizes", value: unfulfilledSponsorPrizes ?? 0, href: "/admin/bouts" },
     { label: "Total users", value: totalUsers ?? 0, href: "/admin/users" },
     {
       label: "Prize pools raised / goal",

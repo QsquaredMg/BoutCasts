@@ -7,7 +7,6 @@ const ADMIN_LINKS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/moderation", label: "Moderation" },
   { href: "/admin/sponsors", label: "Sponsors" },
-  { href: "/admin/cash", label: "Cash" },
   { href: "/admin/bouts", label: "Bouts" },
   { href: "/admin/ads", label: "Ads" },
   { href: "/admin/categories", label: "Categories" },
