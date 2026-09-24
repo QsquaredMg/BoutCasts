@@ -6,6 +6,7 @@ import FollowButton from "@/components/FollowButton";
 import AppealButton from "@/components/AppealButton";
 import type { Badge, UserBadge, PointEvent, Submission } from "@/lib/types";
 import ClipSourceTag from "@/components/ClipSourceTag";
+import ProfileAvatarUpload from "@/components/ProfileAvatarUpload";
 
 const REASON_LABEL: Record<string, string> = {
   vote_cast: "Voted on a bout",
@@ -25,7 +26,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, points, current_streak, longest_streak, created_at")
+    .select("id, username, points, current_streak, longest_streak, created_at, avatar_url")
     .eq("username", username)
     .maybeSingle();
 
@@ -122,11 +123,24 @@ export default async function ProfilePage({
       </Link>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div
-          className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold"
-          style={{ background: "var(--blue)", color: "var(--bg)", fontFamily: "var(--font-display)" }}
-        >
-          {initial}
+        <div className="flex flex-col items-center gap-1.5">
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.avatar_url}
+              alt={`${profile.username} avatar`}
+              className="h-16 w-16 rounded-2xl object-cover"
+              style={{ boxShadow: "inset 0 0 0 1px var(--border)" }}
+            />
+          ) : (
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold"
+              style={{ background: "var(--blue)", color: "var(--bg)", fontFamily: "var(--font-display)" }}
+            >
+              {initial}
+            </div>
+          )}
+          {isOwnProfile && <ProfileAvatarUpload userId={profile.id} />}
         </div>
         <div className="min-w-[180px] flex-1">
           <h1 className="flex items-center gap-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
