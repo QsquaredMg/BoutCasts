@@ -2,23 +2,70 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Category } from "@/lib/types";
+import type { Category, Subcategory } from "@/lib/types";
 
 export default function CategoryManager({
   initialCategories,
+  initialSubcategories,
   sponsors,
 }: {
   initialCategories: Category[];
+  initialSubcategories: Subcategory[];
   sponsors: { id: string; name: string }[];
 }) {
   const supabase = createClient();
   const [categories, setCategories] = useState(
     [...initialCategories].sort((a, b) => a.sort_order - b.sort_order)
   );
+  const [subcategories, setSubcategories] = useState(
+    [...initialSubcategories].sort((a, b) => a.sort_order - b.sort_order)
+  );
+  const [newSubcatName, setNewSubcatName] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  async function addSubcategory(categoryId: string) {
+    const subName = (newSubcatName[categoryId] ?? "").trim();
+    if (!subName) return;
+    setError(null);
+    const existing = subcategories.filter((s) => s.category_id === categoryId);
+    const nextSortOrder = existing.length > 0 ? Math.max(...existing.map((s) => s.sort_order)) + 1 : 0;
+
+    const { data, error } = await supabase
+      .from("subcategories")
+      .insert({ category_id: categoryId, name: subName, sort_order: nextSortOrder })
+      .select()
+      .single();
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setSubcategories((prev) => [...prev, data as Subcategory]);
+    setNewSubcatName((prev) => ({ ...prev, [categoryId]: "" }));
+  }
+
+  async function removeSubcategory(id: string) {
+    setError(null);
+    const { error } = await supabase.from("subcategories").delete().eq("id", id);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setSubcategories((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function renameSubcategory(id: string, newName: string) {
+    setError(null);
+    const { error } = await supabase.from("subcategories").update({ name: newName }).eq("id", id);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setSubcategories((prev) => prev.map((s) => (s.id === id ? { ...s, name: newName } : s)));
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -130,8 +177,8 @@ export default function CategoryManager({
         ) : (
           <div className="flex flex-col gap-2">
             {categories.map((c, i) => (
+              <div key={c.id} className="flex flex-col gap-2">
               <div
-                key={c.id}
                 className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-3"
               >
                 <div className="flex items-center gap-2">
@@ -184,6 +231,68 @@ export default function CategoryManager({
                     Remove
                   </button>
                 </div>
+              </div>
+
+              <div className="ml-6 flex flex-col gap-1.5 rounded-lg border border-dashed border-neutral-200 bg-neutral-50 p-3">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                  Subcategories — used to fairly match submissions within {c.name}
+                </div>
+                {subcategories.filter((s) => s.category_id === c.id).length === 0 ? (
+                  <p className="text-xs text-neutral-400">
+                    None yet — every {c.name} submission is matched against any other.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {subcategories
+                      .filter((s) => s.category_id === c.id)
+                      .map((s) => (
+                        <span
+                          key={s.id}
+                          className="flex items-center gap-1.5 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs"
+                        >
+                          <input
+                            type="text"
+                            defaultValue={s.name}
+                            onBlur={(e) => {
+                              if (e.target.value.trim() && e.target.value !== s.name) {
+                                renameSubcategory(s.id, e.target.value.trim());
+                              }
+                            }}
+                            className="w-28 border-none bg-transparent p-0 text-xs focus:outline-none"
+                          />
+                          <button
+                            onClick={() => removeSubcategory(s.id)}
+                            className="text-neutral-400 hover:text-red-600"
+                            aria-label={`Remove ${s.name}`}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    addSubcategory(c.id);
+                  }}
+                  className="mt-1 flex gap-2"
+                >
+                  <input
+                    type="text"
+                    placeholder="e.g. Band, High School/College"
+                    value={newSubcatName[c.id] ?? ""}
+                    onChange={(e) => setNewSubcatName((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                    className="flex-1 rounded border border-neutral-300 px-2 py-1 text-xs"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded border border-neutral-300 px-2.5 py-1 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                  >
+                    + Add
+                  </button>
+                </form>
+              </div>
               </div>
             ))}
           </div>

@@ -17,9 +17,18 @@ export type Category = {
   sponsors?: Sponsor | null;
 };
 
+export type Subcategory = {
+  id: string;
+  category_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type Bout = {
   id: string;
   category_id: string;
+  subcategory_id?: string | null;
   title: string;
   competitor_a_name: string;
   competitor_b_name: string;
@@ -86,6 +95,7 @@ export type Submission = {
   id: string;
   user_id: string;
   category_id: string;
+  subcategory_id?: string | null;
   title: string;
   source_type: "upload" | "link" | "record";
   source_url: string | null;

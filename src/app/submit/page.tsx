@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Category } from "@/lib/types";
+import type { Category, Subcategory } from "@/lib/types";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 
 export default function SubmitPage() {
@@ -11,10 +11,12 @@ export default function SubmitPage() {
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [subcategoryId, setSubcategoryId] = useState("");
   const [clip, setClip] = useState<ClipSourceValue>({ sourceType: "link", sourceUrl: "" });
   const [isCrew, setIsCrew] = useState(false);
   const [crewName, setCrewName] = useState("");
@@ -36,9 +38,25 @@ export default function SubmitPage() {
         .order("sort_order");
       setCategories(cats ?? []);
       if (cats && cats.length > 0) setCategoryId(cats[0].id);
+
+      const { data: subcats } = await supabase
+        .from("subcategories")
+        .select("*")
+        .order("sort_order");
+      setSubcategories(subcats ?? []);
     }
     load();
   }, [supabase]);
+
+  const availableSubcategories = subcategories.filter((s) => s.category_id === categoryId);
+
+  // Keep the selected subcategory valid whenever the category changes (or
+  // the subcategory list loads) — clear it if it no longer applies.
+  useEffect(() => {
+    if (subcategoryId && !availableSubcategories.some((s) => s.id === subcategoryId)) {
+      setSubcategoryId("");
+    }
+  }, [categoryId, availableSubcategories, subcategoryId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +67,12 @@ export default function SubmitPage() {
     const user = userData.user;
     if (!user) {
       router.push("/login");
+      return;
+    }
+
+    if (availableSubcategories.length > 0 && !subcategoryId) {
+      setError("Please pick a subcategory so we can match you fairly.");
+      setLoading(false);
       return;
     }
 
@@ -73,6 +97,7 @@ export default function SubmitPage() {
     const { error } = await supabase.from("submissions").insert({
       user_id: user.id,
       category_id: categoryId,
+      subcategory_id: subcategoryId || null,
       title,
       source_type: clip.sourceType,
       source_url: clip.sourceUrl,
@@ -153,6 +178,30 @@ export default function SubmitPage() {
             ))}
           </select>
         </div>
+
+        {availableSubcategories.length > 0 && (
+          <div>
+            <label className={labelClass} style={labelStyle}>Subcategory</label>
+            <select
+              value={subcategoryId}
+              onChange={(e) => setSubcategoryId(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+            >
+              <option value="" disabled>
+                Select subcategory
+              </option>
+              {availableSubcategories.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+              We only match you against entries in the same subcategory, so it&apos;s a fair fight.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className={labelClass} style={labelStyle}>Clip</label>
