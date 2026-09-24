@@ -27,7 +27,7 @@ export default function AdInterstitial() {
   const [canSkip, setCanSkip] = useState(false);
 
   useEffect(() => {
-    if (pathname?.startsWith("/admin")) return;
+    if (pathname?.startsWith("/admin") || pathname === "/welcome") return;
     let cancelled = false;
 
     try {

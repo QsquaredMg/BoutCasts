@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safeNext";
 
 const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Other", "Prefer not to say"];
 const ETHNICITY_OPTIONS = [
@@ -68,7 +69,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext(new URLSearchParams(window.location.search).get("next")))}`,
         data: {
           username: username || undefined,
           referral_code: referralCode || undefined,
@@ -96,7 +97,7 @@ export default function SignupPage() {
         <p style={{ color: "var(--text-dim)" }}>
           Account created. If email confirmation is required, check your inbox;
           otherwise you can{" "}
-          <Link href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
+          <Link href={`/login?next=${encodeURIComponent(safeNext(typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("next")))}`} className="font-semibold underline" style={{ color: "var(--red)" }}>
             sign in now
           </Link>
           .

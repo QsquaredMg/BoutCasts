@@ -169,3 +169,135 @@ h1, h2, h3, h4 {
   background: var(--blue-soft);
   color: var(--blue);
 }
+
+/* ---------- Marketing homepage + app splash (2026 redesign) ---------- */
+
+.lp {
+  --lp-blue: #1b4fe4;
+  --lp-blue-dark: #123ab0;
+  --lp-blue-light: #6e97ff;
+  --lp-blue-pale: #e6edff;
+  --lp-ink: #0a0e1a;
+  --lp-ink-2: #151b2e;
+  --lp-ink-line: #262e47;
+  --lp-paper: #f4f6fb;
+  --lp-line: #e4e7ef;
+  --lp-muted: #4a5163;
+  --lp-muted-dark: #a8b0c4;
+  --lp-body-dark: #c9d0e0;
+  --lp-live: #e5263b;
+  background: #ffffff;
+  color: var(--lp-ink);
+}
+
+.lp-display {
+  font-family: var(--font-hero), var(--font-display), "Arial Narrow", sans-serif;
+  font-stretch: 112%;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.015em;
+  line-height: 0.95;
+}
+
+.lp-title {
+  font-family: var(--font-hero), var(--font-display), sans-serif;
+  font-stretch: 105%;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+}
+
+.lp-eyebrow {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lp-live-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--lp-live, #e5263b);
+  animation: lpPulse 1.4s ease-out infinite;
+}
+
+@keyframes lpPulse {
+  0% { box-shadow: 0 0 0 0 rgba(229, 38, 59, 0.55); }
+  100% { box-shadow: 0 0 0 9px rgba(229, 38, 59, 0); }
+}
+
+.lp-slash,
+.lp-stripe {
+  position: absolute;
+  pointer-events: none;
+  transform: rotate(14deg);
+}
+.lp-slash { right: -180px; top: -140px; width: 760px; height: 1200px; background: var(--lp-blue, #1b4fe4); }
+.lp-stripe { right: 250px; top: -140px; width: 26px; height: 1200px; background: #fff; opacity: 0.9; }
+
+@media (max-width: 1023px) {
+  .lp-slash { right: -270px; top: auto; bottom: -640px; width: 440px; height: 1200px; }
+  .lp-stripe { right: 130px; top: auto; bottom: -640px; width: 14px; height: 1200px; }
+}
+
+.lp-watermark {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--font-hero), sans-serif;
+  font-stretch: 125%;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  opacity: 0.045;
+  user-select: none;
+}
+
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  min-height: 48px;
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.lp-btn:hover { transform: translateY(-1px); }
+.lp-btn:focus-visible { outline: 3px solid var(--lp-blue-light, #6e97ff); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-live-dot, .splash-bar-a, .splash-bar-b, .splash-rise { animation: none !important; }
+  .lp-btn:hover { transform: none; }
+}
+
+/* App launch splash (installed app only — see SplashGate) */
+.splash-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0a0e1a;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 0.35s ease;
+}
+.splash-root[data-leaving="true"] { opacity: 0; }
+.splash-slash, .splash-stripe { position: absolute; transform: rotate(14deg); }
+.splash-slash { right: -250px; top: -140px; width: 420px; height: 1200px; background: #1b4fe4; }
+.splash-stripe { right: 150px; top: -140px; width: 14px; height: 1200px; background: #fff; opacity: 0.9; }
+/* Fade the slash out before it reaches the tagline at the bottom of the splash. */
+.splash-root .splash-slash,
+.splash-root .splash-stripe {
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 78%);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent 78%);
+}
+@keyframes splashA { 0% { width: 8%; } 35% { width: 62%; } 60% { width: 44%; } 100% { width: 56%; } }
+@keyframes splashB { 0% { width: 8%; } 35% { width: 30%; } 60% { width: 50%; } 100% { width: 36%; } }
+@keyframes splashRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.splash-bar-a { animation: splashA 1.2s ease-in-out infinite alternate; }
+.splash-bar-b { animation: splashB 1.2s ease-in-out infinite alternate; }
+.splash-rise { animation: splashRise 0.7s ease-out both; }
+.splash-root { display: none; }
+html[data-splash="on"] .splash-root { display: flex; }

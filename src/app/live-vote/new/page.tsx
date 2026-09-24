@@ -67,7 +67,7 @@ export default function NewLiveVoteEventPage() {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
     if (!user) {
-      router.push("/login");
+      router.push("/login?next=%2Flive-vote%2Fnew");
       return;
     }
 
@@ -160,10 +160,14 @@ export default function NewLiveVoteEventPage() {
         </h1>
         <p style={{ color: "var(--text-dim)" }}>
           You need to{" "}
-          <a href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
-            sign in
+          <a href="/login?next=%2Flive-vote%2Fnew" className="font-semibold underline" style={{ color: "var(--red)" }}>
+            log in
           </a>{" "}
-          first.
+          or{" "}
+          <a href="/signup?next=%2Flive-vote%2Fnew" className="font-semibold underline" style={{ color: "var(--red)" }}>
+            create a free account
+          </a>{" "}
+          first — it takes a minute, then you’ll come right back here.
         </p>
       </div>
     );

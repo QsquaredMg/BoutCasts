@@ -1,17 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safeNext";
 
 export default function LoginPage() {
+  // useSearchParams needs a Suspense boundary so the page can still prerender.
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const supabase = createClient();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  // Where to send the user after signing in (e.g. back to /live-vote/new).
+  const next = safeNext(searchParams.get("next"));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +38,7 @@ export default function LoginPage() {
       setError(error.message);
       return;
     }
-    router.push("/");
+    router.push(next);
     router.refresh();
   }
 
@@ -65,7 +78,7 @@ export default function LoginPage() {
       </p>
       <p className="mt-4 text-sm" style={{ color: "var(--text-faint)" }}>
         No account?{" "}
-        <Link href="/signup" className="font-semibold underline" style={{ color: "var(--red)" }}>
+        <Link href={next !== "/" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-semibold underline" style={{ color: "var(--red)" }}>
           Sign up
         </Link>
       </p>

@@ -9,7 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 import type { User } from "@supabase/supabase-js";
 
 const NAV_LINKS = [
-  { href: "/", label: "BoutCard" },
+  { href: "/boutcard", label: "BoutCard" },
   { href: "/matchups", label: "Matchups" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/live-vote", label: "Live Vote" },
@@ -96,7 +96,7 @@ export default function NavBar() {
       className="border-b"
       style={{ background: "var(--bg)", borderColor: "var(--border)" }}
     >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-4 px-5 py-4">
         <Link href="/" className="flex items-center" aria-label="BoutCasts home">
           <Image
             src="/boutcasts-logo.png"
@@ -229,9 +229,16 @@ export default function NavBar() {
               href="/login"
               className="bc-btn-solid rounded-full px-4 py-1.5 text-sm"
             >
-              Sign in
+              Log in
             </Link>
           )}
+          <Link
+            href="/live-vote/new"
+            className="hidden rounded-full px-4 py-1.5 text-sm font-bold text-white xl:inline-block"
+            style={{ background: "#1b4fe4" }}
+          >
+            Start a Live Vote
+          </Link>
           <Link
             href="/submit"
             className="rounded-full px-4 py-1.5 text-sm font-bold text-white"
@@ -301,6 +308,13 @@ export default function NavBar() {
           <div className="my-1 border-t" style={{ borderColor: "var(--border)" }} />
 
           <Link
+            href="/live-vote/new"
+            className="rounded-lg px-3 py-2.5 text-center text-sm font-bold text-white"
+            style={{ background: "#1b4fe4" }}
+          >
+            Start a Live Vote
+          </Link>
+          <Link
             href="/submit"
             className="rounded-lg px-3 py-2.5 text-center text-sm font-bold text-white"
             style={{ background: "var(--red)" }}
@@ -318,7 +332,7 @@ export default function NavBar() {
             </button>
           ) : (
             <Link href="/login" className="bc-btn-solid rounded-lg px-3 py-2.5 text-center text-sm">
-              Sign in
+              Log in
             </Link>
           )}
         </div>
