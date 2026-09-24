@@ -45,13 +45,23 @@ export async function GET(
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <img
-            src="https://www.boutcasts.com/boutcasts-logo.png"
-            width={132}
-            height={72}
-            alt="BoutCasts"
-            style={{ display: "flex" }}
-          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "10px 18px",
+              borderRadius: 16,
+              background: "#ffffff",
+            }}
+          >
+            <img
+              src="https://www.boutcasts.com/boutcasts-logo.png"
+              width={150}
+              height={82}
+              alt="BoutCasts"
+              style={{ display: "flex" }}
+            />
+          </div>
           <div
             style={{
               fontSize: 16,

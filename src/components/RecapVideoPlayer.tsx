@@ -77,9 +77,9 @@ function drawFrame(
   // Top row: logo + category tag
   ctx.textBaseline = "middle";
   if (logoImg && logoImg.naturalWidth > 0) {
-    const logoH = 40;
+    const logoH = 48;
     const logoW = logoH * (logoImg.naturalWidth / logoImg.naturalHeight);
-    ctx.drawImage(logoImg, 40, 36, logoW, logoH);
+    ctx.drawImage(logoImg, 40, 32, logoW, logoH);
   } else {
     ctx.font = "bold 28px Georgia, serif";
     ctx.fillStyle = COLOR_TEXT;

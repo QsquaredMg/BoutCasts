@@ -43,13 +43,23 @@ export default async function OGImage({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <img
-            src="https://www.boutcasts.com/boutcasts-logo.png"
-            width={148}
-            height={81}
-            alt="BoutCasts"
-            style={{ display: "flex" }}
-          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "10px 18px",
+              borderRadius: 16,
+              background: "#ffffff",
+            }}
+          >
+            <img
+              src="https://www.boutcasts.com/boutcasts-logo.png"
+              width={164}
+              height={90}
+              alt="BoutCasts"
+              style={{ display: "flex" }}
+            />
+          </div>
           <div
             style={{
               fontSize: 18,
