@@ -79,7 +79,15 @@ export default async function FeaturedBout({
     tally[v.side as "a" | "b"]++;
   }
 
-  const votingOpen = bout.status !== "final";
+  // Mirrors the server-side RLS check on votes_insert_own exactly: a bout
+  // stops accepting votes once it's final, OR once its voting window has
+  // passed -- even if the close-expired-bouts sweep (which only targets
+  // "live" bouts) hasn't caught up yet for an "upcoming" bout whose
+  // closes_at already elapsed. Showing an active vote button the database
+  // will reject is worse than showing it as closed a little early.
+  const votingOpen =
+    bout.status !== "final" &&
+    (!bout.closes_at || new Date(bout.closes_at).getTime() > Date.now());
 
   let nextBoutTitle: string | null = null;
   if (bout.next_bout_id) {
