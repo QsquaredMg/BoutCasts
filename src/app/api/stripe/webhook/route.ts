@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { LIVE_VOTE_TIERS, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import type Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -64,6 +65,52 @@ export async function POST(req: NextRequest) {
             { status: 500 }
           );
         }
+      }
+
+      return NextResponse.json({ received: true });
+    }
+
+    if (metadata.kind === "live_vote_event") {
+      const admin = createAdminClient();
+      const eventId = metadata.event_id;
+      const tier = metadata.tier;
+
+      if (!eventId || !isLiveVoteTier(tier)) {
+        console.error("Stripe webhook: live_vote_event metadata missing/invalid", metadata);
+        return NextResponse.json({ error: "Invalid live_vote_event metadata" }, { status: 400 });
+      }
+
+      const tierConfig = LIVE_VOTE_TIERS[tier];
+      const startsAt = new Date();
+      const closesAt = new Date(startsAt.getTime() + tierConfig.durationMs);
+
+      // Guarded by status = 'draft' so a duplicate webhook delivery for the
+      // same session is a no-op the second time through (idempotent).
+      const { data: updated, error } = await admin
+        .from("live_vote_events")
+        .update({
+          status: "live",
+          starts_at: startsAt.toISOString(),
+          closes_at: closesAt.toISOString(),
+          stripe_checkout_session_id: session.id,
+        })
+        .eq("id", eventId)
+        .eq("status", "draft")
+        .select("id")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Stripe webhook: failed to activate live vote event", error);
+        return NextResponse.json(
+          { error: "Failed to activate live vote event" },
+          { status: 500 }
+        );
+      }
+
+      if (!updated) {
+        // Either already activated by an earlier delivery of this event,
+        // or the draft was deleted/changed — either way, nothing to do.
+        console.warn("Stripe webhook: live_vote_event already processed or missing", eventId);
       }
 
       return NextResponse.json({ received: true });
