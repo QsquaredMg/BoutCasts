@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
+import FileUploadPicker from "@/components/FileUploadPicker";
 import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type OptionDraft = {
   key: string;
   name: string;
   clip: ClipSourceValue;
+  description: string;
+  thumbnailUrl: string | null;
 };
 
 function newOption(): OptionDraft {
@@ -17,6 +20,8 @@ function newOption(): OptionDraft {
     key: Math.random().toString(36).slice(2),
     name: "",
     clip: { sourceType: "link", sourceUrl: "" },
+    description: "",
+    thumbnailUrl: null,
   };
 }
 
@@ -30,6 +35,10 @@ export default function NewLiveVoteEventPage() {
   const [voterMode, setVoterMode] = useState<"account" | "open_link">("account");
   const [tier, setTier] = useState<LiveVoteTier>("small");
   const [options, setOptions] = useState<OptionDraft[]>([newOption(), newOption()]);
+
+  const [brandName, setBrandName] = useState("");
+  const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
+  const [postVoteGraphicUrl, setPostVoteGraphicUrl] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -81,6 +90,10 @@ export default function NewLiveVoteEventPage() {
         setError(`Add a clip for "${o.name || "an option"}" — upload, record, or paste a link.`);
         return;
       }
+      if (o.description.length > 500) {
+        setError(`The description for "${o.name || "an option"}" is over the 500-character limit.`);
+        return;
+      }
     }
 
     setLoading(true);
@@ -97,6 +110,9 @@ export default function NewLiveVoteEventPage() {
         tier,
         price_cents: tierConfig.priceCents,
         status: "draft",
+        brand_name: brandName.trim() || null,
+        brand_logo_url: brandLogoUrl,
+        post_vote_graphic_url: postVoteGraphicUrl,
       })
       .select("id")
       .single();
@@ -114,6 +130,8 @@ export default function NewLiveVoteEventPage() {
         source_type: o.clip.sourceType,
         source_url: o.clip.sourceUrl,
         sort_order: idx,
+        description: o.description.trim() || null,
+        thumbnail_url: o.thumbnailUrl,
       }))
     );
 
@@ -187,6 +205,88 @@ export default function NewLiveVoteEventPage() {
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
           />
+        </div>
+
+        <div
+          className="rounded-xl border p-3.5"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <p className="mb-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+            Custom branding (optional)
+          </p>
+          <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
+            Sponsoring a vote for a brand or client? Add their name and logo, and a graphic that
+            voters see right after they submit their vote.
+          </p>
+
+          <label className={labelClass} style={labelStyle}>
+            Brand / client name
+          </label>
+          <input
+            className={inputClass}
+            style={{ ...inputStyle, marginBottom: 12 }}
+            value={brandName}
+            onChange={(e) => setBrandName(e.target.value)}
+            placeholder="e.g. Acme Sneakers"
+            maxLength={140}
+          />
+
+          <label className={labelClass} style={labelStyle}>
+            Brand logo
+          </label>
+          <div className="mb-3">
+            {brandLogoUrl ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brandLogoUrl}
+                  alt="Brand logo"
+                  className="h-12 w-12 rounded-lg border object-cover"
+                  style={{ borderColor: "var(--border)" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setBrandLogoUrl(null)}
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--text-faint)" }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <FileUploadPicker onUploaded={setBrandLogoUrl} />
+            )}
+          </div>
+
+          <label className={labelClass} style={labelStyle}>
+            Post-vote graphic
+          </label>
+          <p className="mb-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+            Shown to a voter right after they submit their vote.
+          </p>
+          <div>
+            {postVoteGraphicUrl ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={postVoteGraphicUrl}
+                  alt="Post-vote graphic"
+                  className="h-16 w-28 rounded-lg border object-cover"
+                  style={{ borderColor: "var(--border)" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setPostVoteGraphicUrl(null)}
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--text-faint)" }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <FileUploadPicker onUploaded={setPostVoteGraphicUrl} />
+            )}
+          </div>
         </div>
 
         <div>
@@ -314,6 +414,55 @@ export default function NewLiveVoteEventPage() {
                   inputClass={inputClass}
                   inputStyle={inputStyle}
                 />
+
+                <div className="mt-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                      Description (optional)
+                    </label>
+                    <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                      {option.description.length}/500
+                    </span>
+                  </div>
+                  <textarea
+                    className={inputClass}
+                    style={{ ...inputStyle, minHeight: 60 }}
+                    value={option.description}
+                    onChange={(e) =>
+                      updateOption(option.key, { description: e.target.value.slice(0, 500) })
+                    }
+                    placeholder="A short blurb voters see for this option"
+                  />
+                </div>
+
+                <div className="mt-3">
+                  <label className="mb-1 block text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                    Thumbnail (optional)
+                  </label>
+                  {option.thumbnailUrl ? (
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={option.thumbnailUrl}
+                        alt={`${option.name || "Option"} thumbnail`}
+                        className="h-14 w-14 rounded-lg border object-cover"
+                        style={{ borderColor: "var(--border)" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateOption(option.key, { thumbnailUrl: null })}
+                        className="text-xs font-semibold"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <FileUploadPicker
+                      onUploaded={(url) => updateOption(option.key, { thumbnailUrl: url })}
+                    />
+                  )}
+                </div>
               </div>
             ))}
           </div>

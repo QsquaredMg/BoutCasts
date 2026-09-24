@@ -16,6 +16,9 @@ type EventRow = {
   voter_mode: "account" | "open_link";
   status: EventStatus;
   closes_at: string | null;
+  brand_name: string | null;
+  brand_logo_url: string | null;
+  post_vote_graphic_url: string | null;
 };
 
 type OptionRow = {
@@ -24,6 +27,8 @@ type OptionRow = {
   source_type: string;
   source_url: string | null;
   sort_order: number;
+  description: string | null;
+  thumbnail_url: string | null;
 };
 
 const VOTER_TOKEN_KEY = "bc_live_vote_voter_token";
@@ -79,7 +84,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at")
+      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -93,7 +98,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: optionRows } = await supabase
       .from("live_vote_options")
-      .select("id, name, source_type, source_url, sort_order")
+      .select("id, name, source_type, source_url, sort_order, description, thumbnail_url")
       .eq("event_id", eventId)
       .order("sort_order");
     setOptions(optionRows ?? []);
@@ -221,6 +226,24 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
   return (
     <div>
+      {(event.brand_name || event.brand_logo_url) && (
+        <div className="mb-3 flex items-center gap-2.5">
+          {event.brand_logo_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.brand_logo_url}
+              alt={event.brand_name ? `${event.brand_name} logo` : "Brand logo"}
+              className="h-9 w-9 rounded-lg border object-cover"
+              style={{ borderColor: "var(--border)" }}
+            />
+          )}
+          {event.brand_name && (
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+              Presented by {event.brand_name}
+            </span>
+          )}
+        </div>
+      )}
       <div className="mb-1 flex items-center gap-2">
         <span
           className="rounded-full px-2.5 py-0.5 text-xs font-bold"
@@ -260,6 +283,17 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
           {error}
         </p>
+      )}
+
+      {myVote && event.post_vote_graphic_url && (
+        <div className="mb-4 overflow-hidden rounded-xl border" style={{ borderColor: "var(--border)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={event.post_vote_graphic_url}
+            alt={event.brand_name ? `${event.brand_name} graphic` : "Thanks for voting"}
+            className="w-full object-cover"
+          />
+        </div>
       )}
 
       <div className="flex flex-col gap-4">
@@ -307,6 +341,25 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                 >
                   Watch clip ↗
                 </a>
+              )}
+
+              {(option.thumbnail_url || option.description) && (
+                <div className="mt-3 flex gap-3">
+                  {option.thumbnail_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={option.thumbnail_url}
+                      alt={`${option.name} thumbnail`}
+                      className="h-14 w-14 flex-shrink-0 rounded-lg border object-cover"
+                      style={{ borderColor: "var(--border)" }}
+                    />
+                  )}
+                  {option.description && (
+                    <p className="text-sm" style={{ color: "var(--text-dim)" }}>
+                      {option.description}
+                    </p>
+                  )}
+                </div>
               )}
 
               <div className="mt-3">
