@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import BracketBuilder from "@/components/BracketBuilder";
+import BracketFromBouts from "@/components/BracketFromBouts";
 import BoutCurator from "@/components/BoutCurator";
 
 export default async function AdminBoutsPage() {
@@ -68,6 +69,11 @@ export default async function AdminBoutsPage() {
         Turn a power-of-two set of approved submissions into a full tournament bracket.
       </p>
       <BracketBuilder categories={categories ?? []} submissions={submissions as never} />
+
+      <BracketFromBouts
+        categories={categories ?? []}
+        bouts={(bouts ?? []).filter((b) => !b.bracket_key && !b.next_bout_id) as never}
+      />
     </div>
   );
 }
