@@ -13,13 +13,16 @@ type AdPayload = {
 
 // Inline banner ad slot — the lighter-weight sibling of AdInterstitial.
 // Same /api/ads/serve endpoint, just a different placement, rendered as a
-// normal piece of the page rather than an overlay.
-export default function AdBanner() {
+// normal piece of the page rather than an overlay. Pass `placement` to
+// reuse this slot for a different ad_creatives placement value (e.g. the
+// admin-gated "live_vote" placement on a Live Vote ballot) — defaults to
+// "banner" to preserve every existing call site.
+export default function AdBanner({ placement = "banner" }: { placement?: string }) {
   const [ad, setAd] = useState<AdPayload | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/ads/serve?placement=banner")
+    fetch(`/api/ads/serve?placement=${encodeURIComponent(placement)}`)
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled && data.ad) setAd(data.ad);
@@ -30,7 +33,7 @@ export default function AdBanner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [placement]);
 
   if (!ad) return null;
 

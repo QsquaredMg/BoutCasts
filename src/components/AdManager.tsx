@@ -8,7 +8,7 @@ type Sponsor = { id: string; name: string };
 type AdCreative = {
   id: string;
   sponsor_id: string;
-  placement: "preroll" | "interstitial" | "banner";
+  placement: "preroll" | "interstitial" | "banner" | "live_vote";
   media_type: "image" | "video";
   media_url: string;
   click_url: string | null;
@@ -24,7 +24,7 @@ type Stats = { impressions: number; clicks: number };
 
 const EMPTY_FORM = {
   sponsor_id: "",
-  placement: "interstitial" as "preroll" | "interstitial" | "banner",
+  placement: "interstitial" as "preroll" | "interstitial" | "banner" | "live_vote",
   media_type: "image" as "image" | "video",
   media_url: "",
   click_url: "",
@@ -171,12 +171,13 @@ export default function AdManager({
             </select>
             <select
               value={form.placement}
-              onChange={(e) => setForm((f) => ({ ...f, placement: e.target.value as "preroll" | "interstitial" | "banner" }))}
+              onChange={(e) => setForm((f) => ({ ...f, placement: e.target.value as "preroll" | "interstitial" | "banner" | "live_vote" }))}
               className="rounded border border-neutral-300 px-3 py-2 text-sm"
             >
               <option value="interstitial">Interstitial (platform-wide, full-screen)</option>
               <option value="banner">Banner (inline, on matchups + bout pages)</option>
               <option value="preroll">Pre-roll (before an uploaded/recorded clip plays)</option>
+              <option value="live_vote">Live Vote (on the public ballot page, admin-enabled per event)</option>
             </select>
             <input
               type="number"

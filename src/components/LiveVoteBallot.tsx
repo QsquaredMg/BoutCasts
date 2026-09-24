@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ClipPlayer from "@/components/ClipPlayer";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
+import AdBanner from "@/components/AdBanner";
 import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -18,6 +19,7 @@ type EventRow = {
   closes_at: string | null;
   brand_name: string | null;
   brand_logo_url: string | null;
+  ads_enabled: boolean;
   post_vote_graphic_url: string | null;
 };
 
@@ -84,7 +86,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url")
+      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -244,6 +246,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
           )}
         </div>
       )}
+      {event.ads_enabled && <AdBanner placement="live_vote" />}
       <div className="mb-1 flex items-center gap-2">
         <span
           className="rounded-full px-2.5 py-0.5 text-xs font-bold"
