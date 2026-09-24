@@ -56,6 +56,7 @@ export default function VotePanel({
     const user = userData.user;
 
     if (!user) {
+      setPending(false);
       router.push("/login");
       return;
     }
