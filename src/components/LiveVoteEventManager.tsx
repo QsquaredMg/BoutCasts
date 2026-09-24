@@ -26,6 +26,17 @@ type LiveVoteOptionRow = {
   sort_order: number;
 };
 
+type BreakdownRow = { label: string; count: number };
+
+type LiveVoteAnalytics = {
+  total_votes: number;
+  account_votes: number;
+  options: { option_id: string; name: string; votes: number }[];
+  gender_breakdown: BreakdownRow[];
+  ethnicity_breakdown: BreakdownRow[];
+  age_breakdown: BreakdownRow[];
+};
+
 export default function LiveVoteEventManager({
   eventId,
   checkoutStatus,
@@ -44,6 +55,9 @@ export default function LiveVoteEventManager({
   const [checkingOut, setCheckingOut] = useState(false);
   const [closing, setClosing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [analytics, setAnalytics] = useState<LiveVoteAnalytics | null>(null);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -75,6 +89,20 @@ export default function LiveVoteEventManager({
 
     setOptions(optionRows ?? []);
     setLoading(false);
+
+    if (eventRow.status === "closed") {
+      setAnalyticsLoading(true);
+      const { data: analyticsData, error: analyticsRpcError } = await supabase.rpc(
+        "get_live_vote_analytics",
+        { p_event_id: eventId }
+      );
+      setAnalyticsLoading(false);
+      if (analyticsRpcError) {
+        setAnalyticsError(analyticsRpcError.message);
+      } else {
+        setAnalytics(analyticsData as LiveVoteAnalytics);
+      }
+    }
   }, [supabase, eventId, router]);
 
   useEffect(() => {
@@ -268,17 +296,101 @@ export default function LiveVoteEventManager({
       )}
 
       {event.status === "closed" && (
-        <div
-          className="rounded-lg border p-3"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-        >
-          <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-            Voting has closed.{" "}
-            <a href={shareUrl} className="font-semibold underline" style={{ color: "var(--red)" }}>
-              View the final tally
-            </a>
-            .
-          </p>
+        <div className="flex flex-col gap-4">
+          <div
+            className="rounded-lg border p-3"
+            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+          >
+            <p className="text-sm" style={{ color: "var(--text-dim)" }}>
+              Voting has closed.{" "}
+              <a href={shareUrl} className="font-semibold underline" style={{ color: "var(--red)" }}>
+                View the final tally
+              </a>
+              .
+            </p>
+          </div>
+
+          {analyticsLoading && <p style={{ color: "var(--text-faint)" }}>Loading analytics…</p>}
+          {analyticsError && (
+            <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
+              {analyticsError}
+            </p>
+          )}
+
+          {analytics && (
+            <div className="flex flex-col gap-4">
+              <div className="bc-card p-4">
+                <h2 className="mb-3 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+                  Results — {analytics.total_votes.toLocaleString()} total vote
+                  {analytics.total_votes === 1 ? "" : "s"}
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {analytics.options.map((o) => {
+                    const pct = analytics.total_votes > 0 ? Math.round((o.votes / analytics.total_votes) * 100) : 0;
+                    return (
+                      <div key={o.option_id}>
+                        <div className="mb-1 flex items-center justify-between text-sm">
+                          <span className="font-semibold">{o.name}</span>
+                          <span style={{ color: "var(--text-faint)" }}>
+                            {o.votes.toLocaleString()} ({pct}%)
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${pct}%`, background: "var(--red)" }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {analytics.account_votes > 0 && (
+                <div className="bc-card p-4">
+                  <h2 className="mb-1 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+                    Voter demographics
+                  </h2>
+                  <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
+                    Based on {analytics.account_votes.toLocaleString()} account vote
+                    {analytics.account_votes === 1 ? "" : "s"} with a BoutCasts profile on file.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {(
+                      [
+                        ["Gender", analytics.gender_breakdown],
+                        ["Ethnicity", analytics.ethnicity_breakdown],
+                        ["Age", analytics.age_breakdown],
+                      ] as const
+                    ).map(([label, rows]) => (
+                      <div key={label}>
+                        <p className="mb-1.5 text-xs font-bold" style={{ color: "var(--text-dim)" }}>
+                          {label}
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          {rows.length === 0 ? (
+                            <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+                              No data
+                            </p>
+                          ) : (
+                            rows.map((r) => (
+                              <div key={r.label} className="flex items-center justify-between text-xs">
+                                <span style={{ color: "var(--text-dim)" }}>{r.label}</span>
+                                <span className="font-semibold" style={{ color: "var(--text-faint)" }}>
+                                  {r.count.toLocaleString()}
+                                </span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

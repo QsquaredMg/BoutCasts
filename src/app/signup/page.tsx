@@ -4,11 +4,33 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Other", "Prefer not to say"];
+const ETHNICITY_OPTIONS = [
+  "American Indian or Alaska Native",
+  "Asian",
+  "Black or African American",
+  "Hispanic or Latino",
+  "Native Hawaiian or Other Pacific Islander",
+  "White",
+  "Two or more races",
+  "Other",
+  "Prefer not to say",
+];
+
+function minBirthdate(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 13);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function SignupPage() {
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [gender, setGender] = useState("");
+  const [ethnicity, setEthnicity] = useState("");
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +44,24 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!birthday) {
+      setError("Please enter your birthday.");
+      return;
+    }
+    if (birthday > minBirthdate()) {
+      setError("You must be at least 13 years old to sign up.");
+      return;
+    }
+    if (!gender) {
+      setError("Please select a gender.");
+      return;
+    }
+    if (!ethnicity) {
+      setError("Please select an ethnicity.");
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.auth.signUp({
@@ -32,6 +72,9 @@ export default function SignupPage() {
         data: {
           username: username || undefined,
           referral_code: referralCode || undefined,
+          birthday,
+          gender,
+          ethnicity,
         },
       },
     });
@@ -62,6 +105,9 @@ export default function SignupPage() {
     );
   }
 
+  const inputClass = "rounded-[10px] border px-3.5 py-2.5 text-sm";
+  const inputStyle = { borderColor: "var(--border)", background: "var(--surface)" };
+
   return (
     <div className="mx-auto max-w-sm px-5 py-12">
       <h1 className="mb-6 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
@@ -81,8 +127,8 @@ export default function SignupPage() {
           placeholder="Username (optional)"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+          className={inputClass}
+          style={inputStyle}
         />
         <input
           type="email"
@@ -90,8 +136,8 @@ export default function SignupPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+          className={inputClass}
+          style={inputStyle}
         />
         <input
           type="password"
@@ -100,9 +146,69 @@ export default function SignupPage() {
           placeholder="Password (min 6 chars)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-[10px] border px-3.5 py-2.5 text-sm"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+          className={inputClass}
+          style={inputStyle}
         />
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+            Birthday
+          </label>
+          <input
+            type="date"
+            required
+            max={minBirthdate()}
+            value={birthday}
+            onChange={(e) => setBirthday(e.target.value)}
+            className={`w-full ${inputClass}`}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+            Gender
+          </label>
+          <select
+            required
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className={`w-full ${inputClass}`}
+            style={inputStyle}
+          >
+            <option value="" disabled>
+              Select gender
+            </option>
+            {GENDER_OPTIONS.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+            Ethnicity
+          </label>
+          <select
+            required
+            value={ethnicity}
+            onChange={(e) => setEthnicity(e.target.value)}
+            className={`w-full ${inputClass}`}
+            style={inputStyle}
+          >
+            <option value="" disabled>
+              Select ethnicity
+            </option>
+            {ETHNICITY_OPTIONS.map((eth) => (
+              <option key={eth} value={eth}>
+                {eth}
+              </option>
+          ))}
+          </select>
+        </div>
+
         {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
         <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Creating account..." : "Sign up"}
