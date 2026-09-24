@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/", label: "BoutCard" },
   { href: "/matchups", label: "Matchups" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/live-vote", label: "Live Vote" },
   { href: "/sponsor", label: "For Brands" },
   { href: "/how-it-works", label: "How it works" },
 ];
