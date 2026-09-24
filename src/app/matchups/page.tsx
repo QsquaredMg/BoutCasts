@@ -21,6 +21,56 @@ export default async function MatchupsPage() {
     .select("*, categories(name, sponsor_id, sponsors(name, logo_url, opportunity_type, banner_style)), sponsors(name, logo_url, opportunity_type, banner_style)")
     .order("created_at", { ascending: false });
 
+  const { data: bracketBoutsRaw } = await supabase
+    .from("bouts")
+    .select("id, bracket_key, status, round_number, competitor_a_name, competitor_b_name, categories(name)")
+    .not("bracket_key", "is", null)
+    .order("round_number", { ascending: true });
+
+  type BracketRow = {
+    id: string;
+    bracket_key: string;
+    status: Bout["status"];
+    round_number: number;
+    competitor_a_name: string;
+    competitor_b_name: string;
+    categories: { name: string }[] | { name: string } | null;
+  };
+
+  function catName(categories: BracketRow["categories"]): string {
+    if (!categories) return "Bracket";
+    return Array.isArray(categories) ? categories[0]?.name ?? "Bracket" : categories.name ?? "Bracket";
+  }
+
+  const bracketsByKey = new Map<
+    string,
+    { key: string; categoryName: string; total: number; final: number; live: number; rounds: number; finalMatchup: string | null }
+  >();
+  for (const row of (bracketBoutsRaw as BracketRow[] | null) ?? []) {
+    const existing = bracketsByKey.get(row.bracket_key);
+    const isFinalRound = !existing || row.round_number >= existing.rounds;
+    const entry = existing ?? {
+      key: row.bracket_key,
+      categoryName: catName(row.categories),
+      total: 0,
+      final: 0,
+      live: 0,
+      rounds: row.round_number,
+      finalMatchup: null,
+    };
+    entry.total += 1;
+    if (row.status === "final") entry.final += 1;
+    if (row.status === "live") entry.live += 1;
+    if (row.round_number >= entry.rounds) {
+      entry.rounds = row.round_number;
+      if (row.competitor_a_name && row.competitor_b_name) {
+        entry.finalMatchup = `${row.competitor_a_name} vs ${row.competitor_b_name}`;
+      }
+    }
+    bracketsByKey.set(row.bracket_key, entry);
+  }
+  const brackets = Array.from(bracketsByKey.values()).filter((b) => b.total > 1);
+
   const boutIds = (bouts ?? []).map((b) => b.id);
   const tallies: Record<string, { a: number; b: number }> = {};
   const poolByBout = new Map<string, { id: string; goal_amount: number; raised: number }>();
@@ -64,6 +114,56 @@ export default async function MatchupsPage() {
       </p>
 
       <AdBanner />
+
+      {brackets.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Brackets
+          </h2>
+          <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
+            Filled-in tournament brackets, built automatically from category winners.
+          </p>
+          <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 sm:mx-0 sm:px-0">
+            {brackets.map((b) => {
+              const isLive = b.live > 0;
+              const isDone = b.final === b.total;
+              return (
+                <Link
+                  key={b.key}
+                  href={`/bracket/${b.key}`}
+                  className="bc-card flex w-64 flex-shrink-0 flex-col gap-2 p-4 transition-colors hover:bg-[var(--surface-2)]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold">{b.categoryName}</span>
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        background: isLive ? "var(--red-soft)" : isDone ? "var(--gold-soft)" : "var(--surface-2)",
+                        color: isLive ? "var(--red)" : isDone ? "var(--gold)" : "var(--text-dim)",
+                      }}
+                    >
+                      {isLive && <span className="bc-live-dot mr-1" />}
+                      {isDone ? "FINAL" : isLive ? "LIVE" : "UPCOMING"}
+                    </span>
+                  </div>
+                  {b.finalMatchup && (
+                    <div className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                      {b.finalMatchup}
+                    </div>
+                  )}
+                  <div className="text-xs" style={{ color: "var(--text-faint)" }}>
+                    {b.final} of {b.total} bouts final &middot; {b.rounds} round{b.rounds === 1 ? "" : "s"}
+                  </div>
+                  <span className="mt-1 text-xs font-semibold" style={{ color: "var(--blue)" }}>
+                    View bracket &rarr;
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {error && (
         <p

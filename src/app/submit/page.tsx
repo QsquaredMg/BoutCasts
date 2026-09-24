@@ -19,6 +19,7 @@ export default function SubmitPage() {
   const [isCrew, setIsCrew] = useState(false);
   const [crewName, setCrewName] = useState("");
   const [teammates, setTeammates] = useState<string[]>([""]);
+  const [optOut, setOptOut] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -77,6 +78,7 @@ export default function SubmitPage() {
       source_url: clip.sourceUrl,
       crew_name: isCrew ? crewName || null : null,
       teammates: isCrew ? teammates.filter((t) => t.trim()) : null,
+      auto_bracket_opt_out: optOut,
     });
 
     setLoading(false);
@@ -210,6 +212,25 @@ export default function SubmitPage() {
               </button>
             </div>
           )}
+        </div>
+
+        <div>
+          <label className="flex items-start gap-2 text-sm font-bold" style={{ color: "var(--text-dim)" }}>
+            <input
+              type="checkbox"
+              checked={optOut}
+              onChange={(e) => setOptOut(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Keep this as a single bout only
+              <span className="mt-0.5 block text-xs font-normal" style={{ color: "var(--text-faint)" }}>
+                By default, if you win your matchup you may automatically be pooled with other
+                category winners into a new bracket. Check this to opt out and stay a standalone
+                bout even if you win.
+              </span>
+            </span>
+          </label>
         </div>
 
         {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
