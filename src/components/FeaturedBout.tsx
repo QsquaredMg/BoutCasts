@@ -332,7 +332,10 @@ export default async function FeaturedBout({
           >
             📊 Vote graphic
           </a>
-          <ShareButton title={bout.title} />
+          <ShareButton
+            title={bout.title}
+            text={`${bout.competitor_a_name} vs ${bout.competitor_b_name} — cast your vote, or start your own Bout, on BoutCasts!`}
+          />
           <ReportButton targetType="bout" targetId={bout.id} />
         </div>
       </div>

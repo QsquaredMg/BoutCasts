@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import ClipPlayer from "@/components/ClipPlayer";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import AdBanner from "@/components/AdBanner";
+import ShareButton from "@/components/ShareButton";
 import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -247,16 +248,22 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         </div>
       )}
       {event.ads_enabled && <AdBanner placement="live_vote" />}
-      <div className="mb-1 flex items-center gap-2">
-        <span
-          className="rounded-full px-2.5 py-0.5 text-xs font-bold"
-          style={{ background: "var(--surface-2)", color: event.status === "live" ? "var(--red)" : "var(--text-dim)" }}
-        >
-          {event.status === "live" ? "Live" : event.status === "closed" ? "Closed" : "Not open yet"}
-        </span>
-        <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-          {totalVotes.toLocaleString()} vote{totalVotes === 1 ? "" : "s"}
-        </span>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span
+            className="rounded-full px-2.5 py-0.5 text-xs font-bold"
+            style={{ background: "var(--surface-2)", color: event.status === "live" ? "var(--red)" : "var(--text-dim)" }}
+          >
+            {event.status === "live" ? "Live" : event.status === "closed" ? "Closed" : "Not open yet"}
+          </span>
+          <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+            {totalVotes.toLocaleString()} vote{totalVotes === 1 ? "" : "s"}
+          </span>
+        </div>
+        <ShareButton
+          title={event.title}
+          text={`${event.title}${event.brand_name ? ` — presented by ${event.brand_name}` : ""} — cast your vote, or start your own Bout, on BoutCasts!`}
+        />
       </div>
 
       <h1 className="mb-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
