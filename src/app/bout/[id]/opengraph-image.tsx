@@ -139,7 +139,7 @@ export default async function OGImage({
         </div>
 
         <div style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center" }}>
-          {total} votes cast — vote now at boutcasts-app.vercel.app
+          {total} votes cast — vote now at boutcasts.com
         </div>
       </div>
     ),
