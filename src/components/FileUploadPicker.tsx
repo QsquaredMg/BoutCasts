@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { startTransition, useId, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { downscaleImage } from "@/lib/downscaleImage";
 
 type Props = {
   onUploaded: (url: string | null) => void;
@@ -25,11 +26,11 @@ export default function FileUploadPicker({ onUploaded }: Props) {
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "picked" | "uploading" | "uploaded" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "optimizing" | "picked" | "uploading" | "uploaded" | "error">("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0];
     if (!picked) return;
 
@@ -39,13 +40,24 @@ export default function FileUploadPicker({ onUploaded }: Props) {
     }
 
     setError(null);
-    setFile(picked);
-    setPreviewUrl(URL.createObjectURL(picked));
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    // Re-rendering the whole parent form is not urgent — let this box paint first.
+    startTransition(() => onUploaded(null));
+
+    let ready = picked;
+    if (picked.type.startsWith("image/")) {
+      // Shrink big phone photos before preview + upload (5–10 MB -> ~300 KB).
+      setStatus("optimizing");
+      ready = await downscaleImage(picked);
+    }
+
+    setFile(ready);
+    setPreviewUrl(URL.createObjectURL(ready));
     setStatus("picked");
-    onUploaded(null);
   }
 
   function clear() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(null);
     setPreviewUrl(null);
     setStatus("idle");
@@ -125,7 +137,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
           style={{ background: "linear-gradient(155deg,#20222b,#101116 70%)" }}
         >
           {isVideo && <video src={previewUrl} controls className="h-full w-full object-contain" />}
-          {isImage && <img src={previewUrl} alt={file.name} className="h-full w-full object-contain" />}
+          {isImage && <img src={previewUrl} alt={file.name} decoding="async" className="h-full w-full object-contain" />}
           {isAudio && (
             <div className="flex w-full flex-col items-center gap-3 px-6">
               <span className="text-3xl">🎧</span>
@@ -158,6 +170,11 @@ export default function FileUploadPicker({ onUploaded }: Props) {
               Use this file
             </button>
           </>
+        )}
+        {status === "optimizing" && (
+          <span className="text-sm font-bold" style={{ color: "var(--text-faint)" }}>
+            Optimizing photo…
+          </span>
         )}
         {status === "uploading" && (
           <span className="text-sm font-bold" style={{ color: "var(--text-faint)" }}>
