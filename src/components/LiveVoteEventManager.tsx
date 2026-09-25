@@ -58,6 +58,8 @@ export default function LiveVoteEventManager({
   const [analytics, setAnalytics] = useState<LiveVoteAnalytics | null>(null);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [activating, setActivating] = useState(false);
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -80,6 +82,13 @@ export default function LiveVoteEventManager({
     }
 
     setEvent(eventRow);
+
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+    setIsAdmin(Boolean(profileRow?.is_admin));
 
     const { data: optionRows } = await supabase
       .from("live_vote_options")
@@ -127,6 +136,21 @@ export default function LiveVoteEventManager({
       setCheckingOut(false);
       setError(err instanceof Error ? err.message : "Something went wrong starting checkout.");
     }
+  }
+
+  async function handleAdminGoLive() {
+    if (!confirm("Take this event live now without payment? (Admin comp)")) return;
+    setError(null);
+    setActivating(true);
+    const { error: rpcError } = await supabase.rpc("admin_activate_live_vote_event", {
+      p_event_id: eventId,
+    });
+    setActivating(false);
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    load();
   }
 
   async function handleDeleteDraft() {
@@ -240,6 +264,15 @@ export default function LiveVoteEventManager({
 
       {event.status === "draft" && (
         <div className="flex flex-col gap-2">
+          {isAdmin && (
+            <button
+              onClick={handleAdminGoLive}
+              disabled={activating || checkingOut}
+              className="bc-btn-solid rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60"
+            >
+              {activating ? "Going live…" : "Go live free (admin)"}
+            </button>
+          )}
           <button
             onClick={handleGoLive}
             disabled={checkingOut}

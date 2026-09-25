@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import ClipSourceTag from "@/components/ClipSourceTag";
 import type { Category } from "@/lib/types";
+import RoundLengthSelect, { DEFAULT_ROUND_MINUTES } from "@/components/RoundLengthSelect";
 
 type SubmissionRow = {
   id: string;
@@ -30,6 +31,7 @@ export default function BracketBuilder({
   const [selected, setSelected] = useState<string[]>([]);
   const [bracketKey, setBracketKey] = useState("");
   const [titlePrefix, setTitlePrefix] = useState("");
+  const [roundMinutes, setRoundMinutes] = useState<number | null>(DEFAULT_ROUND_MINUTES);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -65,6 +67,7 @@ export default function BracketBuilder({
       p_submission_ids: selected,
       p_bracket_key: needsKey ? bracketKey.trim() : null,
       p_title_prefix: titlePrefix.trim() || null,
+      p_round_minutes: roundMinutes,
     });
     setSubmitting(false);
     if (rpcError) {
@@ -189,6 +192,7 @@ export default function BracketBuilder({
             style={{ borderColor: "var(--border)" }}
           />
         </div>
+        <RoundLengthSelect value={roundMinutes} onChange={setRoundMinutes} />
         <button
           onClick={handleCreate}
           disabled={submitting || !isPowerOfTwo}
