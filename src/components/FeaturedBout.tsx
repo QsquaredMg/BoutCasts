@@ -85,8 +85,14 @@ export default async function FeaturedBout({
   // "live" bouts) hasn't caught up yet for an "upcoming" bout whose
   // closes_at already elapsed. Showing an active vote button the database
   // will reject is worse than showing it as closed a little early.
+  // A bout isn't votable until both sides hold a real competitor — bracket
+  // slots waiting on an earlier round read "TBD" (or are blank). Mirrors the
+  // bout_is_matched() check in the votes RLS policy.
+  const isPlaceholder = (name: string | null | undefined) => !name || !name.trim() || name.trim().toUpperCase() === "TBD";
+  const awaitingOpponent = isPlaceholder(bout.competitor_a_name) || isPlaceholder(bout.competitor_b_name);
   const votingOpen =
     bout.status !== "final" &&
+    !awaitingOpponent &&
     (!bout.closes_at || new Date(bout.closes_at).getTime() > Date.now());
 
   let nextBoutTitle: string | null = null;
@@ -312,6 +318,7 @@ export default async function FeaturedBout({
         bName={bout.competitor_b_name}
         initialTally={tally}
         votingOpen={votingOpen}
+        awaitingOpponent={awaitingOpponent && bout.status !== "final"}
       />
 
       <div className="mt-4">

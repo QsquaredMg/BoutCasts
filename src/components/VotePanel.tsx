@@ -10,6 +10,8 @@ type Props = {
   bName: string;
   initialTally: { a: number; b: number };
   votingOpen: boolean;
+  /** True while a bracket slot is still waiting on an earlier round's winner. */
+  awaitingOpponent?: boolean;
 };
 
 export default function VotePanel({
@@ -18,6 +20,7 @@ export default function VotePanel({
   bName,
   initialTally,
   votingOpen,
+  awaitingOpponent = false,
 }: Props) {
   const supabase = createClient();
   const router = useRouter();
@@ -153,7 +156,9 @@ export default function VotePanel({
 
       {!votingOpen && (
         <p className="col-span-full text-sm" style={{ color: "var(--text-faint)" }}>
-          Voting is closed for this bout.
+          {awaitingOpponent
+            ? "Voting opens once both competitors are set — waiting on the previous round to finish."
+            : "Voting is closed for this bout."}
         </p>
       )}
 
