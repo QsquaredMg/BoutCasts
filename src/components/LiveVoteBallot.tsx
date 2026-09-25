@@ -153,7 +153,29 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       )
       .subscribe();
 
+    // Safety net: if the realtime connection drops (spotty stadium Wi-Fi,
+    // a phone waking from sleep), re-sync the tally and event status every
+    // 10 seconds so the big screen never freezes on an old count.
+    const poll = setInterval(async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      const { data: tallyRows } = await supabase.rpc("get_live_vote_tally", { p_event_id: eventId });
+      if (tallyRows) {
+        const nextTally: Record<string, number> = {};
+        for (const row of tallyRows) nextTally[row.option_id] = Number(row.votes);
+        setTally(nextTally);
+      }
+      const { data: statusRow } = await supabase
+        .from("live_vote_events")
+        .select("status, closes_at")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (statusRow) {
+        setEvent((prev) => (prev ? { ...prev, status: statusRow.status, closes_at: statusRow.closes_at } : prev));
+      }
+    }, 10_000);
+
     return () => {
+      clearInterval(poll);
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -166,7 +188,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     if (event.voter_mode === "account") {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
-        window.location.href = "/login";
+        window.location.href = `/login?next=${encodeURIComponent(`/vote/${eventId}`)}`;
         return;
       }
       setVoting(optionId);
@@ -282,7 +304,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
       {event.status === "live" && event.voter_mode === "account" && !signedIn && (
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
-          <Link href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
+          <Link href={`/login?next=${encodeURIComponent(`/vote/${eventId}`)}`} className="font-semibold underline" style={{ color: "var(--red)" }}>
             Sign in
           </Link>{" "}
           to cast your vote. You can watch the live tally either way.

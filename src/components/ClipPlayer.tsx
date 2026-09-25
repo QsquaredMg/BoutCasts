@@ -130,6 +130,20 @@ export default function ClipPlayer({
     return <audio src={src} controls className="w-full" />;
   }
 
+  // Uploads can be photos too (the picker accepts JPG/PNG/WebP) — a <video>
+  // tag would just show a black box for those.
+  if (/\.(jpe?g|png|webp|gif)(\?|#|$)/i.test(src)) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={label}
+        className="aspect-video w-full rounded-xl object-contain"
+        style={{ background: "var(--surface-2)" }}
+      />
+    );
+  }
+
   return (
     <video
       src={src}

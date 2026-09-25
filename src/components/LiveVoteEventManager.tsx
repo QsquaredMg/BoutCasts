@@ -63,7 +63,7 @@ export default function LiveVoteEventManager({
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
     if (!user) {
-      router.push("/login");
+      router.push(`/login?next=${encodeURIComponent(`/live-vote/${eventId}`)}`);
       return;
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
@@ -18,6 +18,10 @@ function formatBytes(bytes: number) {
 export default function FileUploadPicker({ onUploaded }: Props) {
   const supabase = createClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Each picker needs its own input id: the Live Vote form shows several at
+  // once (brand logo, graphic, one per option), and a shared id made every
+  // "choose a file" label open the first picker on the page instead.
+  const inputId = `file-input-${useId().replace(/:/g, "")}`;
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -98,12 +102,12 @@ export default function FileUploadPicker({ onUploaded }: Props) {
         accept={ACCEPT}
         onChange={handlePick}
         className="hidden"
-        id="submission-file-input"
+        id={inputId}
       />
 
       {!file && (
         <label
-          htmlFor="submission-file-input"
+          htmlFor={inputId}
           className="flex aspect-video cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-center"
           style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}
         >
