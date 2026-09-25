@@ -88,6 +88,10 @@ export default function NavBar() {
     window.location.href = "/";
   }
 
+  // The marketing homepage has its own hero with Start a Live Vote / Log in
+  // buttons, so the site menu bar is hidden there.
+  if (pathname === "/") return null;
+
   const profileHref = username ? `/profile/${username}` : "/login";
   const profileActive = username ? pathname === `/profile/${username}` : false;
 
