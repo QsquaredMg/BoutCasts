@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -107,7 +108,20 @@ export default async function Home() {
           VS
         </div>
 
-        <div className="relative mx-auto grid max-w-[1280px] items-center gap-12 px-5 pb-16 pt-12 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-16 lg:px-12 lg:pb-24 lg:pt-24">
+        <div className="relative mx-auto max-w-[1280px] px-5 pt-6 sm:px-8 lg:px-12 lg:pt-9">
+          <Link href="/" aria-label="BoutCasts home" className="inline-block">
+            <Image
+              src="/boutcasts-logo-reverse.png"
+              alt="BoutCasts — Voting and Competition Platform"
+              width={618}
+              height={170}
+              priority
+              className="h-auto w-[190px] sm:w-[240px] lg:w-[280px]"
+            />
+          </Link>
+        </div>
+
+        <div className="relative mx-auto grid max-w-[1280px] items-center gap-12 px-5 pb-16 pt-8 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-16 lg:px-12 lg:pb-24 lg:pt-14">
           <div className="flex flex-col gap-6 lg:gap-7">
             <div className="lp-eyebrow flex items-center gap-2.5" style={{ color: "#9fb8ff" }}>
               <span className="lp-live-dot" aria-hidden />
