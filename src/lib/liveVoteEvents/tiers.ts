@@ -33,3 +33,15 @@ export const LIVE_VOTE_TIERS: Record<
 export function isLiveVoteTier(value: unknown): value is LiveVoteTier {
   return value === "small" || value === "medium" || value === "large";
 }
+
+// Pro add-on for a single event: demographic breakdowns, turnout over time,
+// and CSV export. Organizer Pro includes this on every event.
+export const PRO_ADDON_CENTS = 2900;
+
+// Monthly Organizer Pro plan. Keep in sync with organizer_pro_status() and
+// activate_live_vote_event_with_plan() in the database.
+export const ORGANIZER_PRO = {
+  priceCents: 9900,
+  includedEventsPerPeriod: 3,
+  includedTiers: ["small", "medium"] as LiveVoteTier[],
+};

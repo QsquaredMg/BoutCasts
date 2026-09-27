@@ -4,6 +4,29 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LIVE_VOTE_TIERS, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import type Stripe from "stripe";
 
+// Mirror an Organizer Pro subscription into organizer_subscriptions.
+// Billing periods live on the subscription item in this Stripe API version.
+async function syncOrganizerSubscription(sub: Stripe.Subscription, fallbackUserId?: string | null) {
+  const userId = sub.metadata?.user_id || fallbackUserId;
+  if (!userId || (sub.metadata?.kind && sub.metadata.kind !== "organizer_pro")) return;
+  const item = sub.items?.data?.[0];
+  const admin = createAdminClient();
+  const { error } = await admin.from("organizer_subscriptions").upsert(
+    {
+      user_id: userId,
+      stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+      stripe_subscription_id: sub.id,
+      status: sub.status,
+      current_period_start: item?.current_period_start ? new Date(item.current_period_start * 1000).toISOString() : null,
+      current_period_end: item?.current_period_end ? new Date(item.current_period_end * 1000).toISOString() : null,
+      cancel_at_period_end: sub.cancel_at_period_end ?? false,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+  if (error) throw error;
+}
+
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -93,6 +116,7 @@ export async function POST(req: NextRequest) {
           starts_at: startsAt.toISOString(),
           closes_at: closesAt.toISOString(),
           stripe_checkout_session_id: session.id,
+          ...(metadata.pro === "1" ? { pro_enabled: true, pro_checkout_session_id: session.id } : {}),
         })
         .eq("id", eventId)
         .eq("status", "draft")
@@ -115,6 +139,47 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ received: true });
     }
+
+    if (metadata.kind === "live_vote_pro") {
+      const admin = createAdminClient();
+      const { error } = await admin
+        .from("live_vote_events")
+        .update({ pro_enabled: true, pro_checkout_session_id: session.id })
+        .eq("id", metadata.event_id);
+      if (error) {
+        console.error("Stripe webhook: failed to enable Pro", error);
+        return NextResponse.json({ error: "Failed to enable Pro" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    if (metadata.kind === "organizer_pro" && typeof session.subscription === "string") {
+      try {
+        const sub = await stripe.subscriptions.retrieve(session.subscription);
+        await syncOrganizerSubscription(sub, metadata.user_id ?? session.client_reference_id);
+      } catch (err) {
+        console.error("Stripe webhook: failed to record Organizer Pro", err);
+        return NextResponse.json({ error: "Failed to record subscription" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+  }
+
+  if (
+    event.type === "customer.subscription.created" ||
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted"
+  ) {
+    const sub = event.data.object as Stripe.Subscription;
+    if (sub.metadata?.kind === "organizer_pro") {
+      try {
+        await syncOrganizerSubscription(sub);
+      } catch (err) {
+        console.error("Stripe webhook: failed to sync Organizer Pro", err);
+        return NextResponse.json({ error: "Failed to sync subscription" }, { status: 500 });
+      }
+    }
+    return NextResponse.json({ received: true });
   }
 
   return NextResponse.json({ received: true });

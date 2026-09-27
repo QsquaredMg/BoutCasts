@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import OrganizerProCard from "@/components/OrganizerProCard";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
@@ -82,7 +83,7 @@ export default function LiveVoteEventsPage() {
           </h1>
           <p className="text-sm" style={{ color: "var(--text-faint)" }}>
             Run a real-time poll for your own event — any number of options, a public
-            live tally, one vote per person. Pay per event, no subscription.
+            live tally, one vote per person. Pay per event, or go monthly with Organizer Pro.
           </p>
         </div>
         <Link
@@ -121,6 +122,8 @@ export default function LiveVoteEventsPage() {
           )}
         </div>
       )}
+
+      {signedIn && <OrganizerProCard />}
 
       {loading ? (
         <p className="text-sm" style={{ color: "var(--text-faint)" }}>

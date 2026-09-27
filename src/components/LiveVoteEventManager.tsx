@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import RankedResults from "@/components/RankedResults";
 import JudgePanelManager from "@/components/JudgePanelManager";
 import ShareEventModal from "@/components/ShareEventModal";
+import LiveVoteAnalyticsPanel from "@/components/LiveVoteAnalyticsPanel";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type EventStatus = "draft" | "live" | "closed";
 
@@ -17,6 +18,8 @@ type LiveVoteEventDetail = {
   scoring_mode: "crowd" | "judges";
   results_released: boolean;
   listed_publicly: boolean;
+  pro_enabled: boolean;
+  collect_demographics: boolean;
   title: string;
   description: string | null;
   voter_mode: "account" | "open_link";
@@ -33,15 +36,10 @@ type LiveVoteOptionRow = {
   sort_order: number;
 };
 
-type BreakdownRow = { label: string; count: number };
-
-type LiveVoteAnalytics = {
-  total_votes: number;
-  account_votes: number;
-  options: { option_id: string; name: string; votes: number }[];
-  gender_breakdown: BreakdownRow[];
-  ethnicity_breakdown: BreakdownRow[];
-  age_breakdown: BreakdownRow[];
+type PlanStatus = {
+  active: boolean;
+  included_per_period: number;
+  included_used: number;
 };
 
 export default function LiveVoteEventManager({
@@ -62,9 +60,9 @@ export default function LiveVoteEventManager({
   const [checkingOut, setCheckingOut] = useState(false);
   const [closing, setClosing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [analytics, setAnalytics] = useState<LiveVoteAnalytics | null>(null);
-  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [plan, setPlan] = useState<PlanStatus | null>(null);
+  const [addPro, setAddPro] = useState(false);
+  const [togglingDemo, setTogglingDemo] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [listing, setListing] = useState(false);
@@ -80,7 +78,7 @@ export default function LiveVoteEventManager({
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, tier, status, starts_at, closes_at")
+      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, pro_enabled, collect_demographics, tier, status, starts_at, closes_at")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -106,21 +104,10 @@ export default function LiveVoteEventManager({
       .order("sort_order");
 
     setOptions(optionRows ?? []);
-    setLoading(false);
 
-    if (eventRow.status === "closed" && eventRow.scoring_mode === "crowd") {
-      setAnalyticsLoading(true);
-      const { data: analyticsData, error: analyticsRpcError } = await supabase.rpc(
-        "get_live_vote_analytics",
-        { p_event_id: eventId }
-      );
-      setAnalyticsLoading(false);
-      if (analyticsRpcError) {
-        setAnalyticsError(analyticsRpcError.message);
-      } else {
-        setAnalytics(analyticsData as LiveVoteAnalytics);
-      }
-    }
+    const { data: planData } = await supabase.rpc("organizer_pro_status", {});
+    setPlan((planData as PlanStatus | null) ?? null);
+    setLoading(false);
   }, [supabase, eventId, router]);
 
   useEffect(() => {
@@ -134,7 +121,7 @@ export default function LiveVoteEventManager({
       const res = await fetch("/api/checkout/live-vote-event", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId }),
+        body: JSON.stringify({ eventId, addPro }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -145,6 +132,35 @@ export default function LiveVoteEventManager({
       setCheckingOut(false);
       setError(err instanceof Error ? err.message : "Something went wrong starting checkout.");
     }
+  }
+
+  async function handleGoLiveWithPlan() {
+    if (!confirm("Use one of your included Organizer Pro events to take this live now?")) return;
+    setError(null);
+    setActivating(true);
+    const { error: rpcError } = await supabase.rpc("activate_live_vote_event_with_plan", { p_event_id: eventId });
+    setActivating(false);
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    load();
+  }
+
+  async function toggleDemographics() {
+    if (!event) return;
+    setTogglingDemo(true);
+    setError(null);
+    const { error: rpcError } = await supabase.rpc("set_live_vote_collect_demographics", {
+      p_event_id: eventId,
+      p_on: !event.collect_demographics,
+    });
+    setTogglingDemo(false);
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    load();
   }
 
   async function handleAdminGoLive() {
@@ -223,6 +239,11 @@ export default function LiveVoteEventManager({
   }
 
   const tierConfig = LIVE_VOTE_TIERS[event.tier];
+  const planActive = Boolean(plan?.active);
+  const includedLeft = plan ? Math.max(0, plan.included_per_period - plan.included_used) : 0;
+  const planCoversEvent = planActive && ORGANIZER_PRO.includedTiers.includes(event.tier) && includedLeft > 0;
+  const hasPro = event.pro_enabled || planActive;
+  const payTotalCents = tierConfig.priceCents + (addPro && !hasPro ? PRO_ADDON_CENTS : 0);
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/vote/${event.id}` : "";
 
   return (
@@ -237,6 +258,11 @@ export default function LiveVoteEventManager({
         >
           Payment received — this event should go live within a moment. Refresh if it still
           shows as a draft.
+        </p>
+      )}
+      {checkoutStatus === "pro_success" && !event.pro_enabled && (
+        <p className="mb-6 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+          Payment received — Pro analytics will unlock within a moment. Refresh if you don&apos;t see them yet.
         </p>
       )}
       {checkoutStatus === "cancelled" && (
@@ -259,7 +285,7 @@ export default function LiveVoteEventManager({
           {event.status === "draft" ? "Draft" : event.status === "live" ? "Live" : "Closed"}
         </span>
         <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-          {tierConfig.label} tier ·{" "}
+          {tierConfig.label} tier{hasPro ? " · Pro" : ""} ·{" "}
           {event.scoring_mode === "judges"
             ? "Judges panel"
             : `${event.voter_mode === "account" ? "Account required" : "Open link"}${event.voting_method === "ranked" ? " · Ranked choice" : ""}`}
@@ -327,6 +353,29 @@ export default function LiveVoteEventManager({
         </span>
       </label>
 
+      {event.scoring_mode === "crowd" && event.status !== "closed" && (
+        <label
+          className="mb-4 flex cursor-pointer items-start gap-3 rounded-lg border p-3"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 accent-[var(--red)]"
+            checked={event.collect_demographics}
+            disabled={togglingDemo}
+            onChange={toggleDemographics}
+          />
+          <span className="text-sm">
+            <span className="font-semibold">Ask voters optional demographic questions</span>
+            <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+              After voting, people can answer age range, gender and race/ethnicity — every question is
+              optional with &ldquo;Prefer not to say&rdquo;, only ages 13+, and you only ever see totals
+              (groups under 5 are hidden).{hasPro ? "" : " Results need Pro."}
+            </span>
+          </span>
+        </label>
+      )}
+
       {error && (
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
           {error}
@@ -344,12 +393,41 @@ export default function LiveVoteEventManager({
               {activating ? "Going live…" : "Go live free (admin)"}
             </button>
           )}
+          {planCoversEvent && (
+            <button
+              onClick={handleGoLiveWithPlan}
+              disabled={activating || checkingOut}
+              className="bc-btn-solid rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60"
+            >
+              {activating
+                ? "Going live…"
+                : `Go live — included in Organizer Pro (${includedLeft} of ${plan!.included_per_period} left)`}
+            </button>
+          )}
+          {!hasPro && event.scoring_mode === "crowd" && (
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--border)" }}>
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--red)]"
+                checked={addPro}
+                onChange={(e) => setAddPro(e.target.checked)}
+              />
+              <span>
+                Add <b>Pro analytics</b> (+${PRO_ADDON_CENTS / 100}) — turnout over time, demographics, CSV export
+              </span>
+            </label>
+          )}
           <button
             onClick={handleGoLive}
             disabled={checkingOut}
-            className="bc-btn-solid rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60"
+            className={
+              planCoversEvent
+                ? "rounded-full border px-5 py-2.5 text-sm font-semibold disabled:opacity-60"
+                : "bc-btn-solid rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60"
+            }
+            style={planCoversEvent ? { borderColor: "var(--border)", color: "var(--text-dim)" } : undefined}
           >
-            {checkingOut ? "Starting checkout…" : `Go live for $${(tierConfig.priceCents / 100).toFixed(0)}`}
+            {checkingOut ? "Starting checkout…" : `Go live for $${(payTotalCents / 100).toFixed(0)}`}
           </button>
           <button
             onClick={handleDeleteDraft}
@@ -420,87 +498,12 @@ export default function LiveVoteEventManager({
             </p>
           </div>
 
-          {analyticsLoading && <p style={{ color: "var(--text-faint)" }}>Loading analytics…</p>}
-          {analyticsError && (
-            <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
-              {analyticsError}
-            </p>
-          )}
+        </div>
+      )}
 
-          {analytics && (
-            <div className="flex flex-col gap-4">
-              <div className="bc-card p-4">
-                <h2 className="mb-3 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
-                  Results — {analytics.total_votes.toLocaleString()} total vote
-                  {analytics.total_votes === 1 ? "" : "s"}
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {analytics.options.map((o) => {
-                    const pct = analytics.total_votes > 0 ? Math.round((o.votes / analytics.total_votes) * 100) : 0;
-                    return (
-                      <div key={o.option_id}>
-                        <div className="mb-1 flex items-center justify-between text-sm">
-                          <span className="font-semibold">{o.name}</span>
-                          <span style={{ color: "var(--text-faint)" }}>
-                            {o.votes.toLocaleString()} ({pct}%)
-                          </span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${pct}%`, background: "var(--red)" }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {analytics.account_votes > 0 && (
-                <div className="bc-card p-4">
-                  <h2 className="mb-1 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
-                    Voter demographics
-                  </h2>
-                  <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
-                    Based on {analytics.account_votes.toLocaleString()} account vote
-                    {analytics.account_votes === 1 ? "" : "s"} with a BoutCasts profile on file.
-                  </p>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    {(
-                      [
-                        ["Gender", analytics.gender_breakdown],
-                        ["Ethnicity", analytics.ethnicity_breakdown],
-                        ["Age", analytics.age_breakdown],
-                      ] as const
-                    ).map(([label, rows]) => (
-                      <div key={label}>
-                        <p className="mb-1.5 text-xs font-bold" style={{ color: "var(--text-dim)" }}>
-                          {label}
-                        </p>
-                        <div className="flex flex-col gap-1">
-                          {rows.length === 0 ? (
-                            <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-                              No data
-                            </p>
-                          ) : (
-                            rows.map((r) => (
-                              <div key={r.label} className="flex items-center justify-between text-xs">
-                                <span style={{ color: "var(--text-dim)" }}>{r.label}</span>
-                                <span className="font-semibold" style={{ color: "var(--text-faint)" }}>
-                                  {r.count.toLocaleString()}
-                                </span>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+      {event.scoring_mode === "crowd" && event.status !== "draft" && (
+        <div className="mt-6">
+          <LiveVoteAnalyticsPanel eventId={event.id} eventTitle={event.title} />
         </div>
       )}
     </div>

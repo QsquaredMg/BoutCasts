@@ -9,6 +9,7 @@ import AdBanner from "@/components/AdBanner";
 import ShareButton from "@/components/ShareButton";
 import RankedResults from "@/components/RankedResults";
 import JudgedResults from "@/components/JudgedResults";
+import DemographicsPrompt from "@/components/DemographicsPrompt";
 import { displayClip } from "@/lib/liveVoteEvents/displayClip";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -26,6 +27,7 @@ type EventRow = {
   post_vote_graphic_url: string | null;
   voting_method: "single" | "ranked";
   scoring_mode: "crowd" | "judges";
+  collect_demographics: boolean;
 };
 
 type OptionRow = {
@@ -74,6 +76,8 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   const [myRanking, setMyRanking] = useState<string[] | null>(null);
   const [submittingRanking, setSubmittingRanking] = useState(false);
   const [resultsKey, setResultsKey] = useState(0);
+  // null = not checked yet; true = answered or skipped (hide the prompt)
+  const [demoDone, setDemoDone] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -82,7 +86,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode")
+      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -140,6 +144,14 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       setMyVote(r && r.length > 0 ? r[0] : null);
     }
 
+    if (eventRow.collect_demographics) {
+      const { data: answered } = await supabase.rpc("has_answered_live_vote_demographics", {
+        p_event_id: eventId,
+        p_voter_token: voterTokenRef.current,
+      });
+      setDemoDone(Boolean(answered));
+    }
+
     setLoading(false);
   }, [supabase, eventId]);
 
@@ -188,6 +200,17 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
+
+  // Re-sync counts right after this browser votes, instead of waiting for
+  // the realtime feed or the 10-second poll.
+  async function refreshTally() {
+    const { data: tallyRows } = await supabase.rpc("get_live_vote_tally", { p_event_id: eventId });
+    if (tallyRows) {
+      const nextTally: Record<string, number> = {};
+      for (const row of tallyRows) nextTally[row.option_id] = Number(row.votes);
+      setTally(nextTally);
+    }
+  }
 
   function toggleRank(optionId: string) {
     setDraftRanking((prev) =>
@@ -274,6 +297,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         return;
       }
       setMyVote(optionId);
+    refreshTally();
       return;
     }
 
@@ -295,6 +319,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       return;
     }
     setMyVote(optionId);
+    refreshTally();
   }
 
   if (loading) {
@@ -388,6 +413,14 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
           {error}
         </p>
+      )}
+
+      {myVote && !judged && event.collect_demographics && demoDone === false && (
+        <DemographicsPrompt
+          eventId={eventId}
+          voterToken={event.voter_mode === "open_link" ? voterTokenRef.current : null}
+          onDone={() => setDemoDone(true)}
+        />
       )}
 
       {myVote && event.post_vote_graphic_url && (

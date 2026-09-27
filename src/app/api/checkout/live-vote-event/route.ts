@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
-import { LIVE_VOTE_TIERS, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, PRO_ADDON_CENTS, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 // Organizer pays a one-time per-event fee to move their draft Live Vote
 // Event live. The event (and its options) must already exist as a 'draft'
@@ -13,6 +13,7 @@ import { LIVE_VOTE_TIERS, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const eventId = body?.eventId;
+  const addPro = body?.addPro === true;
 
   if (!eventId || typeof eventId !== "string") {
     return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   const { data: event, error: eventError } = await supabase
     .from("live_vote_events")
-    .select("id, organizer_id, title, tier, price_cents, status")
+    .select("id, organizer_id, title, tier, price_cents, status, pro_enabled")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -95,6 +96,18 @@ export async function POST(req: NextRequest) {
         },
         quantity: 1,
       },
+      ...(addPro && !event.pro_enabled
+        ? [
+            {
+              price_data: {
+                currency: "usd",
+                product_data: { name: `Pro analytics — ${event.title}` },
+                unit_amount: PRO_ADDON_CENTS,
+              },
+              quantity: 1,
+            },
+          ]
+        : []),
     ],
     success_url: `${origin}/live-vote/${event.id}?checkout=success`,
     cancel_url: `${origin}/live-vote/${event.id}?checkout=cancelled`,
@@ -102,6 +115,7 @@ export async function POST(req: NextRequest) {
       kind: "live_vote_event",
       event_id: event.id,
       tier: event.tier,
+      pro: addPro && !event.pro_enabled ? "1" : "0",
     },
   });
 
