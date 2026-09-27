@@ -8,7 +8,8 @@ import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import AdBanner from "@/components/AdBanner";
 import ShareButton from "@/components/ShareButton";
 import RankedResults from "@/components/RankedResults";
-import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
+import JudgedResults from "@/components/JudgedResults";
+import { displayClip } from "@/lib/liveVoteEvents/displayClip";
 
 type EventStatus = "draft" | "live" | "closed";
 
@@ -24,6 +25,7 @@ type EventRow = {
   ads_enabled: boolean;
   post_vote_graphic_url: string | null;
   voting_method: "single" | "ranked";
+  scoring_mode: "crowd" | "judges";
 };
 
 type OptionRow = {
@@ -53,21 +55,6 @@ function getOrCreateVoterToken(): string {
   }
 }
 
-function displayClip(option: OptionRow) {
-  if (!option.source_url) return null;
-  if (option.source_type === "upload" || option.source_type === "record") {
-    return {
-      kind: "hosted" as const,
-      url: option.source_url,
-      isAudio: getClipSourceTag(option.source_type, option.source_url).isAudio,
-    };
-  }
-  if (option.source_type === "link" && getEmbedInfo(option.source_url)) {
-    return { kind: "embed" as const, url: option.source_url };
-  }
-  return { kind: "link" as const, url: option.source_url };
-}
-
 export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   const supabase = createClient();
   const voterTokenRef = useRef<string | null>(null);
@@ -95,7 +82,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method")
+      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -329,9 +316,11 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
   const totalVotes = Object.values(tally).reduce((sum, n) => sum + n, 0);
   const maxVotes = Math.max(0, ...Object.values(tally));
-  const ranked = event.voting_method === "ranked";
+  const judged = event.scoring_mode === "judges";
+  const ranked = !judged && event.voting_method === "ranked";
   const optionNames: Record<string, string> = Object.fromEntries(options.map((o) => [o.id, o.name]));
   const canRank = ranked && event.status === "live" && !myVote;
+  const canVoteSingle = !judged && !ranked && event.status === "live" && !myVote;
 
   return (
     <div>
@@ -363,7 +352,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
             {event.status === "live" ? "Live" : event.status === "closed" ? "Closed" : "Not open yet"}
           </span>
           <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-            {totalVotes.toLocaleString()} vote{totalVotes === 1 ? "" : "s"}
+            {judged ? "Judged event" : `${totalVotes.toLocaleString()} vote${totalVotes === 1 ? "" : "s"}`}
           </span>
         </div>
         <ShareButton
@@ -382,11 +371,11 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       )}
       {event.status === "live" && event.closes_at && (
         <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
-          Voting closes {new Date(event.closes_at).toLocaleString()}
+          {judged ? "Judging" : "Voting"} closes {new Date(event.closes_at).toLocaleString()}
         </p>
       )}
 
-      {event.status === "live" && event.voter_mode === "account" && !signedIn && (
+      {!judged && event.status === "live" && event.voter_mode === "account" && !signedIn && (
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
           <Link href={`/login?next=${encodeURIComponent(`/vote/${eventId}`)}`} className="font-semibold underline" style={{ color: "var(--red)" }}>
             Sign in
@@ -409,6 +398,12 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
             alt={event.brand_name ? `${event.brand_name} graphic` : "Thanks for voting"}
             className="w-full object-cover"
           />
+        </div>
+      )}
+
+      {judged && event.status !== "draft" && (
+        <div className="mb-4">
+          <JudgedResults eventId={eventId} status={event.status} refreshKey={resultsKey} />
         </div>
       )}
 
@@ -516,6 +511,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                 </div>
               )}
 
+              {!judged && (
               <div className="mt-3">
                 <div
                   className="h-2.5 w-full overflow-hidden rounded-full"
@@ -544,7 +540,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                       {draftIndex >= 0 ? `#${draftIndex + 1} ✕` : "Rank"}
                     </button>
                   )}
-                  {!ranked && event.status === "live" && !myVote && (
+                  {canVoteSingle && (
                     <button
                       onClick={() => handleVote(option.id)}
                       disabled={voting === option.id}
@@ -556,6 +552,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                   )}
                 </div>
               </div>
+              )}
             </div>
           );
         })}

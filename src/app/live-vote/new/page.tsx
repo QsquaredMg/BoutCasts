@@ -34,6 +34,8 @@ export default function NewLiveVoteEventPage() {
   const [description, setDescription] = useState("");
   const [voterMode, setVoterMode] = useState<"account" | "open_link">("account");
   const [votingMethod, setVotingMethod] = useState<"single" | "ranked">("single");
+  const [scoringMode, setScoringMode] = useState<"crowd" | "judges">("crowd");
+  const [criteria, setCriteria] = useState<string[]>([""]);
   const [tier, setTier] = useState<LiveVoteTier>("small");
   const [options, setOptions] = useState<OptionDraft[]>([newOption(), newOption()]);
 
@@ -77,6 +79,12 @@ export default function NewLiveVoteEventPage() {
       return;
     }
 
+    const criteriaNames = criteria.map((c) => c.trim()).filter(Boolean);
+    if (scoringMode === "judges" && new Set(criteriaNames.map((c) => c.toLowerCase())).size !== criteriaNames.length) {
+      setError("Each scoring criterion needs a different name.");
+      return;
+    }
+
     if (options.length < 2) {
       setError("Add at least two options.");
       return;
@@ -108,7 +116,8 @@ export default function NewLiveVoteEventPage() {
         title: title.trim(),
         description: description.trim() || null,
         voter_mode: voterMode,
-        voting_method: votingMethod,
+        voting_method: scoringMode === "judges" ? "single" : votingMethod,
+        scoring_mode: scoringMode,
         tier,
         price_cents: tierConfig.priceCents,
         status: "draft",
@@ -144,6 +153,18 @@ export default function NewLiveVoteEventPage() {
       setLoading(false);
       setError(optionsError.message || "Failed to save the options.");
       return;
+    }
+
+    if (scoringMode === "judges" && criteriaNames.length > 0) {
+      const { error: criteriaError } = await supabase.from("live_vote_criteria").insert(
+        criteriaNames.map((name, idx) => ({ event_id: event.id, name, sort_order: idx }))
+      );
+      if (criteriaError) {
+        await supabase.from("live_vote_events").delete().eq("id", event.id);
+        setLoading(false);
+        setError(criteriaError.message || "Failed to save the scoring criteria.");
+        return;
+      }
     }
 
     router.push(`/live-vote/${event.id}`);
@@ -297,6 +318,94 @@ export default function NewLiveVoteEventPage() {
 
         <div>
           <label className={labelClass} style={labelStyle}>
+            How is the winner decided?
+          </label>
+          <div className="flex gap-2">
+            {(
+              [
+                ["crowd", "Crowd vote"],
+                ["judges", "Judges panel"],
+              ] as const
+            ).map(([value, label]) => {
+              const active = scoringMode === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setScoringMode(value)}
+                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold"
+                  style={{
+                    borderColor: active ? "var(--red)" : "var(--border)",
+                    background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)",
+                    color: active ? "var(--red)" : "var(--text-dim)",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+            {scoringMode === "crowd"
+              ? "Your audience votes from their phones and the tally updates live."
+              : "Judges you invite score each contestant 1–10 from a private link — no account needed. The public page shows the contestants, and the scoreboard appears when you release results."}
+          </p>
+
+          {scoringMode === "judges" && (
+            <div className="mt-3 rounded-xl border p-3.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <p className="mb-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+                Scoring criteria
+              </p>
+              <p className="mb-2.5 text-xs" style={{ color: "var(--text-faint)" }}>
+                Judges score each one 1–10; a contestant&apos;s score is the average. Leave blank for a
+                single overall score.
+              </p>
+              <div className="flex flex-col gap-2">
+                {criteria.map((c, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      className={inputClass}
+                      style={inputStyle}
+                      value={c}
+                      maxLength={60}
+                      placeholder={i === 0 ? "e.g. Vocals" : i === 1 ? "e.g. Stage presence" : "Another criterion"}
+                      onChange={(e) => setCriteria((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
+                    />
+                    {criteria.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setCriteria((prev) => prev.filter((_, j) => j !== i))}
+                        className="px-2 text-xs font-semibold"
+                        style={{ color: "var(--text-faint)" }}
+                        aria-label="Remove criterion"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {criteria.length < 8 && (
+                <button
+                  type="button"
+                  onClick={() => setCriteria((prev) => [...prev, ""])}
+                  className="mt-2 text-xs font-semibold"
+                  style={{ color: "var(--red)" }}
+                >
+                  + Add criterion
+                </button>
+              )}
+              <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>
+                You&apos;ll add judges and get their private links after you create the event.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {scoringMode === "crowd" && (
+        <>
+        <div>
+          <label className={labelClass} style={labelStyle}>
             How do people vote?
           </label>
           <div className="flex gap-2">
@@ -366,6 +475,8 @@ export default function NewLiveVoteEventPage() {
               : "One vote per browser (tracked with a private link token). No sign-in needed — easiest to share, but easier to work around than an account."}
           </p>
         </div>
+        </>
+        )}
 
         <div>
           <label className={labelClass} style={labelStyle}>

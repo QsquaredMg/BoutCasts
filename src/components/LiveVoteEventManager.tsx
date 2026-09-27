@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import RankedResults from "@/components/RankedResults";
+import JudgePanelManager from "@/components/JudgePanelManager";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -12,6 +13,8 @@ type LiveVoteEventDetail = {
   id: string;
   organizer_id: string;
   voting_method: "single" | "ranked";
+  scoring_mode: "crowd" | "judges";
+  results_released: boolean;
   title: string;
   description: string | null;
   voter_mode: "account" | "open_link";
@@ -73,7 +76,7 @@ export default function LiveVoteEventManager({
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, organizer_id, title, description, voter_mode, voting_method, tier, status, starts_at, closes_at")
+      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, tier, status, starts_at, closes_at")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -101,7 +104,7 @@ export default function LiveVoteEventManager({
     setOptions(optionRows ?? []);
     setLoading(false);
 
-    if (eventRow.status === "closed") {
+    if (eventRow.status === "closed" && eventRow.scoring_mode === "crowd") {
       setAnalyticsLoading(true);
       const { data: analyticsData, error: analyticsRpcError } = await supabase.rpc(
         "get_live_vote_analytics",
@@ -233,8 +236,10 @@ export default function LiveVoteEventManager({
           {event.status === "draft" ? "Draft" : event.status === "live" ? "Live" : "Closed"}
         </span>
         <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-          {tierConfig.label} tier · {event.voter_mode === "account" ? "Account required" : "Open link"}
-          {event.voting_method === "ranked" ? " · Ranked choice" : ""}
+          {tierConfig.label} tier ·{" "}
+          {event.scoring_mode === "judges"
+            ? "Judges panel"
+            : `${event.voter_mode === "account" ? "Account required" : "Open link"}${event.voting_method === "ranked" ? " · Ranked choice" : ""}`}
         </span>
       </div>
 
@@ -259,7 +264,16 @@ export default function LiveVoteEventManager({
         ))}
       </div>
 
-      {event.voting_method === "ranked" && event.status !== "draft" && (
+      {event.scoring_mode === "judges" && (
+        <JudgePanelManager
+          eventId={event.id}
+          status={event.status}
+          resultsReleased={event.results_released}
+          onChanged={load}
+        />
+      )}
+
+      {event.scoring_mode === "crowd" && event.voting_method === "ranked" && event.status !== "draft" && (
         <div className="mb-6">
           <RankedResults
             eventId={event.id}
