@@ -4,12 +4,20 @@
 // via a CHECK constraint (live_vote_events_price_matches_tier) and the vote
 // cap via a trigger (enforce_live_vote_cap) — this file must stay in sync
 // with both.
-export type LiveVoteTier = "small" | "medium" | "large";
+export type LiveVoteTier = "free" | "small" | "medium" | "large";
 
 export const LIVE_VOTE_TIERS: Record<
   LiveVoteTier,
   { label: string; priceCents: number; durationMs: number; voteCap: number }
 > = {
+  // Free: basic crowd "pick one" vote — no ranked choice, judges or custom
+  // branding; one live at a time, 5 per 30 days (activate_free_live_vote_event).
+  free: {
+    label: "Free",
+    priceCents: 0,
+    durationMs: 24 * 60 * 60 * 1000,
+    voteCap: 50,
+  },
   small: {
     label: "Small",
     priceCents: 4900,
@@ -31,7 +39,7 @@ export const LIVE_VOTE_TIERS: Record<
 };
 
 export function isLiveVoteTier(value: unknown): value is LiveVoteTier {
-  return value === "small" || value === "medium" || value === "large";
+  return value === "free" || value === "small" || value === "medium" || value === "large";
 }
 
 // Pro add-on for a single event: demographic breakdowns, turnout over time,
@@ -45,3 +53,8 @@ export const ORGANIZER_PRO = {
   includedEventsPerPeriod: 3,
   includedTiers: ["small", "medium"] as LiveVoteTier[],
 };
+
+export function tierPriceLabel(tier: LiveVoteTier): string {
+  const cents = LIVE_VOTE_TIERS[tier].priceCents;
+  return cents === 0 ? "Free" : `$${(cents / 100).toFixed(0)}`;
+}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 import FileUploadPicker from "@/components/FileUploadPicker";
-import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type OptionDraft = {
   key: string;
@@ -37,7 +37,8 @@ export default function NewLiveVoteEventPage() {
   const [scoringMode, setScoringMode] = useState<"crowd" | "judges">("crowd");
   const [criteria, setCriteria] = useState<string[]>([""]);
   const [listedPublicly, setListedPublicly] = useState(false);
-  const [tier, setTier] = useState<LiveVoteTier>("small");
+  const [tier, setTier] = useState<LiveVoteTier>("free");
+  const isFree = tier === "free";
   const [options, setOptions] = useState<OptionDraft[]>([newOption(), newOption()]);
 
   const [brandName, setBrandName] = useState("");
@@ -123,9 +124,9 @@ export default function NewLiveVoteEventPage() {
         tier,
         price_cents: tierConfig.priceCents,
         status: "draft",
-        brand_name: brandName.trim() || null,
-        brand_logo_url: brandLogoUrl,
-        post_vote_graphic_url: postVoteGraphicUrl,
+        brand_name: isFree ? null : brandName.trim() || null,
+        brand_logo_url: isFree ? null : brandLogoUrl,
+        post_vote_graphic_url: isFree ? null : postVoteGraphicUrl,
       })
       .select("id")
       .single();
@@ -204,8 +205,8 @@ export default function NewLiveVoteEventPage() {
         Create a Live Vote Event
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Build your poll now — you&apos;ll pay the per-event fee on the next step to take it
-        live.
+        Build your poll now, then take it live on the next step — free, or with a one-time
+        per-event fee for bigger events.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -236,6 +237,63 @@ export default function NewLiveVoteEventPage() {
           />
         </div>
 
+        <div>
+          <label className={labelClass} style={labelStyle}>
+            Tier
+          </label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(Object.entries(LIVE_VOTE_TIERS) as [LiveVoteTier, (typeof LIVE_VOTE_TIERS)[LiveVoteTier]][]).map(
+              ([key, config]) => {
+                const active = tier === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setTier(key);
+                      if (key === "free") {
+                        setScoringMode("crowd");
+                        setVotingMethod("single");
+                      }
+                    }}
+                    className="rounded-[10px] border px-3 py-2.5 text-left"
+                    style={{
+                      borderColor: active ? "var(--red)" : "var(--border)",
+                      background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)",
+                    }}
+                  >
+                    <p className="text-sm font-bold" style={{ color: active ? "var(--red)" : "var(--text)" }}>
+                      {config.label} — {tierPriceLabel(key)}
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+                      Up to {config.voteCap.toLocaleString()} votes
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+                      {config.durationMs >= 24 * 60 * 60 * 1000
+                        ? `${Math.round(config.durationMs / (24 * 60 * 60 * 1000))}-day window`
+                        : `${Math.round(config.durationMs / (60 * 60 * 1000))}-hour window`}
+                    </p>
+                  </button>
+                );
+              }
+            )}
+          </div>
+          {isFree && (
+            <p className="mt-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+              Free events are a basic &ldquo;pick one&rdquo; crowd vote with BoutCasts ads, one live at
+              a time. Ranked choice, judges and custom branding come with paid tiers.
+            </p>
+          )}
+        </div>
+
+        {isFree ? (
+          <div className="rounded-xl border p-3.5 text-xs" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-faint)" }}>
+            <span className="font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+              Custom branding
+            </span>{" "}
+            — add your logo, sponsor name and a post-vote graphic on any paid tier.
+          </div>
+        ) : (
         <div
           className="rounded-xl border p-3.5"
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
@@ -317,6 +375,7 @@ export default function NewLiveVoteEventPage() {
             )}
           </div>
         </div>
+        )}
 
         <label
           className="flex cursor-pointer items-start gap-3 rounded-xl border p-3.5"
@@ -354,7 +413,9 @@ export default function NewLiveVoteEventPage() {
                   key={value}
                   type="button"
                   onClick={() => setScoringMode(value)}
-                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold"
+                  disabled={isFree && value === "judges"}
+                  title={isFree && value === "judges" ? "Judges panels need a paid tier" : undefined}
+                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
                     borderColor: active ? "var(--red)" : "var(--border)",
                     background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)",
@@ -442,7 +503,9 @@ export default function NewLiveVoteEventPage() {
                   key={value}
                   type="button"
                   onClick={() => setVotingMethod(value)}
-                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold"
+                  disabled={isFree && value === "ranked"}
+                  title={isFree && value === "ranked" ? "Ranked choice needs a paid tier" : undefined}
+                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
                     borderColor: active ? "var(--red)" : "var(--border)",
                     background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)",
@@ -478,7 +541,7 @@ export default function NewLiveVoteEventPage() {
                   key={value}
                   type="button"
                   onClick={() => setVoterMode(value)}
-                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold"
+                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
                     borderColor: active ? "var(--red)" : "var(--border)",
                     background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)",
@@ -498,43 +561,6 @@ export default function NewLiveVoteEventPage() {
         </div>
         </>
         )}
-
-        <div>
-          <label className={labelClass} style={labelStyle}>
-            Tier
-          </label>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {(Object.entries(LIVE_VOTE_TIERS) as [LiveVoteTier, (typeof LIVE_VOTE_TIERS)[LiveVoteTier]][]).map(
-              ([key, config]) => {
-                const active = tier === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setTier(key)}
-                    className="rounded-[10px] border px-3 py-2.5 text-left"
-                    style={{
-                      borderColor: active ? "var(--red)" : "var(--border)",
-                      background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)",
-                    }}
-                  >
-                    <p className="text-sm font-bold" style={{ color: active ? "var(--red)" : "var(--text)" }}>
-                      {config.label} — ${(config.priceCents / 100).toFixed(0)}
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-                      Up to {config.voteCap.toLocaleString()} votes
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-                      {config.durationMs >= 24 * 60 * 60 * 1000
-                        ? `${Math.round(config.durationMs / (24 * 60 * 60 * 1000))}-day window`
-                        : `${Math.round(config.durationMs / (60 * 60 * 1000))}-hour window`}
-                    </p>
-                  </button>
-                );
-              }
-            )}
-          </div>
-        </div>
 
         <div>
           <div className="mb-2 flex items-center justify-between">

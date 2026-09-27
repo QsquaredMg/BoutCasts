@@ -44,6 +44,7 @@ function shortName(name: string): string {
 }
 
 function money(cents: number) {
+  if (cents === 0) return "Free";
   return `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
@@ -55,6 +56,7 @@ function windowLabel(ms: number) {
 }
 
 const TIER_NOTES: Record<LiveVoteTier, { fit: string; tag?: string }> = {
+  free: { fit: "Trying it out, a club poll or a quick classroom vote", tag: "Start here" },
   small: { fit: "A class election, club vote or talent night" },
   medium: { fit: "Homecoming court, school-wide elections, game-day votes", tag: "Campus-wide" },
   large: { fit: "Fan-choice awards, citywide contests, stadium crowds" },
@@ -386,15 +388,15 @@ export default async function Home() {
             Live Vote pricing
           </div>
           <h2 className="lp-display text-[40px] sm:text-[52px] lg:text-[64px]">
-            Pay per event.
+            Start free.
             <br />
-            No subscription.
+            Pay per event.
           </h2>
           <p className="text-[17px] lg:text-[19px]" style={{ color: "var(--lp-muted)" }}>
-            Pick the size that fits your crowd.
+            Pick the size that fits your crowd — or run votes every month with Organizer Pro ($99/mo).
           </p>
         </div>
-        <div className="mt-10 grid gap-4 lg:mt-14 lg:grid-cols-3 lg:gap-6">
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 xl:grid-cols-4 lg:gap-6">
           {(Object.keys(LIVE_VOTE_TIERS) as LiveVoteTier[]).map((key) => {
             const t = LIVE_VOTE_TIERS[key];
             const note = TIER_NOTES[key];

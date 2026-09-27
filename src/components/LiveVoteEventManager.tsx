@@ -7,7 +7,7 @@ import ShareEventModal from "@/components/ShareEventModal";
 import LiveVoteAnalyticsPanel from "@/components/LiveVoteAnalyticsPanel";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type EventStatus = "draft" | "live" | "closed";
 
@@ -134,6 +134,33 @@ export default function LiveVoteEventManager({
     }
   }
 
+  async function handleGoLiveFree() {
+    setError(null);
+    setActivating(true);
+    const { error: rpcError } = await supabase.rpc("activate_free_live_vote_event", { p_event_id: eventId });
+    setActivating(false);
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    load();
+  }
+
+  async function changeTier(next: LiveVoteTier) {
+    if (!event || next === event.tier) return;
+    setError(null);
+    const { error: updError } = await supabase
+      .from("live_vote_events")
+      .update({ tier: next, price_cents: LIVE_VOTE_TIERS[next].priceCents })
+      .eq("id", eventId)
+      .eq("status", "draft");
+    if (updError) {
+      setError(updError.message);
+      return;
+    }
+    load();
+  }
+
   async function handleGoLiveWithPlan() {
     if (!confirm("Use one of your included Organizer Pro events to take this live now?")) return;
     setError(null);
@@ -241,7 +268,8 @@ export default function LiveVoteEventManager({
   const tierConfig = LIVE_VOTE_TIERS[event.tier];
   const planActive = Boolean(plan?.active);
   const includedLeft = plan ? Math.max(0, plan.included_per_period - plan.included_used) : 0;
-  const planCoversEvent = planActive && ORGANIZER_PRO.includedTiers.includes(event.tier) && includedLeft > 0;
+  const isFree = event.tier === "free";
+  const planCoversEvent = !isFree && planActive && ORGANIZER_PRO.includedTiers.includes(event.tier) && includedLeft > 0;
   const hasPro = event.pro_enabled || planActive;
   const payTotalCents = tierConfig.priceCents + (addPro && !hasPro ? PRO_ADDON_CENTS : 0);
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/vote/${event.id}` : "";
@@ -384,6 +412,30 @@ export default function LiveVoteEventManager({
 
       {event.status === "draft" && (
         <div className="flex flex-col gap-2">
+          <label className="mb-1 flex items-center justify-between gap-3 text-sm">
+            <span className="font-semibold">Tier</span>
+            <select
+              value={event.tier}
+              onChange={(e) => changeTier(e.target.value as LiveVoteTier)}
+              className="rounded-[10px] border px-3 py-2 text-sm"
+              style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+            >
+              {(Object.keys(LIVE_VOTE_TIERS) as LiveVoteTier[]).map((k) => (
+                <option key={k} value={k}>
+                  {LIVE_VOTE_TIERS[k].label} — {tierPriceLabel(k)} · up to {LIVE_VOTE_TIERS[k].voteCap.toLocaleString()} votes
+                </option>
+              ))}
+            </select>
+          </label>
+          {isFree && (
+            <button
+              onClick={handleGoLiveFree}
+              disabled={activating}
+              className="bc-btn-solid rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60"
+            >
+              {activating ? "Going live…" : "Go live free"}
+            </button>
+          )}
           {isAdmin && (
             <button
               onClick={handleAdminGoLive}
@@ -404,7 +456,7 @@ export default function LiveVoteEventManager({
                 : `Go live — included in Organizer Pro (${includedLeft} of ${plan!.included_per_period} left)`}
             </button>
           )}
-          {!hasPro && event.scoring_mode === "crowd" && (
+          {!isFree && !hasPro && event.scoring_mode === "crowd" && (
             <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--border)" }}>
               <input
                 type="checkbox"
@@ -417,6 +469,7 @@ export default function LiveVoteEventManager({
               </span>
             </label>
           )}
+          {!isFree && (
           <button
             onClick={handleGoLive}
             disabled={checkingOut}
@@ -429,6 +482,7 @@ export default function LiveVoteEventManager({
           >
             {checkingOut ? "Starting checkout…" : `Go live for $${(payTotalCents / 100).toFixed(0)}`}
           </button>
+          )}
           <button
             onClick={handleDeleteDraft}
             className="rounded-full border px-5 py-2.5 text-sm font-semibold"

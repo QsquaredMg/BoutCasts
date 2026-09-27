@@ -52,6 +52,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Event has an invalid tier" }, { status: 400 });
   }
 
+  if (event.tier === "free") {
+    return NextResponse.json({ error: "Free events go live without checkout" }, { status: 400 });
+  }
+
   const tierConfig = LIVE_VOTE_TIERS[event.tier];
 
   if (event.price_cents !== tierConfig.priceCents) {

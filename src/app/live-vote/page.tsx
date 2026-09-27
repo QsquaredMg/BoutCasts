@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import OrganizerProCard from "@/components/OrganizerProCard";
 import { createClient } from "@/lib/supabase/client";
-import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type LiveVoteEventRow = {
   id: string;
@@ -96,7 +96,7 @@ export default function LiveVoteEventsPage() {
       </div>
 
       {(Object.keys(LIVE_VOTE_TIERS) as LiveVoteTier[]).length > 0 && (
-        <div className="mb-8 grid gap-3 sm:grid-cols-3">
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(Object.entries(LIVE_VOTE_TIERS) as [LiveVoteTier, (typeof LIVE_VOTE_TIERS)[LiveVoteTier]][]).map(
             ([key, tier]) => (
               <div
@@ -108,7 +108,7 @@ export default function LiveVoteEventsPage() {
                   {tier.label}
                 </p>
                 <p className="mt-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-                  ${(tier.priceCents / 100).toFixed(0)}
+                  {tierPriceLabel(key)}
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
                   Up to {tier.voteCap.toLocaleString()} votes ·{" "}
