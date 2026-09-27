@@ -136,24 +136,21 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         setMyRanking(r && r.length > 0 ? r : null);
         setMyVote(r && r.length > 0 ? r[0] : null);
       }
-    } else if (eventRow.voter_mode === "account" && user) {
-      const { data: existingVote } = await supabase
-        .from("live_votes")
-        .select("option_id")
-        .eq("event_id", eventId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setMyVote(existingVote?.option_id ?? null);
-    } else if (eventRow.voter_mode === "open_link") {
-      const token = getOrCreateVoterToken();
-      voterTokenRef.current = token;
-      const { data: existingVote } = await supabase
-        .from("live_votes")
-        .select("option_id")
-        .eq("event_id", eventId)
-        .eq("voter_token", token)
-        .maybeSingle();
-      setMyVote(existingVote?.option_id ?? null);
+    } else if (eventRow.voter_mode === "open_link" || user) {
+      // Individual votes aren't publicly readable, so look up "my vote"
+      // through the private helper (matches the signed-in account or this
+      // browser's voter token).
+      let token: string | null = null;
+      if (eventRow.voter_mode === "open_link") {
+        token = getOrCreateVoterToken();
+        voterTokenRef.current = token;
+      }
+      const { data: mine } = await supabase.rpc("get_my_live_vote_ranking", {
+        p_event_id: eventId,
+        p_voter_token: token,
+      });
+      const r = (mine as string[] | null) ?? null;
+      setMyVote(r && r.length > 0 ? r[0] : null);
     }
 
     setLoading(false);
@@ -168,7 +165,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       .channel(`live-vote-tally-${eventId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "live_votes", filter: `event_id=eq.${eventId}` },
+        { event: "INSERT", schema: "public", table: "live_vote_tally_feed", filter: `event_id=eq.${eventId}` },
         (payload) => {
           const optionId = (payload.new as { option_id: string }).option_id;
           setTally((prev) => ({ ...prev, [optionId]: (prev[optionId] ?? 0) + 1 }));
