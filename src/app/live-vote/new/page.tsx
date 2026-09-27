@@ -36,6 +36,7 @@ export default function NewLiveVoteEventPage() {
   const [votingMethod, setVotingMethod] = useState<"single" | "ranked">("single");
   const [scoringMode, setScoringMode] = useState<"crowd" | "judges">("crowd");
   const [criteria, setCriteria] = useState<string[]>([""]);
+  const [listedPublicly, setListedPublicly] = useState(false);
   const [tier, setTier] = useState<LiveVoteTier>("small");
   const [options, setOptions] = useState<OptionDraft[]>([newOption(), newOption()]);
 
@@ -118,6 +119,7 @@ export default function NewLiveVoteEventPage() {
         voter_mode: voterMode,
         voting_method: scoringMode === "judges" ? "single" : votingMethod,
         scoring_mode: scoringMode,
+        listed_publicly: listedPublicly,
         tier,
         price_cents: tierConfig.priceCents,
         status: "draft",
@@ -315,6 +317,25 @@ export default function NewLiveVoteEventPage() {
             )}
           </div>
         </div>
+
+        <label
+          className="flex cursor-pointer items-start gap-3 rounded-xl border p-3.5"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 accent-[var(--red)]"
+            checked={listedPublicly}
+            onChange={(e) => setListedPublicly(e.target.checked)}
+          />
+          <span className="text-sm">
+            <span className="font-semibold">List on the Explore page</span>
+            <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+              Let anyone browsing BoutCasts find and vote in this event. Leave off for school and
+              private events — only people with your link will see it. You can change this later.
+            </span>
+          </span>
+        </label>
 
         <div>
           <label className={labelClass} style={labelStyle}>

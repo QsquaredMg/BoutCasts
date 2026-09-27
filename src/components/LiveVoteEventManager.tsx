@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import RankedResults from "@/components/RankedResults";
 import JudgePanelManager from "@/components/JudgePanelManager";
+import ShareEventModal from "@/components/ShareEventModal";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -15,6 +16,7 @@ type LiveVoteEventDetail = {
   voting_method: "single" | "ranked";
   scoring_mode: "crowd" | "judges";
   results_released: boolean;
+  listed_publicly: boolean;
   title: string;
   description: string | null;
   voter_mode: "account" | "open_link";
@@ -64,6 +66,8 @@ export default function LiveVoteEventManager({
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [listing, setListing] = useState(false);
   const [activating, setActivating] = useState(false);
 
   const load = useCallback(async () => {
@@ -76,7 +80,7 @@ export default function LiveVoteEventManager({
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, tier, status, starts_at, closes_at")
+      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, tier, status, starts_at, closes_at")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -177,6 +181,22 @@ export default function LiveVoteEventManager({
     load();
   }
 
+  async function toggleListed() {
+    if (!event) return;
+    setListing(true);
+    setError(null);
+    const { error: rpcError } = await supabase.rpc("set_live_vote_listed", {
+      p_event_id: eventId,
+      p_listed: !event.listed_publicly,
+    });
+    setListing(false);
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    load();
+  }
+
   function copyShareLink() {
     const url = `${window.location.origin}/vote/${eventId}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -207,6 +227,9 @@ export default function LiveVoteEventManager({
 
   return (
     <div>
+      {shareOpen && shareUrl && (
+        <ShareEventModal url={shareUrl} title={event.title} onClose={() => setShareOpen(false)} />
+      )}
       {checkoutStatus === "success" && event.status === "draft" && (
         <p
           className="mb-6 rounded-lg p-3 text-sm"
@@ -283,6 +306,27 @@ export default function LiveVoteEventManager({
         </div>
       )}
 
+      <label
+        className="mb-4 flex cursor-pointer items-start gap-3 rounded-lg border p-3"
+        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+      >
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 accent-[var(--red)]"
+          checked={event.listed_publicly}
+          disabled={listing}
+          onChange={toggleListed}
+        />
+        <span className="text-sm">
+          <span className="font-semibold">List on the Explore page</span>
+          <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+            {event.listed_publicly
+              ? "Anyone browsing BoutCasts can find this event while it's live."
+              : "Only people with your link can find this event. Leave this off for school and private events."}
+          </span>
+        </span>
+      </label>
+
       {error && (
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
           {error}
@@ -338,6 +382,12 @@ export default function LiveVoteEventManager({
                 {copied ? "Copied!" : "Copy"}
               </button>
             </div>
+            <button
+              onClick={() => setShareOpen(true)}
+              className="bc-btn-solid mt-2.5 w-full rounded-full px-4 py-2.5 text-sm font-bold"
+            >
+              QR code &amp; share options
+            </button>
           </div>
           {event.closes_at && (
             <p className="text-xs" style={{ color: "var(--text-faint)" }}>
