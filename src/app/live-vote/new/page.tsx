@@ -33,6 +33,7 @@ export default function NewLiveVoteEventPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [voterMode, setVoterMode] = useState<"account" | "open_link">("account");
+  const [votingMethod, setVotingMethod] = useState<"single" | "ranked">("single");
   const [tier, setTier] = useState<LiveVoteTier>("small");
   const [options, setOptions] = useState<OptionDraft[]>([newOption(), newOption()]);
 
@@ -107,6 +108,7 @@ export default function NewLiveVoteEventPage() {
         title: title.trim(),
         description: description.trim() || null,
         voter_mode: voterMode,
+        voting_method: votingMethod,
         tier,
         price_cents: tierConfig.priceCents,
         status: "draft",
@@ -291,6 +293,42 @@ export default function NewLiveVoteEventPage() {
               <FileUploadPicker onUploaded={setPostVoteGraphicUrl} />
             )}
           </div>
+        </div>
+
+        <div>
+          <label className={labelClass} style={labelStyle}>
+            How do people vote?
+          </label>
+          <div className="flex gap-2">
+            {(
+              [
+                ["single", "Pick one"],
+                ["ranked", "Ranked choice"],
+              ] as const
+            ).map(([value, label]) => {
+              const active = votingMethod === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setVotingMethod(value)}
+                  className="flex-1 rounded-[10px] border px-3 py-2.5 text-sm font-semibold"
+                  style={{
+                    borderColor: active ? "var(--red)" : "var(--border)",
+                    background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)",
+                    color: active ? "var(--red)" : "var(--text-dim)",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+            {votingMethod === "single"
+              ? "Each voter picks one option. Most votes wins."
+              : "Voters rank the options in order of preference. If nobody has a majority, the last-place option is eliminated and those ballots move to their next choice, round by round, until one option has a majority. Best for elections with 3+ candidates."}
+          </p>
         </div>
 
         <div>

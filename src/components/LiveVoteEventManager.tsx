@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import RankedResults from "@/components/RankedResults";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -10,6 +11,7 @@ type EventStatus = "draft" | "live" | "closed";
 type LiveVoteEventDetail = {
   id: string;
   organizer_id: string;
+  voting_method: "single" | "ranked";
   title: string;
   description: string | null;
   voter_mode: "account" | "open_link";
@@ -71,7 +73,7 @@ export default function LiveVoteEventManager({
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, organizer_id, title, description, voter_mode, tier, status, starts_at, closes_at")
+      .select("id, organizer_id, title, description, voter_mode, voting_method, tier, status, starts_at, closes_at")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -232,6 +234,7 @@ export default function LiveVoteEventManager({
         </span>
         <span className="text-xs" style={{ color: "var(--text-faint)" }}>
           {tierConfig.label} tier · {event.voter_mode === "account" ? "Account required" : "Open link"}
+          {event.voting_method === "ranked" ? " · Ranked choice" : ""}
         </span>
       </div>
 
@@ -255,6 +258,16 @@ export default function LiveVoteEventManager({
           </div>
         ))}
       </div>
+
+      {event.voting_method === "ranked" && event.status !== "draft" && (
+        <div className="mb-6">
+          <RankedResults
+            eventId={event.id}
+            optionNames={Object.fromEntries(options.map((o) => [o.id, o.name]))}
+            status={event.status}
+          />
+        </div>
+      )}
 
       {error && (
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>

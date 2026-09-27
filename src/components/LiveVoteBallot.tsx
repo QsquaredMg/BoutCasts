@@ -7,6 +7,7 @@ import ClipPlayer from "@/components/ClipPlayer";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import AdBanner from "@/components/AdBanner";
 import ShareButton from "@/components/ShareButton";
+import RankedResults from "@/components/RankedResults";
 import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -22,6 +23,7 @@ type EventRow = {
   brand_logo_url: string | null;
   ads_enabled: boolean;
   post_vote_graphic_url: string | null;
+  voting_method: "single" | "ranked";
 };
 
 type OptionRow = {
@@ -79,6 +81,12 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   const [signedIn, setSignedIn] = useState(false);
   const [voting, setVoting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Ranked-choice: the ballot being built, the submitted ranking, and a
+  // counter that tells the runoff results to re-fetch.
+  const [draftRanking, setDraftRanking] = useState<string[]>([]);
+  const [myRanking, setMyRanking] = useState<string[] | null>(null);
+  const [submittingRanking, setSubmittingRanking] = useState(false);
+  const [resultsKey, setResultsKey] = useState(0);
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -87,7 +95,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled")
+      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -113,7 +121,22 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     }
     setTally(nextTally);
 
-    if (eventRow.voter_mode === "account" && user) {
+    if (eventRow.voting_method === "ranked") {
+      let token: string | null = null;
+      if (eventRow.voter_mode === "open_link") {
+        token = getOrCreateVoterToken();
+        voterTokenRef.current = token;
+      }
+      if (eventRow.voter_mode === "open_link" || user) {
+        const { data: ranking } = await supabase.rpc("get_my_live_vote_ranking", {
+          p_event_id: eventId,
+          p_voter_token: token,
+        });
+        const r = (ranking as string[] | null) ?? null;
+        setMyRanking(r && r.length > 0 ? r : null);
+        setMyVote(r && r.length > 0 ? r[0] : null);
+      }
+    } else if (eventRow.voter_mode === "account" && user) {
       const { data: existingVote } = await supabase
         .from("live_votes")
         .select("option_id")
@@ -164,6 +187,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         for (const row of tallyRows) nextTally[row.option_id] = Number(row.votes);
         setTally(nextTally);
       }
+      setResultsKey((k) => k + 1);
       const { data: statusRow } = await supabase
         .from("live_vote_events")
         .select("status, closes_at")
@@ -180,6 +204,66 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
+
+  function toggleRank(optionId: string) {
+    setDraftRanking((prev) =>
+      prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]
+    );
+  }
+
+  function moveRank(index: number, delta: -1 | 1) {
+    setDraftRanking((prev) => {
+      const next = [...prev];
+      const target = index + delta;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  async function submitRanking() {
+    if (!event || event.status !== "live" || myVote || submittingRanking || draftRanking.length === 0) return;
+    setError(null);
+
+    let token: string | null = null;
+    if (event.voter_mode === "account") {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        window.location.href = `/login?next=${encodeURIComponent(`/vote/${eventId}`)}`;
+        return;
+      }
+    } else {
+      token = voterTokenRef.current ?? getOrCreateVoterToken();
+      voterTokenRef.current = token;
+    }
+
+    setSubmittingRanking(true);
+    const { error: rpcError } = await supabase.rpc("cast_ranked_live_vote", {
+      p_event_id: eventId,
+      p_ranking: draftRanking,
+      p_voter_token: token,
+    });
+    setSubmittingRanking(false);
+    if (rpcError) {
+      if (rpcError.code === "23505") {
+        setError(event.voter_mode === "account" ? "You've already voted in this event." : "This browser has already voted in this event.");
+        load();
+      } else {
+        setError(rpcError.message);
+      }
+      return;
+    }
+    setMyRanking(draftRanking);
+    setMyVote(draftRanking[0]);
+    setResultsKey((k) => k + 1);
+    // Re-sync the first-choice counts now rather than waiting for realtime/poll.
+    const { data: tallyRows } = await supabase.rpc("get_live_vote_tally", { p_event_id: eventId });
+    if (tallyRows) {
+      const nextTally: Record<string, number> = {};
+      for (const row of tallyRows) nextTally[row.option_id] = Number(row.votes);
+      setTally(nextTally);
+    }
+  }
 
   async function handleVote(optionId: string) {
     if (!event || event.status !== "live" || myVote || voting) return;
@@ -248,6 +332,9 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
   const totalVotes = Object.values(tally).reduce((sum, n) => sum + n, 0);
   const maxVotes = Math.max(0, ...Object.values(tally));
+  const ranked = event.voting_method === "ranked";
+  const optionNames: Record<string, string> = Object.fromEntries(options.map((o) => [o.id, o.name]));
+  const canRank = ranked && event.status === "live" && !myVote;
 
   return (
     <div>
@@ -328,13 +415,51 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         </div>
       )}
 
+      {ranked && canRank && (
+        <div className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+          <p className="font-semibold" style={{ color: "var(--text)" }}>
+            This is a ranked-choice vote.
+          </p>
+          <p className="mt-0.5">
+            Tap <b>Rank</b> on the options in order of preference — your favorite first. Rank as many
+            as you like, then submit your ballot. If your top pick is eliminated, your vote moves to
+            your next choice.
+          </p>
+        </div>
+      )}
+
+      {ranked && myRanking && (
+        <div className="mb-4 rounded-xl border p-3.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+            ✓ Your ballot
+          </p>
+          <ol className="flex flex-col gap-1 text-sm">
+            {myRanking.map((id, i) => (
+              <li key={id}>
+                <span className="mr-2 font-bold" style={{ color: "var(--red)" }}>
+                  {i + 1}.
+                </span>
+                {optionNames[id] ?? "Unknown option"}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {ranked && (event.status !== "live" || myVote || totalVotes > 0) && (
+        <div className="mb-4">
+          <RankedResults eventId={eventId} optionNames={optionNames} status={event.status} refreshKey={resultsKey} />
+        </div>
+      )}
+
       <div className="flex flex-col gap-4">
         {options.map((option) => {
           const clip = displayClip(option);
           const votes = tally[option.id] ?? 0;
           const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-          const isMine = myVote === option.id;
-          const isLeader = event.status === "closed" && votes === maxVotes && maxVotes > 0;
+          const isMine = ranked ? false : myVote === option.id;
+          const isLeader = !ranked && event.status === "closed" && votes === maxVotes && maxVotes > 0;
+          const draftIndex = draftRanking.indexOf(option.id);
 
           return (
             <div
@@ -406,9 +531,23 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs" style={{ color: "var(--text-faint)" }}>
                   <span>
-                    {votes.toLocaleString()} vote{votes === 1 ? "" : "s"} ({pct}%)
+                    {votes.toLocaleString()} {ranked ? "1st-choice " : ""}vote{votes === 1 ? "" : "s"} ({pct}%)
                   </span>
-                  {event.status === "live" && !myVote && (
+                  {canRank && (
+                    <button
+                      onClick={() => toggleRank(option.id)}
+                      className="rounded-full border px-3 py-1 text-xs font-bold"
+                      style={
+                        draftIndex >= 0
+                          ? { background: "var(--red)", borderColor: "var(--red)", color: "#fff" }
+                          : { borderColor: "var(--red)", color: "var(--red)" }
+                      }
+                      aria-label={draftIndex >= 0 ? `Remove ${option.name} from your ranking` : `Rank ${option.name}`}
+                    >
+                      {draftIndex >= 0 ? `#${draftIndex + 1} ✕` : "Rank"}
+                    </button>
+                  )}
+                  {!ranked && event.status === "live" && !myVote && (
                     <button
                       onClick={() => handleVote(option.id)}
                       disabled={voting === option.id}
@@ -424,6 +563,70 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
           );
         })}
       </div>
+
+      {canRank && draftRanking.length > 0 && (
+        <div
+          className="sticky bottom-3 mt-5 rounded-xl border p-3.5 shadow-lg"
+          style={{ borderColor: "var(--red)", background: "var(--surface)" }}
+        >
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+            Your ranking
+          </p>
+          <ol className="mb-3 flex flex-col gap-1.5">
+            {draftRanking.map((id, i) => (
+              <li key={id} className="flex items-center gap-2 text-sm">
+                <span className="w-5 font-bold" style={{ color: "var(--red)" }}>
+                  {i + 1}.
+                </span>
+                <span className="flex-1 truncate">{optionNames[id]}</span>
+                <button
+                  type="button"
+                  onClick={() => moveRank(i, -1)}
+                  disabled={i === 0}
+                  className="rounded border px-2 text-xs disabled:opacity-30"
+                  style={{ borderColor: "var(--border)" }}
+                  aria-label={`Move ${optionNames[id]} up`}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveRank(i, 1)}
+                  disabled={i === draftRanking.length - 1}
+                  className="rounded border px-2 text-xs disabled:opacity-30"
+                  style={{ borderColor: "var(--border)" }}
+                  aria-label={`Move ${optionNames[id]} down`}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleRank(id)}
+                  className="px-1 text-xs"
+                  style={{ color: "var(--text-faint)" }}
+                  aria-label={`Remove ${optionNames[id]}`}
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ol>
+          <button
+            type="button"
+            onClick={submitRanking}
+            disabled={submittingRanking}
+            className="w-full rounded-full px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            style={{ background: "var(--red)" }}
+          >
+            {submittingRanking
+              ? "Submitting…"
+              : `Submit ballot (${draftRanking.length} of ${options.length} ranked)`}
+          </button>
+          <p className="mt-1.5 text-center text-[11px]" style={{ color: "var(--text-faint)" }}>
+            You can&apos;t change your ballot after submitting.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
