@@ -323,7 +323,7 @@ export default function SponsorApplyForm() {
           style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
         />
         {error && (
-          <p className="text-sm" style={{ color: "var(--red)" }}>
+          <p className="text-sm" style={{ color: "var(--danger)" }}>
             {error}
           </p>
         )}

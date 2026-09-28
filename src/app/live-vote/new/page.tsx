@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SignInCard from "@/components/SignInCard";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
@@ -187,22 +188,12 @@ export default function NewLiveVoteEventPage() {
 
   if (signedIn === false) {
     return (
-      <div className="mx-auto max-w-sm px-5 py-12">
-        <h1 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-          Create a Live Vote Event
-        </h1>
-        <p style={{ color: "var(--text-dim)" }}>
-          You need to{" "}
-          <a href="/login?next=%2Flive-vote%2Fnew" className="font-semibold underline" style={{ color: "var(--red)" }}>
-            log in
-          </a>{" "}
-          or{" "}
-          <a href="/signup?next=%2Flive-vote%2Fnew" className="font-semibold underline" style={{ color: "var(--red)" }}>
-            create a free account
-          </a>{" "}
-          first — it takes a minute, then you’ll come right back here.
-        </p>
-      </div>
+      <SignInCard
+        eyebrow="New Live Vote"
+        title="Start your Live Vote"
+        body="It takes a minute to create a free account — then you'll come right back here to build your vote."
+        next="/live-vote/new"
+      />
     );
   }
 
@@ -743,7 +734,7 @@ export default function NewLiveVoteEventPage() {
         </div>
 
         {error && (
-          <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
+          <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--danger)" }}>
             {error}
           </p>
         )}

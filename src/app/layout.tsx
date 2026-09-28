@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Rajdhani, Manrope, Archivo } from "next/font/google";
+import { Manrope, Archivo } from "next/font/google";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import AdInterstitial from "@/components/AdInterstitial";
@@ -7,13 +7,8 @@ import SplashGate from "@/components/SplashGate";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
-const rajdhani = Rajdhani({
-  variable: "--font-display",
-  weight: ["600", "700"],
-  subsets: ["latin"],
-});
-
-// Wide, heavy display face for the marketing homepage and app splash.
+// Wide, heavy display face — used for headlines everywhere (homepage,
+// splash and app pages) so the whole site shares one look.
 const archivo = Archivo({
   variable: "--font-hero",
   axes: ["wdth"],
@@ -83,7 +78,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       suppressHydrationWarning
       lang="en"
-      className={`${rajdhani.variable} ${manrope.variable} ${archivo.variable} h-full antialiased`}
+      className={`${manrope.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col antialiased">
         <SplashGate />

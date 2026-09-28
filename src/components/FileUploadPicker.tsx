@@ -153,7 +153,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
         </p>
       )}
 
-      {error && <p className="mb-2 text-sm" style={{ color: "var(--red)" }}>{error}</p>}
+      {error && <p className="mb-2 text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
 
       <div className="flex justify-center gap-2">
         {status === "picked" && (

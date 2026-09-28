@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SignInCard from "@/components/SignInCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -56,17 +57,12 @@ export default function CompetitionsPage() {
 
   if (signedIn === false) {
     return (
-      <div className="mx-auto max-w-lg px-5 py-12">
-        <h1 className="mb-3 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-          Run your own competition
-        </h1>
-        <p style={{ color: "var(--text-dim)" }}>
-          <Link href="/login?next=%2Fcompetitions" className="font-semibold underline" style={{ color: "var(--red)" }}>
-            Sign in
-          </Link>{" "}
-          to create a bracket competition for your school, league or community.
-        </p>
-      </div>
+      <SignInCard
+        eyebrow="Competitions"
+        title="Run your own bracket"
+        body="Sign in to create a competition for your school, league or community — collect entries by link, approve them, and build a bracket the crowd votes on."
+        next="/competitions"
+      />
     );
   }
 
@@ -105,7 +101,7 @@ export default function CompetitionsPage() {
           {busy ? "Creating…" : "Create competition"}
         </button>
         {error && (
-          <p className="text-xs" style={{ color: "var(--red)" }}>
+          <p className="text-xs" style={{ color: "var(--danger)" }}>
             {error}
           </p>
         )}

@@ -179,7 +179,7 @@ export default function JudgePanelManager({
           </form>
         )}
         {error && (
-          <p className="mt-2 text-xs" style={{ color: "var(--red)" }}>
+          <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
             {error}
           </p>
         )}

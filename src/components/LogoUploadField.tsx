@@ -83,7 +83,7 @@ export default function LogoUploadField({
         style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
       />
       {error && (
-        <p className="text-xs" style={{ color: "var(--red)" }}>
+        <p className="text-xs" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

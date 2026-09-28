@@ -14,8 +14,9 @@ const NAV_LINKS = [
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/live-vote", label: "Live Vote" },
   { href: "/explore", label: "Explore" },
-  { href: "/sponsor", label: "For Brands" },
-  { href: "/how-it-works", label: "How it works" },
+  // Footer-only on desktop (kept in the phone menu) so the top bar fits on one row.
+  { href: "/sponsor", label: "For Brands", mobileOnly: true },
+  { href: "/how-it-works", label: "How it works", mobileOnly: true },
 ];
 
 export default function NavBar() {
@@ -129,13 +130,13 @@ export default function NavBar() {
           className="hidden flex-wrap gap-1 rounded-full p-1 md:flex"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
-          {NAV_LINKS.map((link) => {
+          {NAV_LINKS.filter((link) => !("mobileOnly" in link)).map((link) => {
             const active = pathname === link.href;
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide"
+                className="rounded-full px-3.5 py-1.5 text-sm font-semibold"
                 style={{
                   fontFamily: "var(--font-display)",
                   background: active ? "var(--surface-2)" : "transparent",

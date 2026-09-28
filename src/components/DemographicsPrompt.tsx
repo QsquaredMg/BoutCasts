@@ -161,7 +161,7 @@ export default function DemographicsPrompt({
             {saving ? "Saving…" : "Submit answers"}
           </button>
           {error && (
-            <p className="text-xs" style={{ color: "var(--red)" }}>
+            <p className="text-xs" style={{ color: "var(--danger)" }}>
               {error}
             </p>
           )}

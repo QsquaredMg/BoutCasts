@@ -88,7 +88,7 @@ export default function SponsorApplications({ initial }: { initial: Application[
           Paid and waiting for review — approving creates a live sponsor entry.
         </p>
         {error && (
-          <p className="mb-3 text-sm" style={{ color: "var(--red)" }}>
+          <p className="mb-3 text-sm" style={{ color: "var(--danger)" }}>
             {error}
           </p>
         )}

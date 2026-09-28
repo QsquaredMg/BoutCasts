@@ -318,7 +318,7 @@ export default function LiveVoteEventManager({
           className="rounded-full px-2.5 py-0.5 text-xs font-bold"
           style={{
             background: "var(--surface-2)",
-            color: event.status === "live" ? "var(--red)" : "var(--text-dim)",
+            color: event.status === "live" ? "var(--live)" : "var(--text-dim)",
           }}
         >
           {event.status === "draft" ? "Draft" : event.status === "live" ? "Live" : "Closed"}
@@ -429,7 +429,7 @@ export default function LiveVoteEventManager({
       )}
 
       {error && (
-        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
+        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--danger)" }}>
           {error}
         </p>
       )}

@@ -209,7 +209,7 @@ export default function BracketBuilder({
         </p>
       )}
       {error && (
-        <p className="mt-2 text-xs font-semibold" style={{ color: "var(--red)" }}>
+        <p className="mt-2 text-xs font-semibold" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

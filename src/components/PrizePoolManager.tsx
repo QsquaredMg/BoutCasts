@@ -67,7 +67,7 @@ export default function PrizePoolManager({
   return (
     <div>
       {error && (
-        <p className="mb-3 text-sm" style={{ color: "var(--red)" }}>
+        <p className="mb-3 text-sm" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

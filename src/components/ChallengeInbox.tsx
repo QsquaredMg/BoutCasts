@@ -50,7 +50,7 @@ export default function ChallengeInbox({
   return (
     <div className="flex flex-col gap-8">
       {error && (
-        <p className="rounded-lg p-3 text-sm" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+        <p className="rounded-lg p-3 text-sm" style={{ background: "var(--red-soft)", color: "var(--danger)" }}>
           {error}
         </p>
       )}

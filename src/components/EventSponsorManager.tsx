@@ -121,7 +121,7 @@ export default function EventSponsorManager({ eventId, editable }: { eventId: st
             {busy ? "Adding…" : "Add sponsor"}
           </button>
           {error && (
-            <p className="text-xs" style={{ color: "var(--red)" }}>
+            <p className="text-xs" style={{ color: "var(--danger)" }}>
               {error}
             </p>
           )}

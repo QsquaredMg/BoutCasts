@@ -177,7 +177,7 @@ export default function BracketTree({ bouts, bracketKey }: { bouts: Bout[]; brac
                 style={{
                   fontFamily: "var(--font-display)",
                   background: "var(--surface-2)",
-                  color: b.status === "live" ? "var(--red)" : "var(--text-faint)",
+                  color: b.status === "live" ? "var(--live)" : "var(--text-faint)",
                 }}
               >
                 {b.status === "live" && <span className="bc-live-dot mr-1" />}

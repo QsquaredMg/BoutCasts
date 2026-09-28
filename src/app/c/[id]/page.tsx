@@ -128,7 +128,7 @@ export default async function HubPage({ params }: { params: Promise<{ id: string
             <div className="grid gap-2 sm:grid-cols-2">
               {live.map((b) => (
                 <Link key={b.id} href={`/bout/${b.id}`} className="rounded-xl border p-3 hover:border-[var(--red)]" style={box}>
-                  <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--red)" }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--live)" }}>
                     ● Live{b.round_number ? ` · Round ${b.round_number}` : ""}
                   </p>
                   <p className="font-semibold">

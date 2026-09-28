@@ -140,7 +140,7 @@ export default function LiveVoteAnalyticsPanel({
 
   if (error && !a) {
     return (
-      <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
+      <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--danger)" }}>
         {error}
       </p>
     );
@@ -206,7 +206,7 @@ export default function LiveVoteAnalyticsPanel({
             .
           </p>
           {error && (
-            <p className="mt-2 text-xs" style={{ color: "var(--red)" }}>
+            <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
               {error}
             </p>
           )}

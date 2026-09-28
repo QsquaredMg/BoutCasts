@@ -57,7 +57,7 @@ export default function OrgJoin({ token }: { token: string }) {
         </button>
       )}
       {error && (
-        <p className="mt-3 text-sm" style={{ color: "var(--red)" }}>
+        <p className="mt-3 text-sm" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

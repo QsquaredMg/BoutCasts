@@ -51,7 +51,7 @@ export default function ProfileAvatarUpload({ userId }: { userId: string }) {
         </p>
       )}
       {error && (
-        <p className="mt-1 text-xs font-semibold" style={{ color: "var(--red)" }}>
+        <p className="mt-1 text-xs font-semibold" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

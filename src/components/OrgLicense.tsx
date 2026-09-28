@@ -171,7 +171,7 @@ export default function OrgLicense() {
             {busy ? "Starting checkout…" : `Get the license — ${price}/year`}
           </button>
           {error && (
-            <p className="text-sm" style={{ color: "var(--red)" }}>
+            <p className="text-sm" style={{ color: "var(--danger)" }}>
               {error}
             </p>
           )}
@@ -267,7 +267,7 @@ export default function OrgLicense() {
                 <Link href={`/vote/${e.id}`} className="truncate hover:underline">
                   {e.title}
                 </Link>
-                <span className="shrink-0 text-xs" style={{ color: e.status === "live" ? "var(--red)" : "var(--text-faint)" }}>
+                <span className="shrink-0 text-xs" style={{ color: e.status === "live" ? "var(--live)" : "var(--text-faint)" }}>
                   {e.organizer} · {e.status}
                 </span>
               </li>
@@ -300,7 +300,7 @@ export default function OrgLicense() {
         )}
       </div>
       {error && (
-        <p className="text-sm" style={{ color: "var(--red)" }}>
+        <p className="text-sm" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SignInCard from "@/components/SignInCard";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Subcategory } from "@/lib/types";
@@ -130,18 +131,12 @@ export default function SubmitPage() {
 
   if (signedIn === false) {
     return (
-      <div className="mx-auto max-w-sm px-5 py-12">
-        <h1 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-          Submit an entry
-        </h1>
-        <p style={{ color: "var(--text-dim)" }}>
-          You need to{" "}
-          <a href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
-            sign in
-          </a>{" "}
-          to submit an entry.
-        </p>
-      </div>
+      <SignInCard
+        eyebrow="Compete on BoutCasts"
+        title="Enter the arena"
+        body="Sign in to submit your clip — music, dance, rap, debate, anything. Get matched head-to-head and let the crowd decide."
+        next={typeof window !== "undefined" ? window.location.pathname + window.location.search : "/submit"}
+      />
     );
   }
 
@@ -298,7 +293,7 @@ export default function SubmitPage() {
           </label>
         </div>
 
-        {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
+        {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
         {success && (
           <p className="text-sm font-medium" style={{ color: "var(--blue)" }}>
             {organizerRun

@@ -210,7 +210,7 @@ export default function SignupPage() {
           </select>
         </div>
 
-        {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
+        {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
         <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Creating account..." : "Sign up"}
         </button>

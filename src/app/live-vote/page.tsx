@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SignInCard from "@/components/SignInCard";
 import Link from "next/link";
 import OrganizerProCard from "@/components/OrganizerProCard";
 import { createClient } from "@/lib/supabase/client";
@@ -24,7 +25,7 @@ const STATUS_LABEL: Record<LiveVoteEventRow["status"], string> = {
 
 const STATUS_COLOR: Record<LiveVoteEventRow["status"], string> = {
   draft: "var(--text-dim)",
-  live: "var(--red)",
+  live: "var(--live)",
   closed: "var(--text-faint)",
 };
 
@@ -59,18 +60,12 @@ export default function LiveVoteEventsPage() {
 
   if (signedIn === false) {
     return (
-      <div className="mx-auto max-w-lg px-5 py-12">
-        <h1 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-          Live Vote Events
-        </h1>
-        <p style={{ color: "var(--text-dim)" }}>
-          You need to{" "}
-          <a href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
-            sign in
-          </a>{" "}
-          to create or manage a Live Vote Event.
-        </p>
-      </div>
+      <SignInCard
+        eyebrow="Live Vote"
+        title="Let the crowd decide"
+        body="Sign in to create and manage Live Votes — class elections, event polls, halftime votes and talent shows with a live tally. Start free."
+        next="/live-vote"
+      />
     );
   }
 

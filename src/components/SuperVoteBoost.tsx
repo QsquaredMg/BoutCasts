@@ -84,7 +84,7 @@ export default function SuperVoteBoost({
             Secure checkout by Stripe. Must be 18+ or have a parent&apos;s permission. Purchases are final.
           </p>
           {error && (
-            <p className="mt-1 text-xs" style={{ color: "var(--red)" }}>
+            <p className="mt-1 text-xs" style={{ color: "var(--danger)" }}>
               {error}
             </p>
           )}

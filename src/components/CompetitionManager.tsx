@@ -235,7 +235,7 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
       </div>
 
       {error && (
-        <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
+        <p className="rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--danger)" }}>
           {error}
         </p>
       )}
@@ -377,7 +377,7 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
                         {b.round_number ? `R${b.round_number} · ` : ""}
                         {b.competitor_a_name ?? "TBD"} vs {b.competitor_b_name ?? "TBD"}
                       </Link>
-                      <span className="text-xs" style={{ color: b.status === "live" ? "var(--red)" : "var(--text-faint)" }}>
+                      <span className="text-xs" style={{ color: b.status === "live" ? "var(--live)" : "var(--text-faint)" }}>
                         {b.status}
                       </span>
                     </li>

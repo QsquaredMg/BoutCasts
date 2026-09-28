@@ -114,7 +114,7 @@ export default function CrowdComments({ boutId }: Props) {
       )}
 
       {error && (
-        <p className="mb-3 text-sm" style={{ color: "var(--red)" }}>
+        <p className="mb-3 text-sm" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

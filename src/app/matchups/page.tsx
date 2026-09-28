@@ -140,7 +140,7 @@ export default async function MatchupsPage() {
                       style={{
                         fontFamily: "var(--font-display)",
                         background: isLive ? "var(--red-soft)" : isDone ? "var(--gold-soft)" : "var(--surface-2)",
-                        color: isLive ? "var(--red)" : isDone ? "var(--gold)" : "var(--text-dim)",
+                        color: isLive ? "var(--live)" : isDone ? "var(--gold)" : "var(--text-dim)",
                       }}
                     >
                       {isLive && <span className="bc-live-dot mr-1" />}

@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
           className="rounded-[10px] border px-3.5 py-2.5 text-sm"
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         />
-        {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
+        {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
         <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Sending..." : "Send reset link"}
         </button>

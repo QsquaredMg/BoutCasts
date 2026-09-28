@@ -35,7 +35,7 @@ export default function AdminLicenseManager({ orgs }: { orgs: OrgRow[] }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
+      {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
       {orgs.map((o) => (
         <div key={o.id} className="bc-card flex flex-wrap items-center justify-between gap-3 p-3">
           <div>

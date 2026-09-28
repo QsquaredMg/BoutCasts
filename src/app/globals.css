@@ -2,19 +2,27 @@
 
 :root {
   color-scheme: light;
-  --bg: #f6f4ef;
-  --bg-2: #efece3;
+  /* One palette for the whole site, matching the homepage and splash:
+     paper background, ink text, BoutCasts blue accent. Red is reserved for
+     LIVE indicators (--live) and errors (--danger). "--red" is the historical
+     name of the accent and is kept so branded event rooms can override it. */
+  --bg: #f4f6fb;
+  --bg-2: #eaeef7;
   --surface: #ffffff;
-  --surface-2: #f0eee6;
-  --border: #e2ded2;
-  --line: #cdc7b8;
-  --text: #191b20;
-  --text-dim: #5c6270;
-  --text-faint: #8b8d7f;
-  --red: #d92c4c;
-  --red-soft: rgba(217, 44, 76, 0.08);
-  --blue: #1f5fd6;
-  --blue-soft: rgba(31, 95, 214, 0.07);
+  --surface-2: #eef1f8;
+  --border: #e4e7ef;
+  --line: #cfd5e3;
+  --text: #0a0e1a;
+  --text-dim: #4a5163;
+  --text-faint: #7b8296;
+  --red: #1b4fe4;
+  --red-soft: rgba(27, 79, 228, 0.08);
+  --blue: #1b4fe4;
+  --blue-soft: rgba(27, 79, 228, 0.08);
+  --ink: #0a0e1a;
+  --live: #e5263b;
+  --danger: #d6293e;
+  --font-display: var(--font-hero);
   --gold: #a97a12;
   --gold-soft: rgba(169, 122, 18, 0.12);
 
@@ -38,7 +46,9 @@ body {
 
 h1, h2, h3, h4 {
   font-family: var(--font-display), "Arial Narrow", sans-serif;
-  letter-spacing: 0.01em;
+  font-stretch: 106%;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 /* ---------- shared component classes (from the BoutCasts design concept) ---------- */
@@ -81,18 +91,24 @@ h1, h2, h3, h4 {
   color: #04121f;
 }
 
+/* Primary button — same as the homepage's blue pill buttons. */
 .bc-btn-solid {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  background: var(--text);
-  color: var(--bg);
-  border: 1px solid var(--text);
+  letter-spacing: 0.005em;
+  background: var(--red);
+  color: #fff;
+  border: 1px solid var(--red);
   border-radius: 999px;
-  transition: opacity 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 .bc-btn-solid:hover {
-  opacity: 0.85;
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+}
+.bc-btn-solid:focus-visible {
+  outline: 3px solid #6e97ff;
+  outline-offset: 2px;
 }
 
 .bc-btn-red {
@@ -129,8 +145,8 @@ h1, h2, h3, h4 {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--red);
-  box-shadow: 0 0 0 0 rgba(217, 44, 76, 0.6);
+  background: var(--live);
+  box-shadow: 0 0 0 0 rgba(229, 38, 59, 0.6);
   animation: bc-pulse 1.8s ease-out infinite;
   display: inline-block;
 }
@@ -138,9 +154,9 @@ h1, h2, h3, h4 {
   .bc-live-dot { animation: none; }
 }
 @keyframes bc-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(217, 44, 76, 0.5); }
-  70% { box-shadow: 0 0 0 8px rgba(217, 44, 76, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(217, 44, 76, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(229, 38, 59, 0.5); }
+  70% { box-shadow: 0 0 0 8px rgba(229, 38, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 38, 59, 0); }
 }
 
 .bc-vote-bar {

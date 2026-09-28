@@ -69,7 +69,7 @@ function EventCard({ e, now }: { e: ExploreRow; now: number }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide">
-          <span style={{ color: live ? "var(--red)" : "var(--text-faint)" }}>{live ? "● Live" : "Closed"}</span>
+          <span style={{ color: live ? "var(--live)" : "var(--text-faint)" }}>{live ? "● Live" : "Closed"}</span>
           <span style={{ color: "var(--text-faint)" }}>· {kind}</span>
         </div>
         <p className="truncate font-semibold group-hover:underline">{e.title}</p>

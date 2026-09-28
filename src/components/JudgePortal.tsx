@@ -181,7 +181,7 @@ export default function JudgePortal({ token }: { token: string }) {
       </div>
 
       {error && (
-        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
+        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--danger)" }}>
           {error}
         </p>
       )}

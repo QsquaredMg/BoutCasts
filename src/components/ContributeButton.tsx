@@ -85,7 +85,7 @@ export default function ContributeButton({ poolId, compact }: { poolId: string; 
         />
       </div>
       {error && (
-        <p className="mb-2 text-xs" style={{ color: "var(--red)" }}>
+        <p className="mb-2 text-xs" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

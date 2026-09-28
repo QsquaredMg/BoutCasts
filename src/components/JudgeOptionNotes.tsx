@@ -136,7 +136,7 @@ export default function JudgeOptionNotes({
             </button>
           </div>
           {error && (
-            <p className="text-xs" style={{ color: "var(--red)" }}>
+            <p className="text-xs" style={{ color: "var(--danger)" }}>
               {error}
             </p>
           )}

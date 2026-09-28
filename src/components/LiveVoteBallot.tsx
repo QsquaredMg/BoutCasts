@@ -393,7 +393,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         <div className="flex items-center gap-2">
           <span
             className="rounded-full px-2.5 py-0.5 text-xs font-bold"
-            style={{ background: "var(--surface-2)", color: event.status === "live" ? "var(--red)" : "var(--text-dim)" }}
+            style={{ background: "var(--surface-2)", color: event.status === "live" ? "var(--live)" : "var(--text-dim)" }}
           >
             {event.status === "live" ? "Live" : event.status === "closed" ? "Closed" : "Not open yet"}
           </span>
@@ -449,7 +449,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       )}
 
       {error && (
-        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--red)" }}>
+        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--danger)" }}>
           {error}
         </p>
       )}
