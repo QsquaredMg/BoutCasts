@@ -1,6 +1,7 @@
 "use client";
 
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
+import AdVideo from "@/components/AdVideo";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
@@ -133,27 +134,21 @@ export default function AdInterstitial() {
             )}
           </div>
         ) : (
-        <button onClick={handleClick} className="block w-full text-left">
+        <div>
           {ad.mediaType === "video" ? (
-            <video
-              src={ad.mediaUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full"
-              style={{ maxHeight: 420, objectFit: "cover" }}
-            />
+            <AdVideo src={ad.mediaUrl} onOpen={handleClick} className="w-full" style={{ maxHeight: 420, objectFit: "cover" }} />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={ad.mediaUrl} alt={ad.headline ?? ad.sponsorName} className="w-full" style={{ maxHeight: 420, objectFit: "cover" }} />
+            <button onClick={handleClick} className="block w-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={ad.mediaUrl} alt={ad.headline ?? ad.sponsorName} className="w-full" style={{ maxHeight: 420, objectFit: "cover" }} />
+            </button>
           )}
           {ad.headline && (
-            <div className="px-4 py-3 text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            <button onClick={handleClick} className="block w-full px-4 py-3 text-left text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>
               {ad.headline}
-            </div>
+            </button>
           )}
-        </button>
+        </div>
         )}
 
         {canSkip && (
