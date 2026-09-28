@@ -125,6 +125,22 @@ export default function LiveVoteEventsPage() {
 
       {signedIn && <OrganizerProCard />}
 
+      <Link
+        href="/competitions"
+        className="mb-8 flex items-center justify-between gap-3 rounded-xl border p-4 hover:opacity-90"
+        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+      >
+        <span>
+          <span className="block font-semibold">Running a bracket competition instead?</span>
+          <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+            Collect entries by link, approve them, and build a head-to-head bracket the crowd votes on.
+          </span>
+        </span>
+        <span className="text-sm font-bold" style={{ color: "var(--red)" }}>
+          Competitions →
+        </span>
+      </Link>
+
       {loading ? (
         <p className="text-sm" style={{ color: "var(--text-faint)" }}>
           Loading…

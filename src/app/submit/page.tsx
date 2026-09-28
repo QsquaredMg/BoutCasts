@@ -25,6 +25,8 @@ export default function SubmitPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const organizerRun = Boolean(selectedCategory?.owner_id);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -32,12 +34,17 @@ export default function SubmitPage() {
       const { data: userData } = await supabase.auth.getUser();
       setSignedIn(!!userData.user);
 
-      const { data: cats } = await supabase
+      // ?category=<id> comes from an organizer's competition entry link;
+      // link-only competitions appear only when linked to directly.
+      const linked = new URLSearchParams(window.location.search).get("category");
+      const { data: allCats } = await supabase
         .from("categories")
         .select("*")
         .order("sort_order");
-      setCategories(cats ?? []);
-      if (cats && cats.length > 0) setCategoryId(cats[0].id);
+      const cats = (allCats ?? []).filter((c) => c.is_listed !== false || c.id === linked);
+      setCategories(cats);
+      if (linked && cats.some((c) => c.id === linked)) setCategoryId(linked);
+      else if (cats.length > 0) setCategoryId(cats[0].id);
 
       const { data: subcats } = await supabase
         .from("subcategories")
@@ -144,9 +151,18 @@ export default function SubmitPage() {
         Submit a Bout
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Submit a clip in your category and we&apos;ll automatically match you
-        against another approved entry &mdash; your bout goes live and runs for
-        42 hours of voting once it&apos;s matched.
+        {organizerRun ? (
+          <>
+            You&apos;re entering <b>{selectedCategory?.name}</b>. The organizer reviews every entry
+            and builds the bracket — you&apos;ll get a notification when your bout goes live.
+          </>
+        ) : (
+          <>
+            Submit a clip in your category and we&apos;ll automatically match you against another
+            approved entry &mdash; your bout goes live and runs for 42 hours of voting once
+            it&apos;s matched.
+          </>
+        )}
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -285,8 +301,9 @@ export default function SubmitPage() {
         {error && <p className="text-sm" style={{ color: "var(--red)" }}>{error}</p>}
         {success && (
           <p className="text-sm font-medium" style={{ color: "var(--blue)" }}>
-            Submission received — pending review. Once approved, we&apos;ll
-            automatically match you against another entry in your category.
+            {organizerRun
+              ? "Entry received — the organizer will review it and let you know when your bout is live."
+              : "Submission received — pending review. Once approved, we'll automatically match you against another entry in your category."}
           </p>
         )}
 

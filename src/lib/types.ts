@@ -15,6 +15,9 @@ export type Category = {
   sort_order: number;
   sponsor_id: string | null;
   sponsors?: Sponsor | null;
+  owner_id?: string | null;
+  description?: string | null;
+  is_listed?: boolean;
 };
 
 export type Subcategory = {

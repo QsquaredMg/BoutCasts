@@ -36,6 +36,7 @@ export default async function SearchPage({
       supabase
         .from("categories")
         .select("id, name")
+        .eq("is_listed", true)
         .ilike("name", like)
         .limit(10),
     ]);

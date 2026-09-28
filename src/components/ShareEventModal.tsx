@@ -11,10 +11,14 @@ export default function ShareEventModal({
   url,
   title,
   onClose,
+  heading = "Share your Live Vote",
+  callToAction = "Scan to vote",
 }: {
   url: string;
   title: string;
   onClose: () => void;
+  heading?: string;
+  callToAction?: string;
 }) {
   const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -58,7 +62,7 @@ export default function ShareEventModal({
 
   async function nativeShare() {
     try {
-      await navigator.share({ title, text: `Vote now: ${title}`, url });
+      await navigator.share({ title, text: `${callToAction}: ${title}`, url });
     } catch {
       // user cancelled — nothing to do
     }
@@ -77,7 +81,7 @@ export default function ShareEventModal({
         aria-label={`QR code for ${title}`}
       >
         <p className="text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: "#9FB8FF" }}>
-          Scan to vote
+          {callToAction}
         </p>
         <h2
           className="max-w-4xl text-center text-3xl font-bold leading-tight sm:text-5xl"
@@ -124,7 +128,7 @@ export default function ShareEventModal({
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
-              Share your Live Vote
+              {heading}
             </p>
             <p className="font-semibold leading-snug">{title}</p>
           </div>
