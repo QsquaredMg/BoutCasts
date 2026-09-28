@@ -73,6 +73,10 @@ export default function LiveVoteEventManager({
   const [shareOpen, setShareOpen] = useState(false);
   const [listing, setListing] = useState(false);
   const [activating, setActivating] = useState(false);
+  // Admin-only: go live with no end time / edit the end time of a live event.
+  const [openEnded, setOpenEnded] = useState(false);
+  const [endInput, setEndInput] = useState("");
+  const [savingEnd, setSavingEnd] = useState(false);
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -117,6 +121,7 @@ export default function LiveVoteEventManager({
   }, [supabase, eventId, router]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
@@ -197,17 +202,41 @@ export default function LiveVoteEventManager({
   }
 
   async function handleAdminGoLive() {
-    if (!confirm("Take this event live now without payment? (Admin comp)")) return;
+    if (
+      !confirm(
+        openEnded
+          ? "Take this event live now with no end time? It stays open until you close it. (Admin comp)"
+          : "Take this event live now without payment? (Admin comp)"
+      )
+    )
+      return;
     setError(null);
     setActivating(true);
     const { error: rpcError } = await supabase.rpc("admin_activate_live_vote_event", {
       p_event_id: eventId,
+      p_open_ended: openEnded,
     });
     setActivating(false);
     if (rpcError) {
       setError(rpcError.message);
       return;
     }
+    load();
+  }
+
+  async function saveEndTime(closesAt: string | null) {
+    setSavingEnd(true);
+    setError(null);
+    const { error: rpcError } = await supabase.rpc("admin_set_live_vote_closes_at", {
+      p_event_id: eventId,
+      p_closes_at: closesAt,
+    });
+    setSavingEnd(false);
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    setEndInput("");
     load();
   }
 
@@ -461,6 +490,19 @@ export default function LiveVoteEventManager({
             </button>
           )}
           {isAdmin && (
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--border)" }}>
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--red)]"
+                checked={openEnded}
+                onChange={(e) => setOpenEnded(e.target.checked)}
+              />
+              <span>
+                <b>No end time</b> — stays open until you close it (admin)
+              </span>
+            </label>
+          )}
+          {isAdmin && (
             <button
               onClick={handleAdminGoLive}
               disabled={activating || checkingOut}
@@ -547,10 +589,42 @@ export default function LiveVoteEventManager({
               QR code &amp; share options
             </button>
           </div>
-          {event.closes_at && (
-            <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-              Voting closes {new Date(event.closes_at).toLocaleString()}
-            </p>
+          <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+            {event.closes_at
+              ? `Voting closes ${new Date(event.closes_at).toLocaleString()}`
+              : "No end time — voting stays open until you close it."}
+          </p>
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
+              <span className="w-full text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+                End time (admin)
+              </span>
+              <input
+                type="datetime-local"
+                value={endInput}
+                onChange={(e) => setEndInput(e.target.value)}
+                className="rounded-[10px] border px-3 py-2 text-sm"
+                style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+              />
+              <button
+                onClick={() => endInput && saveEndTime(new Date(endInput).toISOString())}
+                disabled={savingEnd || !endInput}
+                className="rounded-full border px-4 py-2 text-xs font-bold disabled:opacity-50"
+                style={{ borderColor: "var(--border)" }}
+              >
+                Set end time
+              </button>
+              {event.closes_at && (
+                <button
+                  onClick={() => saveEndTime(null)}
+                  disabled={savingEnd}
+                  className="rounded-full border px-4 py-2 text-xs font-bold disabled:opacity-50"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  Remove end time
+                </button>
+              )}
+            </div>
           )}
           <button
             onClick={handleCloseNow}

@@ -4,10 +4,13 @@ import AdminLiveVoteManager from "@/components/AdminLiveVoteManager";
 
 export default async function AdminLiveVotePage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: events } = await supabase
     .from("live_vote_events")
-    .select("id, title, status, tier, price_cents, ads_enabled, created_at, organizer_id")
+    .select("id, title, status, tier, price_cents, ads_enabled, created_at, organizer_id, closes_at")
     .order("created_at", { ascending: false });
 
   const organizerIds = Array.from(new Set((events ?? []).map((e) => e.organizer_id).filter(Boolean)));
@@ -37,7 +40,7 @@ export default async function AdminLiveVotePage() {
         This is admin-only — organizers can&apos;t turn ads on or off for their own event. Events you
         create here can go live free with the &ldquo;Go live free (admin)&rdquo; button, any tier.
       </p>
-      <AdminLiveVoteManager initialEvents={initialEvents} />
+      <AdminLiveVoteManager initialEvents={initialEvents} currentUserId={user?.id ?? null} />
     </div>
   );
 }
