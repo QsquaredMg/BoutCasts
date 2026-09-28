@@ -11,8 +11,13 @@ const PLANS: Record<string, { label: string; priceCents: number; badgeTier: "sta
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const { companyName, websiteUrl, contactEmail, plan, message, opportunityType, categoryId, bannerStyle } =
+  const { companyName, websiteUrl, contactEmail, plan, message, opportunityType, categoryId, bannerStyle, logoUrl } =
     body ?? {};
+  // Only accept logos from our own sponsor-logos bucket (or none).
+  const safeLogo =
+    typeof logoUrl === "string" && /^https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/public\/sponsor-logos\//i.test(logoUrl) && logoUrl.length <= 450
+      ? logoUrl
+      : "";
 
   if (!companyName || !contactEmail || !plan || !PLANS[plan]) {
     return NextResponse.json(
@@ -55,6 +60,7 @@ export async function POST(req: NextRequest) {
       opportunity_type: opportunityType || "",
       category_id: categoryId || "",
       banner_style: bannerStyle || "",
+      logo_url: safeLogo,
     },
   });
 

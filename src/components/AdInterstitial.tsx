@@ -1,11 +1,12 @@
 "use client";
 
+import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 type AdPayload = {
   id: string;
-  mediaType: "image" | "video";
+  mediaType: "image" | "video" | "embed";
   mediaUrl: string;
   clickUrl: string | null;
   headline: string | null;
@@ -111,6 +112,23 @@ export default function AdInterstitial() {
           )}
         </div>
 
+        {ad.mediaType === "embed" ? (
+          <div className="px-3 pb-2">
+            <EmbeddedClipPlayer sourceUrl={ad.mediaUrl} label={ad.headline ?? ad.sponsorName} />
+            {(ad.headline || ad.clickUrl) && (
+              <div className="flex items-center justify-between gap-2 px-1 py-3">
+                <span className="text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>
+                  {ad.headline ?? ad.sponsorName}
+                </span>
+                {ad.clickUrl && (
+                  <button onClick={handleClick} className="shrink-0 rounded-full border px-3 py-1 text-xs font-bold" style={{ borderColor: "var(--border)" }}>
+                    Learn more
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
         <button onClick={handleClick} className="block w-full text-left">
           {ad.mediaType === "video" ? (
             <video
@@ -132,6 +150,7 @@ export default function AdInterstitial() {
             </div>
           )}
         </button>
+        )}
 
         {canSkip && (
           <div className="px-4 pb-4">

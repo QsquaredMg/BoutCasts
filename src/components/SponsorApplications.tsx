@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LogoUploadField from "@/components/LogoUploadField";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/Toast";
 
@@ -12,6 +13,7 @@ type Application = {
   tier: "title" | "standard";
   plan_name: string | null;
   message: string | null;
+  logo_url?: string | null;
   amount_paid: number | null;
   created_at: string;
   opportunity_type: string | null;
@@ -46,7 +48,7 @@ export default function SponsorApplications({ initial }: { initial: Application[
     setBusy(id);
     const { error } = await supabase.rpc("approve_sponsor_application", {
       p_application_id: id,
-      p_logo_url: logoUrls[id] || null,
+      p_logo_url: (logoUrls[id] ?? applications.find((x) => x.id === id)?.logo_url) || null,
     });
     setBusy(null);
     if (error) {
@@ -128,13 +130,11 @@ export default function SponsorApplications({ initial }: { initial: Application[
               </p>
             )}
             <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="url"
-                placeholder="Logo URL (optional)"
-                value={logoUrls[a.id] ?? ""}
-                onChange={(e) => setLogoUrls((prev) => ({ ...prev, [a.id]: e.target.value }))}
-                className="min-w-[220px] flex-1 rounded-lg border px-3 py-1.5 text-xs outline-none"
-                style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
+              <LogoUploadField
+                compact
+                folder="sponsors"
+                value={logoUrls[a.id] ?? a.logo_url ?? ""}
+                onChange={(url) => setLogoUrls((prev) => ({ ...prev, [a.id]: url }))}
               />
               <button
                 onClick={() => approve(a.id)}

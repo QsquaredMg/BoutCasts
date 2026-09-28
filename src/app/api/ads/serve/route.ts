@@ -12,11 +12,14 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const { data: candidates, error } = await supabase
+  let query = supabase
     .from("ad_creatives")
     .select("id, sponsor_id, placement, media_type, media_url, click_url, headline, weight, sponsors(name)")
     .eq("placement", placement)
-    .eq("status", "active")
+    .eq("status", "active");
+  // Pre-rolls must be playable files (the player waits for them to end).
+  if (placement === "preroll") query = query.in("media_type", ["image", "video"]);
+  const { data: candidates, error } = await query
     .or(`starts_at.is.null,starts_at.lte.${nowIso}`)
     .or(`ends_at.is.null,ends_at.gte.${nowIso}`);
 

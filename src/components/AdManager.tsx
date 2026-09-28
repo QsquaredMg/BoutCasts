@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
+import { normalizeEmbedInput } from "@/lib/clipSource";
 
 type Sponsor = { id: string; name: string };
 
@@ -9,7 +11,7 @@ type AdCreative = {
   id: string;
   sponsor_id: string;
   placement: "preroll" | "interstitial" | "banner" | "live_vote";
-  media_type: "image" | "video";
+  media_type: "image" | "video" | "embed";
   media_url: string;
   click_url: string | null;
   headline: string | null;
@@ -25,7 +27,7 @@ type Stats = { impressions: number; clicks: number };
 const EMPTY_FORM = {
   sponsor_id: "",
   placement: "interstitial" as "preroll" | "interstitial" | "banner" | "live_vote",
-  media_type: "image" as "image" | "video",
+  media_type: "image" as "image" | "video" | "embed",
   media_url: "",
   click_url: "",
   headline: "",
@@ -54,6 +56,8 @@ export default function AdManager({
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<"upload" | "link" | "embed">("upload");
+  const [embedInput, setEmbedInput] = useState("");
 
   function sponsorName(id: string) {
     return sponsors.find((s) => s.id === id)?.name ?? "Unknown sponsor";
@@ -176,7 +180,9 @@ export default function AdManager({
             >
               <option value="interstitial">Interstitial (platform-wide, full-screen)</option>
               <option value="banner">Banner (inline, on matchups + bout pages)</option>
-              <option value="preroll">Pre-roll (before an uploaded/recorded clip plays)</option>
+              <option value="preroll" disabled={form.media_type === "embed"}>
+                Pre-roll (before an uploaded/recorded clip plays){form.media_type === "embed" ? " — not for embeds" : ""}
+              </option>
               <option value="live_vote">Live Vote (on the public ballot page, admin-enabled per event)</option>
             </select>
             <input
@@ -190,26 +196,93 @@ export default function AdManager({
           </div>
 
           <div className="flex flex-col gap-2 rounded border border-neutral-200 p-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
-                onChange={handleFilePick}
-                className="text-xs"
-              />
-              {uploading && <span className="text-xs text-neutral-500">Uploading...</span>}
+            <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
+              {(
+                [
+                  ["upload", "Upload image / video"],
+                  ["link", "Image / video link"],
+                  ["embed", "Embed (YouTube, Vimeo, TikTok, Spotify…)"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setSource(key);
+                    setEmbedInput("");
+                    setForm((f) => ({
+                      ...f,
+                      media_url: "",
+                      media_type: key === "embed" ? "embed" : "image",
+                      placement: key === "embed" && f.placement === "preroll" ? "banner" : f.placement,
+                    }));
+                  }}
+                  className={`rounded-full border px-3 py-1 ${source === key ? "border-red-600 text-red-600" : "border-neutral-300 text-neutral-600"}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-            <input
-              type="url"
-              required
-              placeholder="Media URL (fills in automatically after upload, or paste one)"
-              value={form.media_url}
-              onChange={(e) => setForm((f) => ({ ...f, media_url: e.target.value }))}
-              className="rounded border border-neutral-300 px-3 py-2 text-sm"
-            />
+
+            {source === "upload" && (
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
+                  onChange={handleFilePick}
+                  className="text-xs"
+                />
+                {uploading && <span className="text-xs text-neutral-500">Uploading...</span>}
+              </div>
+            )}
+
+            {source === "link" && (
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="url"
+                  placeholder="https://… (.jpg, .png, .gif, .mp4, .webm)"
+                  value={form.media_url}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((f) => ({ ...f, media_url: v, media_type: /\.(mp4|webm|mov)(\?|$)/i.test(v) ? "video" : "image" }));
+                  }}
+                  className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
+                />
+              </div>
+            )}
+
+            {source === "embed" && (
+              <>
+                <textarea
+                  placeholder="Paste a YouTube / Vimeo / TikTok / Spotify / SoundCloud link, or their embed code"
+                  value={embedInput}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEmbedInput(v);
+                    const url = normalizeEmbedInput(v);
+                    setForm((f) => ({ ...f, media_url: url ?? "", media_type: "embed" }));
+                  }}
+                  className="min-h-[70px] rounded border border-neutral-300 px-3 py-2 text-sm"
+                />
+                {embedInput && !form.media_url && (
+                  <p className="text-xs text-red-600">
+                    We couldn&apos;t find an embeddable video in that. Paste the share link or the embed code
+                    from YouTube, Vimeo, TikTok, Spotify or SoundCloud.
+                  </p>
+                )}
+                <p className="text-[11px] text-neutral-500">
+                  Only the video address is saved — pasted scripts are never run. Embeds can&apos;t be pre-rolls.
+                </p>
+              </>
+            )}
+
             {form.media_url && (
-              form.media_type === "video" ? (
+              form.media_type === "embed" ? (
+                <div className="max-w-sm">
+                  <EmbeddedClipPlayer sourceUrl={form.media_url} label="Ad preview" />
+                </div>
+              ) : form.media_type === "video" ? (
                 <video src={form.media_url} muted className="h-28 w-auto rounded" />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -275,7 +348,11 @@ export default function AdManager({
               const ctr = stats.impressions > 0 ? ((stats.clicks / stats.impressions) * 100).toFixed(1) : "0.0";
               return (
                 <div key={ad.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3">
-                  {ad.media_type === "video" ? (
+                  {ad.media_type === "embed" ? (
+                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded bg-neutral-900 text-center text-[10px] font-bold text-white" title={ad.media_url}>
+                      ▶ Embed
+                    </div>
+                  ) : ad.media_type === "video" ? (
                     <video src={ad.media_url} muted className="h-14 w-14 flex-shrink-0 rounded object-cover" />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element

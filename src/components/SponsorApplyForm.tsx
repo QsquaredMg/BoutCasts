@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LogoUploadField from "@/components/LogoUploadField";
 import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/types";
 import PrizeTag from "@/components/PrizeTag";
@@ -104,6 +105,7 @@ export default function SponsorApplyForm() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +133,7 @@ export default function SponsorApplyForm() {
           contactEmail,
           plan,
           message,
+          logoUrl,
           opportunityType: opportunity,
           categoryId: info.category ? categoryId || null : null,
           bannerStyle: info.banner ? bannerStyle : null,
@@ -303,6 +306,13 @@ export default function SponsorApplyForm() {
             </p>
           </div>
         )}
+
+        <div>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+            Your logo (optional)
+          </p>
+          <LogoUploadField value={logoUrl} onChange={setLogoUrl} folder="applications" />
+        </div>
 
         <textarea
           placeholder="Anything specific you'd like to sponsor? (optional)"

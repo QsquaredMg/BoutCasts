@@ -128,3 +128,30 @@ export function getEmbedInfo(sourceUrl: string | null | undefined): EmbedInfo | 
 
   return null;
 }
+
+// Accept a share link OR pasted embed code (<iframe src="...">) for an
+// embeddable video/audio and return a clean URL we know how to embed.
+// Only the address is kept — pasted scripts/HTML are never stored or run.
+export function normalizeEmbedInput(input: string): string | null {
+  let raw = input.trim();
+  if (!raw) return null;
+  const iframe = raw.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i);
+  if (iframe) raw = iframe[1];
+  const blockquote = raw.match(/cite=["'](https:\/\/www\.tiktok\.com\/[^"']+)["']/i);
+  if (blockquote) raw = blockquote[1];
+  if (raw.startsWith("//")) raw = `https:${raw}`;
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return null;
+  }
+  // SoundCloud's player iframe wraps the real track URL in ?url=
+  if (u.hostname === "w.soundcloud.com" && u.searchParams.get("url")) {
+    raw = u.searchParams.get("url")!;
+  }
+  // TikTok embed iframes (tiktok.com/embed/v2/<id>) → canonical video URL
+  const tt = u.hostname.endsWith("tiktok.com") && u.pathname.match(/\/embed\/(?:v2\/)?(\d+)/);
+  if (tt) raw = `https://www.tiktok.com/video/${tt[1]}`;
+  return getEmbedInfo(raw) ? raw : null;
+}

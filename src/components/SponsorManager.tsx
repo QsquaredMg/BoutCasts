@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LogoUploadField from "@/components/LogoUploadField";
 import { createClient } from "@/lib/supabase/client";
 import type { Sponsor, Category, Bout } from "@/lib/types";
 
@@ -136,13 +137,7 @@ export default function SponsorManager({
               <option value="title">Title sponsor</option>
             </select>
           </div>
-          <input
-            type="url"
-            placeholder="Logo URL (optional)"
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            className="rounded border border-neutral-300 px-3 py-2 text-sm"
-          />
+          <LogoUploadField value={logoUrl} onChange={setLogoUrl} folder="sponsors" />
           <input
             type="url"
             placeholder="Website URL (optional)"

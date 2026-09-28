@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 
 type AdPayload = {
   id: string;
-  mediaType: "image" | "video";
+  mediaType: "image" | "video" | "embed";
   mediaUrl: string;
   clickUrl: string | null;
   headline: string | null;
@@ -46,6 +47,29 @@ export default function AdBanner({ placement = "banner" }: { placement?: string 
     if (ad!.clickUrl) {
       window.open(ad!.clickUrl, "_blank", "noopener,noreferrer");
     }
+  }
+
+  if (ad.mediaType === "embed") {
+    return (
+      <div className="mb-4 overflow-hidden rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+              Sponsored &middot; {ad.sponsorName}
+            </div>
+            <div className="truncate text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>
+              {ad.headline ?? `Presented by ${ad.sponsorName}`}
+            </div>
+          </div>
+          {ad.clickUrl && (
+            <button onClick={handleClick} className="shrink-0 rounded-full border px-3 py-1 text-xs font-bold" style={{ borderColor: "var(--border)" }}>
+              Learn more
+            </button>
+          )}
+        </div>
+        <EmbeddedClipPlayer sourceUrl={ad.mediaUrl} label={ad.headline ?? ad.sponsorName} />
+      </div>
+    );
   }
 
   return (

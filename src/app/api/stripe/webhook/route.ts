@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
           opportunity_type: metadata.opportunity_type || null,
           category_id: metadata.category_id || null,
           banner_style: metadata.banner_style || null,
+          logo_url: metadata.logo_url || null,
         });
 
         if (error) {
