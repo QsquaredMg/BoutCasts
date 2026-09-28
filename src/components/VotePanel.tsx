@@ -1,8 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+
+// Guests (no account) get one free bout vote per day, tracked by a random
+// token kept on this device. The database also caps free votes per network.
+const GUEST_TOKEN_KEY = "bc_guest_vote_token";
+
+function getGuestToken(): string {
+  try {
+    let t = localStorage.getItem(GUEST_TOKEN_KEY);
+    if (!t) {
+      t = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
+      localStorage.setItem(GUEST_TOKEN_KEY, t);
+    }
+    return t;
+  } catch {
+    // Storage blocked (private mode etc.) — a per-visit token still works,
+    // and the per-network cap keeps it fair.
+    return `${crypto.randomUUID()}-${crypto.randomUUID()}`;
+  }
+}
+
+function resetTime(iso: string | null): string {
+  if (!iso) return "tomorrow";
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) === "12:00 AM"
+    ? "midnight"
+    : new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+}
 
 type Props = {
   boutId: string;
@@ -23,7 +49,6 @@ export default function VotePanel({
   awaitingOpponent = false,
 }: Props) {
   const supabase = createClient();
-  const router = useRouter();
 
   const [tally, setTally] = useState(initialTally);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -31,6 +56,10 @@ export default function VotePanel({
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageKind, setMessageKind] = useState<"error" | "info">("info");
+  // Guest state: used today's free vote (on this or another bout).
+  const [guestUsedToday, setGuestUsedToday] = useState(false);
+  const [guestVotedHere, setGuestVotedHere] = useState(false);
+  const [resetsAt, setResetsAt] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -46,6 +75,17 @@ export default function VotePanel({
           .eq("user_id", user.id)
           .maybeSingle();
         if (existing) setMyVote(existing.side as "a" | "b");
+      } else {
+        const { data: status } = await supabase.rpc("get_guest_vote_status", { p_guest_token: getGuestToken() });
+        const st = status as { voted_today: boolean; bout_id: string | null; side: "a" | "b" | null; resets_at: string } | null;
+        if (st) {
+          setResetsAt(st.resets_at);
+          setGuestUsedToday(st.voted_today);
+          if (st.voted_today && st.bout_id === boutId && st.side) {
+            setMyVote(st.side);
+            setGuestVotedHere(true);
+          }
+        }
       }
     }
     load();
@@ -59,8 +99,32 @@ export default function VotePanel({
     const user = userData.user;
 
     if (!user) {
+      const { data, error } = await supabase.rpc("cast_guest_bout_vote", {
+        p_bout_id: boutId,
+        p_side: side,
+        p_guest_token: getGuestToken(),
+      });
       setPending(false);
-      router.push("/login");
+      if (error) {
+        const m = error.message ?? "";
+        setMessageKind("error");
+        if (m.includes("guest_limit")) {
+          setGuestUsedToday(true);
+          setMessage(m.split("guest_limit:")[1]?.trim() || "You've used your free vote for today.");
+        } else if (m.includes("closed:")) {
+          setMessage("Voting is closed for this bout.");
+        } else {
+          setMessage("Your vote didn't go through. Please try again.");
+        }
+        return;
+      }
+      const res = data as { resets_at?: string } | null;
+      if (res?.resets_at) setResetsAt(res.resets_at);
+      setMyVote(side);
+      setGuestVotedHere(true);
+      setGuestUsedToday(true);
+      setTally((prev) => ({ ...prev, [side]: prev[side] + 1 }));
+      setMessage(null);
       return;
     }
 
@@ -137,7 +201,7 @@ export default function VotePanel({
                 {s.count} {s.count === 1 ? "vote" : "votes"}
               </span>
               <button
-                disabled={!votingOpen || pending || myVote !== null}
+                disabled={!votingOpen || pending || myVote !== null || (signedIn === false && guestUsedToday)}
                 onClick={() => castVote(s.key)}
                 className="rounded-[10px] border px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
                 style={{
@@ -162,13 +226,57 @@ export default function VotePanel({
         </p>
       )}
 
-      {signedIn === false && (
+      {signedIn === false && votingOpen && !guestUsedToday && myVote === null && (
         <p className="col-span-full text-sm" style={{ color: "var(--text-faint)" }}>
-          <a href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
-            Sign in
-          </a>{" "}
-          to cast your vote.
+          No account needed — you get <strong>1 free vote a day</strong>.{" "}
+          <Link href={`/signup?next=${encodeURIComponent(`/bout/${boutId}`)}`} className="font-semibold underline" style={{ color: "var(--red)" }}>
+            Sign up free
+          </Link>{" "}
+          to vote on every bout.
         </p>
+      )}
+
+      {signedIn === false && (guestVotedHere || guestUsedToday) && (
+        <div
+          className="col-span-full relative overflow-hidden rounded-2xl p-5"
+          style={{ background: "#0a0e1a", color: "#fff" }}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute"
+            style={{ right: -70, top: -60, width: 110, height: 320, background: "#1b4fe4", transform: "rotate(14deg)" }}
+          />
+          <div className="relative max-w-[78%]">
+            <p className="text-xs font-extrabold uppercase tracking-[0.12em]" style={{ color: "#9fb8ff" }}>
+              {guestVotedHere ? "Vote counted ✓" : "Free vote used"}
+            </p>
+            <p className="mt-1 text-lg font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
+              {guestVotedHere
+                ? "Want to vote on every bout?"
+                : "You've used today's free vote."}
+            </p>
+            <p className="mt-1.5 text-sm" style={{ color: "#c9d0e0" }}>
+              Guests get 1 vote a day (next one at {resetTime(resetsAt)}). Create a free account to vote on every
+              bout, earn points and badges, and build your streak.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href={`/signup?next=${encodeURIComponent(`/bout/${boutId}`)}`}
+                className="inline-flex min-h-[42px] items-center rounded-full px-4 text-sm font-bold"
+                style={{ background: "#1b4fe4", color: "#fff" }}
+              >
+                Create a free account
+              </Link>
+              <Link
+                href={`/login?next=${encodeURIComponent(`/bout/${boutId}`)}`}
+                className="inline-flex min-h-[42px] items-center rounded-full border-2 px-4 text-sm font-bold"
+                style={{ borderColor: "rgba(255,255,255,0.35)", color: "#fff" }}
+              >
+                Sign in
+              </Link>
+            </div>
+          </div>
+        </div>
       )}
 
       {message && (
