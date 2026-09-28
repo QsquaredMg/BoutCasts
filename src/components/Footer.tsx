@@ -5,6 +5,7 @@ export default function Footer() {
 
   return (
     <footer
+      data-site-chrome=""
       className="border-t"
       style={{ background: "var(--bg)", borderColor: "var(--border)" }}
     >

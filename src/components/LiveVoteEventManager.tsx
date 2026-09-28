@@ -5,6 +5,7 @@ import RankedResults from "@/components/RankedResults";
 import JudgePanelManager from "@/components/JudgePanelManager";
 import ShareEventModal from "@/components/ShareEventModal";
 import LiveVoteAnalyticsPanel from "@/components/LiveVoteAnalyticsPanel";
+import EventSponsorManager from "@/components/EventSponsorManager";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -380,6 +381,8 @@ export default function LiveVoteEventManager({
           </span>
         </span>
       </label>
+
+      {!isFree && <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />}
 
       {event.scoring_mode === "crowd" && event.status !== "closed" && (
         <label

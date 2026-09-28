@@ -10,6 +10,7 @@ import ShareButton from "@/components/ShareButton";
 import RankedResults from "@/components/RankedResults";
 import JudgedResults from "@/components/JudgedResults";
 import DemographicsPrompt from "@/components/DemographicsPrompt";
+import EventSponsorStrip from "@/components/EventSponsorStrip";
 import { displayClip } from "@/lib/liveVoteEvents/displayClip";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -394,6 +395,8 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
           {event.description}
         </p>
       )}
+      <EventSponsorStrip eventId={eventId} />
+
       {event.status === "live" && event.closes_at && (
         <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
           {judged ? "Judging" : "Voting"} closes {new Date(event.closes_at).toLocaleString()}

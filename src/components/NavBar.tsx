@@ -98,6 +98,7 @@ export default function NavBar() {
 
   return (
     <nav
+      data-site-chrome=""
       className="border-b"
       style={{ background: "var(--bg)", borderColor: "var(--border)" }}
     >

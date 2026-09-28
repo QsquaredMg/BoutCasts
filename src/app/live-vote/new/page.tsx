@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 import FileUploadPicker from "@/components/FileUploadPicker";
 import { LIVE_VOTE_TIERS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { contrastRatio } from "@/lib/liveVoteEvents/roomTheme";
 
 type OptionDraft = {
   key: string;
@@ -44,6 +45,9 @@ export default function NewLiveVoteEventPage() {
   const [brandName, setBrandName] = useState("");
   const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
   const [postVoteGraphicUrl, setPostVoteGraphicUrl] = useState<string | null>(null);
+  const [brandColor, setBrandColor] = useState<string | null>(null);
+  const [brandBgColor, setBrandBgColor] = useState<string | null>(null);
+  const [whiteLabel, setWhiteLabel] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -127,6 +131,9 @@ export default function NewLiveVoteEventPage() {
         brand_name: isFree ? null : brandName.trim() || null,
         brand_logo_url: isFree ? null : brandLogoUrl,
         post_vote_graphic_url: isFree ? null : postVoteGraphicUrl,
+        brand_color: isFree ? null : brandColor,
+        brand_bg_color: isFree ? null : brandBgColor,
+        white_label: isFree ? false : whiteLabel,
       })
       .select("id")
       .single();
@@ -374,6 +381,73 @@ export default function NewLiveVoteEventPage() {
               <FileUploadPicker onUploaded={setPostVoteGraphicUrl} />
             )}
           </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {(
+              [
+                ["Accent color", brandColor, setBrandColor, "#d92c4c", "Buttons, bars, highlights"],
+                ["Page background", brandBgColor, setBrandBgColor, "#f6f4ef", "Behind your voting page"],
+              ] as const
+            ).map(([label, value, setter, fallback, hint]) => (
+              <div key={label}>
+                <label className={labelClass} style={labelStyle}>
+                  {label}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={value ?? fallback}
+                    onChange={(e) => setter(e.target.value)}
+                    className="h-10 w-12 cursor-pointer rounded-md border"
+                    style={{ borderColor: "var(--border)" }}
+                    aria-label={label}
+                  />
+                  {value ? (
+                    <button type="button" onClick={() => setter(null)} className="text-xs font-semibold" style={{ color: "var(--text-faint)" }}>
+                      Reset
+                    </button>
+                  ) : (
+                    <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                      Default
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
+                  {hint}
+                </p>
+              </div>
+            ))}
+          </div>
+          {brandColor && contrastRatio(brandColor, "#ffffff") < 3 && (
+            <p className="mt-2 text-xs" style={{ color: "var(--red)" }}>
+              This accent is very light — white button text on it will be hard to read. Try a darker shade.
+            </p>
+          )}
+          {brandColor && brandBgColor && contrastRatio(brandColor, brandBgColor) < 2 && (
+            <p className="mt-2 text-xs" style={{ color: "var(--red)" }}>
+              Your accent and background are too similar — bars and buttons will blend in.
+            </p>
+          )}
+
+          <label className="mt-4 flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-[var(--red)]"
+              checked={whiteLabel}
+              onChange={(e) => setWhiteLabel(e.target.checked)}
+            />
+            <span className="text-sm">
+              <span className="font-semibold">White-label voting page</span>
+              <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+                Hide the BoutCasts menu and footer so your brand is front and center (a small
+                &ldquo;Powered by BoutCasts&rdquo; line stays). Included with Large, Pro analytics or
+                Organizer Pro.
+              </span>
+            </span>
+          </label>
+          <p className="mt-3 text-xs" style={{ color: "var(--text-faint)" }}>
+            You can add sponsor banners from your event page after creating it.
+          </p>
         </div>
         )}
 

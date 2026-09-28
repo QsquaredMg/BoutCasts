@@ -301,3 +301,8 @@ h1, h2, h3, h4 {
 .splash-rise { animation: splashRise 0.7s ease-out both; }
 .splash-root { display: none; }
 html[data-splash="on"] .splash-root { display: flex; }
+
+/* White-label Live Vote rooms: hide BoutCasts chrome on the voting page. */
+body:has([data-white-label]) [data-site-chrome] {
+  display: none;
+}
