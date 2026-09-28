@@ -92,6 +92,22 @@ export default async function ExplorePage() {
   const supabase = await createClient();
   const { data } = await supabase.rpc("get_explore_live_votes", { p_limit: 60 });
   const rows = (data ?? []) as ExploreRow[];
+
+  // Public competition hubs with matchups live right now.
+  const { data: liveBouts } = await supabase.from("bouts").select("category_id").eq("status", "live").limit(500);
+  const liveByCat = new Map<string, number>();
+  for (const b of liveBouts ?? []) if (b.category_id) liveByCat.set(b.category_id, (liveByCat.get(b.category_id) ?? 0) + 1);
+  const { data: hubRows } = liveByCat.size
+    ? await supabase
+        .from("categories")
+        .select("id, name, hub_color, sponsors(name)")
+        .in("id", [...liveByCat.keys()])
+        .eq("is_listed", true)
+    : { data: [] };
+  const hubs = ((hubRows ?? []) as unknown as { id: string; name: string; hub_color: string | null; sponsors: { name: string } | null }[])
+    .map((h) => ({ ...h, live: liveByCat.get(h.id) ?? 0 }))
+    .sort((a, b) => b.live - a.live)
+    .slice(0, 12);
   const live = rows.filter((r) => r.status === "live");
   const closed = rows.filter((r) => r.status === "closed");
   // Server-rendered per request, so reading the clock here is intentional.
@@ -136,6 +152,32 @@ export default async function ExplorePage() {
           </div>
         )}
       </section>
+
+      {hubs.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+            Competitions with live matchups
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {hubs.map((h) => (
+              <Link
+                key={h.id}
+                href={`/c/${h.id}`}
+                className="flex min-w-0 items-center gap-3 rounded-xl border p-3 hover:border-[var(--red)]"
+                style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+              >
+                <span className="h-12 w-2 shrink-0 rounded-full" style={{ background: h.hub_color ?? "var(--red)" }} aria-hidden />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{h.sponsors?.name ? `The ${h.sponsors.name} ${h.name}` : h.name}</span>
+                  <span className="text-xs" style={{ color: "var(--text-faint)" }}>
+                    {h.live} matchup{h.live === 1 ? "" : "s"} live
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {closed.length > 0 && (
         <section className="mb-8">

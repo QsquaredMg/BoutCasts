@@ -18,6 +18,8 @@ export type Category = {
   owner_id?: string | null;
   description?: string | null;
   is_listed?: boolean;
+  hub_banner_url?: string | null;
+  hub_color?: string | null;
 };
 
 export type Subcategory = {

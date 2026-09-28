@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import BracketBuilder from "@/components/BracketBuilder";
 import ClipSourceTag from "@/components/ClipSourceTag";
 import ShareEventModal from "@/components/ShareEventModal";
+import FileUploadPicker from "@/components/FileUploadPicker";
 import type { Category } from "@/lib/types";
 
 // Organizer's control room for one competition: share the entry link,
@@ -48,6 +49,9 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
   const [shareOpen, setShareOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [hubColor, setHubColor] = useState<string | null>(null);
+  const [hubBanner, setHubBanner] = useState<string | null>(null);
+  const [hubSaved, setHubSaved] = useState(false);
 
   const load = useCallback(async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -63,6 +67,8 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
     }
     setCat(c);
     setEdit({ name: c.name, description: c.description ?? "", listed: c.is_listed });
+    setHubColor(c.hub_color ?? null);
+    setHubBanner(c.hub_banner_url ?? null);
     const [{ data: subs }, { data: bs }] = await Promise.all([
       supabase
         .from("submissions")
@@ -113,6 +119,21 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
     }
     setEditing(false);
     load();
+  }
+
+  async function saveHubLook(banner: string | null, color: string | null) {
+    setError(null);
+    const { error: rpcError } = await supabase.rpc("set_competition_hub_look", {
+      p_id: categoryId,
+      p_banner_url: banner,
+      p_color: color,
+    });
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    setHubSaved(true);
+    setTimeout(() => setHubSaved(false), 2000);
   }
 
   async function remove() {
@@ -203,7 +224,11 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
               {cat.is_listed ? "Public" : "Link-only"} ·{" "}
               <button onClick={() => setEditing(true)} className="underline">
                 Edit details
-              </button>
+              </button>{" "}
+              ·{" "}
+              <Link href={`/c/${cat.id}`} className="underline">
+                View public hub
+              </Link>
             </p>
           </>
         )}
@@ -214,6 +239,50 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
           {error}
         </p>
       )}
+
+      <div className="rounded-xl border p-3.5" style={box}>
+        <p className={h} style={{ color: "var(--text-dim)" }}>
+          Hub page look {hubSaved && <span style={{ color: "var(--red)" }}>· saved</span>}
+        </p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>
+          Your public hub at /c/… shows live matchups, brackets and winners. Add a banner and color
+          to make it yours.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="color"
+            value={hubColor ?? "#0a0e1a"}
+            onChange={(e) => setHubColor(e.target.value)}
+            onBlur={() => saveHubLook(hubBanner, hubColor)}
+            className="h-10 w-12 cursor-pointer rounded-md border"
+            style={{ borderColor: "var(--border)" }}
+            aria-label="Hub color"
+          />
+          {hubBanner ? (
+            <div className="flex items-center gap-2 text-xs">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={hubBanner} alt="" className="h-10 w-20 rounded border object-cover" style={{ borderColor: "var(--border)" }} />
+              <button
+                onClick={() => {
+                  setHubBanner(null);
+                  saveHubLook(null, hubColor);
+                }}
+                className="underline"
+                style={{ color: "var(--text-faint)" }}
+              >
+                Remove banner
+              </button>
+            </div>
+          ) : (
+            <FileUploadPicker
+              onUploaded={(url) => {
+                setHubBanner(url);
+                if (url) saveHubLook(url, hubColor);
+              }}
+            />
+          )}
+        </div>
+      </div>
 
       <div className="rounded-xl border p-3.5" style={box}>
         <p className={h} style={{ color: "var(--text-dim)" }}>
