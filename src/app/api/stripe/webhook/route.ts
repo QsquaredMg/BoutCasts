@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { LIVE_VOTE_TIERS, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, SUPER_VOTES, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import type Stripe from "stripe";
 
 // Mirror an Organizer Pro subscription into organizer_subscriptions.
@@ -170,6 +170,46 @@ export async function POST(req: NextRequest) {
       if (error) {
         console.error("Stripe webhook: failed to enable Pro", error);
         return NextResponse.json({ error: "Failed to enable Pro" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    if (metadata.kind === "super_votes_unlock") {
+      const admin = createAdminClient();
+      const { error } = await admin
+        .from("live_vote_events")
+        .update({ super_votes_enabled: true, super_votes_checkout_session_id: session.id })
+        .eq("id", metadata.event_id);
+      if (error) {
+        console.error("Stripe webhook: failed to enable Super Votes", error);
+        return NextResponse.json({ error: "Failed to enable Super Votes" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    if (metadata.kind === "super_votes") {
+      const amount = session.amount_total ?? 0;
+      const quantity = Number(metadata.quantity);
+      if (!metadata.event_id || !metadata.option_id || !Number.isInteger(quantity) || quantity <= 0) {
+        console.error("Stripe webhook: bad super_votes metadata", metadata);
+        return NextResponse.json({ error: "Invalid super_votes metadata" }, { status: 400 });
+      }
+      const admin = createAdminClient();
+      // Unique on the checkout session, so a repeated delivery is a no-op.
+      const { error } = await admin.from("live_vote_super_votes").upsert(
+        {
+          event_id: metadata.event_id,
+          option_id: metadata.option_id,
+          quantity,
+          amount_cents: amount,
+          organizer_share_cents: Math.floor(amount * SUPER_VOTES.organizerShare),
+          stripe_checkout_session_id: session.id,
+        },
+        { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true }
+      );
+      if (error) {
+        console.error("Stripe webhook: failed to record Super Votes", error);
+        return NextResponse.json({ error: "Failed to record Super Votes" }, { status: 500 });
       }
       return NextResponse.json({ received: true });
     }

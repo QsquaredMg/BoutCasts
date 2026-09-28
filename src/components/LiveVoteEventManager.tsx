@@ -6,6 +6,7 @@ import JudgePanelManager from "@/components/JudgePanelManager";
 import ShareEventModal from "@/components/ShareEventModal";
 import LiveVoteAnalyticsPanel from "@/components/LiveVoteAnalyticsPanel";
 import EventSponsorManager from "@/components/EventSponsorManager";
+import SuperVotesManager from "@/components/SuperVotesManager";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -21,6 +22,8 @@ type LiveVoteEventDetail = {
   listed_publicly: boolean;
   pro_enabled: boolean;
   collect_demographics: boolean;
+  super_votes_enabled: boolean;
+  super_votes_mode: "separate" | "counted";
   title: string;
   description: string | null;
   voter_mode: "account" | "open_link";
@@ -81,7 +84,7 @@ export default function LiveVoteEventManager({
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, pro_enabled, collect_demographics, tier, status, starts_at, closes_at")
+      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, pro_enabled, collect_demographics, super_votes_enabled, super_votes_mode, tier, status, starts_at, closes_at")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -296,6 +299,11 @@ export default function LiveVoteEventManager({
           Payment received — Pro analytics will unlock within a moment. Refresh if you don&apos;t see them yet.
         </p>
       )}
+      {checkoutStatus === "super_success" && !event.super_votes_enabled && (
+        <p className="mb-6 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+          Payment received — Super Votes turn on within a moment. Refresh if you don&apos;t see them yet.
+        </p>
+      )}
       {checkoutStatus === "cancelled" && (
         <p
           className="mb-6 rounded-lg p-3 text-sm"
@@ -386,6 +394,16 @@ export default function LiveVoteEventManager({
       </label>
 
       {!isFree && <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />}
+
+      <SuperVotesManager
+        eventId={event.id}
+        status={event.status}
+        enabled={event.super_votes_enabled}
+        mode={event.super_votes_mode}
+        eligible={!isFree && event.scoring_mode === "crowd" && event.voting_method === "single"}
+        isAdmin={isAdmin}
+        onChanged={load}
+      />
 
       {event.scoring_mode === "crowd" && event.status !== "closed" && (
         <label

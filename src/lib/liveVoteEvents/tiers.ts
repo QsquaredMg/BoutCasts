@@ -66,3 +66,16 @@ export const ORG_LICENSE = {
   priceCents: 149900,
   seats: 10,
 };
+
+// Super Votes: organizer unlocks per event; fans buy packs to boost a
+// contestant. Organizer earns ORGANIZER_SHARE of gross sales.
+export const SUPER_VOTES = {
+  unlockCents: 4900,
+  organizerShare: 0.5,
+  packs: [
+    { key: "s10", quantity: 10, cents: 99 },
+    { key: "s50", quantity: 50, cents: 399 },
+    { key: "s150", quantity: 150, cents: 999 },
+  ] as const,
+};
+export type SuperVotePackKey = (typeof SUPER_VOTES.packs)[number]["key"];

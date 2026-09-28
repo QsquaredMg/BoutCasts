@@ -11,6 +11,7 @@ import RankedResults from "@/components/RankedResults";
 import JudgedResults from "@/components/JudgedResults";
 import DemographicsPrompt from "@/components/DemographicsPrompt";
 import EventSponsorStrip from "@/components/EventSponsorStrip";
+import SuperVoteBoost from "@/components/SuperVoteBoost";
 import { displayClip } from "@/lib/liveVoteEvents/displayClip";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -29,6 +30,8 @@ type EventRow = {
   voting_method: "single" | "ranked";
   scoring_mode: "crowd" | "judges";
   collect_demographics: boolean;
+  super_votes_enabled: boolean;
+  super_votes_mode: "separate" | "counted";
 };
 
 type OptionRow = {
@@ -79,6 +82,8 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   const [resultsKey, setResultsKey] = useState(0);
   // null = not checked yet; true = answered or skipped (hide the prompt)
   const [demoDone, setDemoDone] = useState<boolean | null>(null);
+  const [superTally, setSuperTally] = useState<Record<string, number>>({});
+  const [boostNotice, setBoostNotice] = useState(false);
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -87,7 +92,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics")
+      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -145,6 +150,13 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       setMyVote(r && r.length > 0 ? r[0] : null);
     }
 
+    if (eventRow.super_votes_enabled) {
+      const { data: st } = await supabase.rpc("get_live_vote_super_tally", { p_event_id: eventId });
+      const next: Record<string, number> = {};
+      for (const r of (st as { option_id: string; super_votes: number }[] | null) ?? []) next[r.option_id] = Number(r.super_votes);
+      setSuperTally(next);
+    }
+
     if (eventRow.collect_demographics) {
       const { data: answered } = await supabase.rpc("has_answered_live_vote_demographics", {
         p_event_id: eventId,
@@ -158,6 +170,8 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (new URLSearchParams(window.location.search).get("boost") === "success") setBoostNotice(true);
   }, [load]);
 
   useEffect(() => {
@@ -185,6 +199,12 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         setTally(nextTally);
       }
       setResultsKey((k) => k + 1);
+      const { data: st } = await supabase.rpc("get_live_vote_super_tally", { p_event_id: eventId });
+      if (st && (st as unknown[]).length) {
+        const next: Record<string, number> = {};
+        for (const r of st as { option_id: string; super_votes: number }[]) next[r.option_id] = Number(r.super_votes);
+        setSuperTally(next);
+      }
       const { data: statusRow } = await supabase
         .from("live_vote_events")
         .select("status, closes_at")
@@ -397,6 +417,22 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       )}
       <EventSponsorStrip eventId={eventId} />
 
+      {boostNotice && (
+        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+          ⚡ Thanks for the boost! Your Super Votes will appear within a few seconds.
+        </p>
+      )}
+
+      {!judged && event.super_votes_enabled && (
+        <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
+          ⚡ <b>Super Votes</b> are on — fans can boost their favorite.{" "}
+          {event.super_votes_mode === "counted"
+            ? "Super Votes count toward the winner."
+            : "Super Votes are shown as a separate Fan Boost total and don't decide the winner."}{" "}
+          Your regular vote is always free.
+        </p>
+      )}
+
       {event.status === "live" && event.closes_at && (
         <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
           {judged ? "Judging" : "Voting"} closes {new Date(event.closes_at).toLocaleString()}
@@ -588,6 +624,15 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                   )}
                 </div>
               </div>
+              )}
+              {!judged && event.super_votes_enabled && (
+                <SuperVoteBoost
+                  eventId={eventId}
+                  optionId={option.id}
+                  optionName={option.name}
+                  count={superTally[option.id] ?? 0}
+                  canBuy={event.status === "live"}
+                />
               )}
             </div>
           );
