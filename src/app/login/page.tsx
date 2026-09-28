@@ -29,6 +29,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   // Where to send the user after signing in (e.g. back to /live-vote/new).
   const next = safeNext(searchParams.get("next"));
+  // No specific destination asked for → send people to their own profile.
+  const hasNext = !!searchParams.get("next") && next !== "/";
 
   useEffect(() => {
     // ?notice=... from our auth routes, or #error_code=... straight from Supabase.
@@ -46,7 +48,7 @@ function LoginForm() {
     setResendState("idle");
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     setLoading(false);
     if (error) {
@@ -54,7 +56,12 @@ function LoginForm() {
       setError(friendlyAuthError(error.message));
       return;
     }
-    router.push(next);
+    let dest = next;
+    if (!hasNext && data.user) {
+      const { data: profile } = await supabase.from("profiles").select("username").eq("id", data.user.id).maybeSingle();
+      if (profile?.username) dest = `/profile/${encodeURIComponent(profile.username)}`;
+    }
+    router.push(dest);
     router.refresh();
   }
 
