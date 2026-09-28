@@ -348,6 +348,7 @@ export default function LiveVoteEventManager({
           status={event.status}
           resultsReleased={event.results_released}
           onChanged={load}
+          optionNames={Object.fromEntries(options.map((o) => [o.id, o.name]))}
         />
       )}
 

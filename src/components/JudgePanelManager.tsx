@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import JudgedResults from "@/components/JudgedResults";
+import { formatClipTime, type JudgeNote } from "@/components/JudgeOptionNotes";
 
 // Organizer-side controls for a judges-panel event: invite judges (each gets
 // a private link, no account needed), track who has submitted, see the
@@ -15,11 +16,13 @@ export default function JudgePanelManager({
   status,
   resultsReleased,
   onChanged,
+  optionNames,
 }: {
   eventId: string;
   status: "draft" | "live" | "closed";
   resultsReleased: boolean;
   onChanged: () => void;
+  optionNames: Record<string, string>;
 }) {
   const supabase = createClient();
   const [judges, setJudges] = useState<JudgeRow[]>([]);
@@ -28,6 +31,7 @@ export default function JudgePanelManager({
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [notes, setNotes] = useState<JudgeNote[]>([]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -36,6 +40,8 @@ export default function JudgePanelManager({
       .eq("event_id", eventId)
       .order("created_at");
     setJudges(data ?? []);
+    const { data: noteRows } = await supabase.rpc("get_judge_notes", { p_event_id: eventId });
+    setNotes((noteRows as JudgeNote[] | null) ?? []);
     setRefreshKey((k) => k + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
@@ -195,6 +201,45 @@ export default function JudgePanelManager({
           >
             {resultsReleased ? "Hide results from the public page" : "Release results to the public page"}
           </button>
+
+          <div className="rounded-xl border p-3.5" style={box}>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+              Judges&apos; notes ({notes.length})
+            </p>
+            {notes.length === 0 ? (
+              <p className="text-sm" style={{ color: "var(--text-faint)" }}>
+                No notes yet. Judges can add private, time-stamped notes on each contestant.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {Object.entries(optionNames)
+                  .filter(([id]) => notes.some((n) => n.option_id === id))
+                  .map(([id, name]) => (
+                    <div key={id}>
+                      <p className="mb-1 text-sm font-semibold">{name}</p>
+                      <ul className="flex flex-col gap-1.5">
+                        {notes
+                          .filter((n) => n.option_id === id)
+                          .map((n) => (
+                            <li key={n.id} className="rounded-lg px-2.5 py-1.5 text-sm" style={{ background: "var(--surface-2)" }}>
+                              <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+                                <b style={{ color: "var(--text-dim)" }}>{n.judge_name}</b> ·{" "}
+                                {new Date(n.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                                {n.clip_seconds !== null && (
+                                  <b className="ml-1" style={{ color: "var(--red)" }}>
+                                    @ {formatClipTime(n.clip_seconds)}
+                                  </b>
+                                )}
+                              </p>
+                              <p className="whitespace-pre-wrap">{n.body}</p>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

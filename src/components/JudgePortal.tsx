@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import ClipPlayer from "@/components/ClipPlayer";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import { displayClip } from "@/lib/liveVoteEvents/displayClip";
+import JudgeOptionNotes, { type JudgeNote } from "@/components/JudgeOptionNotes";
 
 // Judge scoring screen, reached by a private link. Every tap saves right
 // away, so a judge can close the tab and pick up where they left off.
@@ -44,6 +45,7 @@ export default function JudgePortal({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loadedAt, setLoadedAt] = useState(0);
+  const [notes, setNotes] = useState<JudgeNote[]>([]);
 
   const load = useCallback(async () => {
     const { data: res, error: rpcError } = await supabase.rpc("judge_get_assignment", { p_token: token });
@@ -54,6 +56,8 @@ export default function JudgePortal({ token }: { token: string }) {
     const a = res as Assignment;
     setData(a);
     setLoadedAt(Date.now());
+    const { data: noteRows } = await supabase.rpc("judge_get_notes", { p_token: token });
+    setNotes((noteRows as JudgeNote[] | null) ?? []);
     const next: Record<string, number> = {};
     for (const s of a.scores) next[keyFor(s.option_id, s.criterion_id)] = s.score;
     setScores(next);
@@ -247,6 +251,15 @@ export default function JudgePortal({ token }: { token: string }) {
                   );
                 })}
               </div>
+              {event.status !== "draft" && (
+                <JudgeOptionNotes
+                  token={token}
+                  optionId={option.id}
+                  notes={notes.filter((n) => n.option_id === option.id)}
+                  open={open}
+                  onChanged={load}
+                />
+              )}
             </div>
           );
         })}
