@@ -27,6 +27,27 @@ async function syncOrganizerSubscription(sub: Stripe.Subscription, fallbackUserI
   if (error) throw error;
 }
 
+// Mirror a school/league license subscription onto its organization row.
+async function syncOrgLicense(sub: Stripe.Subscription, fallbackOrgId?: string | null) {
+  const orgId = sub.metadata?.org_id || fallbackOrgId;
+  if (!orgId) return;
+  const item = sub.items?.data?.[0];
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("organizations")
+    .update({
+      status: sub.status,
+      stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+      stripe_subscription_id: sub.id,
+      current_period_start: item?.current_period_start ? new Date(item.current_period_start * 1000).toISOString() : null,
+      current_period_end: item?.current_period_end ? new Date(item.current_period_end * 1000).toISOString() : null,
+      cancel_at_period_end: sub.cancel_at_period_end ?? false,
+    })
+    .eq("id", orgId)
+    .neq("status", "comp");
+  if (error) throw error;
+}
+
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -153,6 +174,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    if (metadata.kind === "org_license" && typeof session.subscription === "string") {
+      try {
+        const sub = await stripe.subscriptions.retrieve(session.subscription);
+        await syncOrgLicense(sub, metadata.org_id);
+      } catch (err) {
+        console.error("Stripe webhook: failed to record org license", err);
+        return NextResponse.json({ error: "Failed to record license" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
     if (metadata.kind === "organizer_pro" && typeof session.subscription === "string") {
       try {
         const sub = await stripe.subscriptions.retrieve(session.subscription);
@@ -171,6 +203,14 @@ export async function POST(req: NextRequest) {
     event.type === "customer.subscription.deleted"
   ) {
     const sub = event.data.object as Stripe.Subscription;
+    if (sub.metadata?.kind === "org_license") {
+      try {
+        await syncOrgLicense(sub);
+      } catch (err) {
+        console.error("Stripe webhook: failed to sync org license", err);
+        return NextResponse.json({ error: "Failed to sync license" }, { status: 500 });
+      }
+    }
     if (sub.metadata?.kind === "organizer_pro") {
       try {
         await syncOrganizerSubscription(sub);

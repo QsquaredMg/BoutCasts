@@ -6,6 +6,8 @@ import { ORGANIZER_PRO, PRO_ADDON_CENTS } from "@/lib/liveVoteEvents/tiers";
 
 type PlanStatus = {
   active: boolean;
+  license?: string | null;
+  unlimited?: boolean;
   status: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
@@ -43,6 +45,24 @@ export default function OrganizerProCard() {
   }
 
   const active = Boolean(plan?.active);
+
+  if (plan?.unlimited) {
+    return (
+      <div id="organizer-pro" className="mb-8 rounded-xl border p-5" style={{ borderColor: "var(--red)", background: "var(--surface)" }}>
+        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--red)" }}>
+          School &amp; League License · Active
+        </p>
+        <p className="mt-1 font-semibold">You&apos;re covered by the {plan.license} license.</p>
+        <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>
+          Unlimited Small &amp; Medium Live Votes with Pro analytics and white-label — just create an
+          event and choose &ldquo;Go live — included in your license&rdquo;.
+        </p>
+        <a href="/org" className="mt-3 inline-block text-sm font-semibold underline" style={{ color: "var(--red)" }}>
+          License dashboard →
+        </a>
+      </div>
+    );
+  }
   const left = plan ? Math.max(0, plan.included_per_period - plan.included_used) : 0;
 
   return (

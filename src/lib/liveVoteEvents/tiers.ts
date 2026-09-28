@@ -58,3 +58,11 @@ export function tierPriceLabel(tier: LiveVoteTier): string {
   const cents = LIVE_VOTE_TIERS[tier].priceCents;
   return cents === 0 ? "Free" : `$${(cents / 100).toFixed(0)}`;
 }
+
+// Annual school / league license: shared staff seats, unlimited Small and
+// Medium events, Pro + white-label on every event. Keep in sync with
+// org_license_active() / organizer_pro_status() in the database.
+export const ORG_LICENSE = {
+  priceCents: 149900,
+  seats: 10,
+};

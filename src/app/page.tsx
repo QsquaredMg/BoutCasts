@@ -393,7 +393,12 @@ export default async function Home() {
             Pay per event.
           </h2>
           <p className="text-[17px] lg:text-[19px]" style={{ color: "var(--lp-muted)" }}>
-            Pick the size that fits your crowd — or run votes every month with Organizer Pro ($99/mo).
+            Pick the size that fits your crowd — run votes every month with Organizer Pro ($99/mo), or
+            get a{" "}
+            <Link href="/org" className="underline">
+              School &amp; League License
+            </Link>
+            .
           </p>
         </div>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 xl:grid-cols-4 lg:gap-6">

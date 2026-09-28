@@ -39,6 +39,8 @@ type LiveVoteOptionRow = {
 
 type PlanStatus = {
   active: boolean;
+  license?: string | null;
+  unlimited?: boolean;
   included_per_period: number;
   included_used: number;
 };
@@ -457,7 +459,9 @@ export default function LiveVoteEventManager({
             >
               {activating
                 ? "Going live…"
-                : `Go live — included in Organizer Pro (${includedLeft} of ${plan!.included_per_period} left)`}
+                : plan!.unlimited
+                  ? `Go live — included in your ${plan!.license ?? "school"} license`
+                  : `Go live — included in Organizer Pro (${includedLeft} of ${plan!.included_per_period} left)`}
             </button>
           )}
           {!isFree && !hasPro && event.scoring_mode === "crowd" && (
