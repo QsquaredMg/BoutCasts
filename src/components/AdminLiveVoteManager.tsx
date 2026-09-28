@@ -61,7 +61,7 @@ export default function AdminLiveVoteManager({ initialEvents }: { initialEvents:
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-semibold">{e.title}</span>
+                  <a href={`/live-vote/${e.id}`} className="truncate text-sm font-semibold hover:underline">{e.title}</a>
                   <span
                     className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                     style={{ background: statusStyle.bg, color: statusStyle.fg }}

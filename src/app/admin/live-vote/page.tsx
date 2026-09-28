@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import AdminLiveVoteManager from "@/components/AdminLiveVoteManager";
 
@@ -23,12 +24,18 @@ export default async function AdminLiveVotePage() {
 
   return (
     <div>
-      <h2 className="mb-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Live Vote
-      </h2>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+          Live Vote
+        </h2>
+        <Link href="/live-vote/new" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">
+          + Create Live Vote
+        </Link>
+      </div>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         See every Live Vote event and control whether a sponsored ad shows on its public ballot page.
-        This is admin-only — organizers can&apos;t turn ads on or off for their own event.
+        This is admin-only — organizers can&apos;t turn ads on or off for their own event. Events you
+        create here can go live free with the &ldquo;Go live free (admin)&rdquo; button, any tier.
       </p>
       <AdminLiveVoteManager initialEvents={initialEvents} />
     </div>
