@@ -25,6 +25,9 @@ type ExploreRow = {
   option_count: number;
   vote_count: number;
   cover_url: string | null;
+  category_id: string | null;
+  category_name: string | null;
+  subcategory_name: string | null;
 };
 
 function timeLeft(closesAt: string | null, now: number): string | null {
@@ -73,6 +76,12 @@ function EventCard({ e, now }: { e: ExploreRow; now: number }) {
           <span style={{ color: "var(--text-faint)" }}>· {kind}</span>
         </div>
         <p className="truncate font-semibold group-hover:underline">{e.title}</p>
+        {e.category_name && (
+          <p className="truncate text-[11px] font-semibold" style={{ color: "var(--red)" }}>
+            {e.category_name}
+            {e.subcategory_name ? ` › ${e.subcategory_name}` : ""}
+          </p>
+        )}
         {e.brand_name && (
           <p className="truncate text-xs" style={{ color: "var(--text-dim)" }}>
             Presented by {e.brand_name}
@@ -88,7 +97,12 @@ function EventCard({ e, now }: { e: ExploreRow; now: number }) {
   );
 }
 
-export default async function ExplorePage() {
+export default async function ExplorePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category: categoryFilter } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase.rpc("get_explore_live_votes", { p_limit: 60 });
   const rows = (data ?? []) as ExploreRow[];
@@ -108,8 +122,13 @@ export default async function ExplorePage() {
     .map((h) => ({ ...h, live: liveByCat.get(h.id) ?? 0 }))
     .sort((a, b) => b.live - a.live)
     .slice(0, 12);
-  const live = rows.filter((r) => r.status === "live");
-  const closed = rows.filter((r) => r.status === "closed");
+  // Category chips: only categories that currently have listed events.
+  const catChips = Array.from(
+    new Map(rows.filter((r) => r.category_id && r.category_name).map((r) => [r.category_id as string, r.category_name as string])).entries()
+  );
+  const shown = categoryFilter ? rows.filter((r) => r.category_id === categoryFilter) : rows;
+  const live = shown.filter((r) => r.status === "live");
+  const closed = shown.filter((r) => r.status === "closed");
   // Server-rendered per request, so reading the clock here is intentional.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -126,6 +145,19 @@ export default async function ExplorePage() {
         Polls, elections, talent shows and battles that organizers have opened to everyone. Tap one
         to watch the tally and cast your vote.
       </p>
+
+      {catChips.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Link href="/explore" className={`bc-chip${!categoryFilter ? " active" : ""}`}>
+            All
+          </Link>
+          {catChips.map(([id, name]) => (
+            <Link key={id} href={`/explore?category=${id}`} className={`bc-chip${categoryFilter === id ? " active" : ""}`}>
+              {name}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>

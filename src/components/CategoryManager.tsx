@@ -235,7 +235,7 @@ export default function CategoryManager({
 
               <div className="ml-6 flex flex-col gap-1.5 rounded-lg border border-dashed border-neutral-200 bg-neutral-50 p-3">
                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                  Subcategories — used to fairly match submissions within {c.name}
+                  Subcategories — used to match submissions fairly, and shown on bouts and Live Votes as {c.name} › …
                 </div>
                 {subcategories.filter((s) => s.category_id === c.id).length === 0 ? (
                   <p className="text-xs text-neutral-400">

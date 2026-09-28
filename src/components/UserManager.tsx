@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type AdminProfileRow = {
   id: string;
-  username: string;
-  tier: string;
+  username: string | null;
   is_admin: boolean;
   is_suspended: boolean;
   points: number;
@@ -24,7 +24,7 @@ export default function UserManager({ initialUsers }: { initialUsers: AdminProfi
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return users;
-    return users.filter((u) => u.username.toLowerCase().includes(q));
+    return users.filter((u) => (u.username ?? "").toLowerCase().includes(q) || u.id.startsWith(q));
   }, [users, query]);
 
   async function toggleAdmin(u: AdminProfileRow) {
@@ -83,10 +83,13 @@ export default function UserManager({ initialUsers }: { initialUsers: AdminProfi
           >
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{u.username}</span>
-                <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-neutral-500">
-                  {u.tier}
-                </span>
+                {u.username ? (
+                  <Link href={`/profile/${encodeURIComponent(u.username)}`} className="font-medium hover:underline">
+                    {u.username}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-neutral-400">(no username)</span>
+                )}
                 {u.is_admin && (
                   <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-700">
                     Admin

@@ -21,7 +21,14 @@ export default async function ProfilePage({
 }: {
   params: Promise<{ username: string }>;
 }) {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  // Usernames can contain spaces etc.; the URL segment arrives encoded.
+  let username = rawUsername;
+  try {
+    username = decodeURIComponent(rawUsername);
+  } catch {
+    // malformed escape — use as-is
+  }
   const supabase = await createClient();
 
   const { data: profile } = await supabase

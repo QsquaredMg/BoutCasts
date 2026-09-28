@@ -6,6 +6,7 @@ import BoutCurator from "@/components/BoutCurator";
 export default async function AdminBoutsPage() {
   const supabase = await createClient();
 
+  const { data: subcategories } = await supabase.from("subcategories").select("*").order("sort_order");
   const [{ data: categories }, { data: submissionsRaw }, { data: usedRows }, { data: sponsors }, { data: bouts }] =
     await Promise.all([
       supabase.from("categories").select("*").order("sort_order"),
@@ -56,6 +57,7 @@ export default async function AdminBoutsPage() {
 
       <BoutCurator
         initialBouts={bouts ?? []}
+        subcategories={subcategories ?? []}
         categories={categories ?? []}
         sponsors={sponsors ?? []}
         submissions={submissions}

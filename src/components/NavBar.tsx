@@ -94,8 +94,8 @@ export default function NavBar() {
   // buttons, so the site menu bar is hidden there.
   if (pathname === "/") return null;
 
-  const profileHref = username ? `/profile/${username}` : "/login";
-  const profileActive = username ? pathname === `/profile/${username}` : false;
+  const profileHref = username ? `/profile/${encodeURIComponent(username)}` : "/login";
+  const profileActive = username ? pathname === `/profile/${encodeURIComponent(username)}` : false;
 
   return (
     <nav
@@ -216,7 +216,7 @@ export default function NavBar() {
               )}
               {username && (
                 <Link
-                  href={`/profile/${username}`}
+                  href={`/profile/${encodeURIComponent(username)}`}
                   className="hidden text-sm font-semibold sm:inline hover:underline"
                   style={{ color: "var(--text-dim)" }}
                 >

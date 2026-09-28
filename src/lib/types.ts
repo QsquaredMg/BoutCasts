@@ -57,6 +57,7 @@ export type Bout = {
   sponsor_prize_fulfilled?: boolean;
   sponsor_prize_fulfilled_at?: string | null;
   categories?: { name: string; sponsor_id?: string | null; sponsors?: Sponsor | null } | null;
+  subcategories?: { name: string } | null;
   sponsors?: Sponsor | null;
 };
 

@@ -147,7 +147,7 @@ export default async function LeaderboardPage() {
                 >
                   {i + 1}
                 </span>
-                <Link href={`/profile/${p.username}`} className="flex-1 text-sm font-bold hover:underline">
+                <Link href={`/profile/${encodeURIComponent(p.username)}`} className="flex-1 text-sm font-bold hover:underline">
                   {p.username}
                 </Link>
                 {user && p.id !== user.id && (

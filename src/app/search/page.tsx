@@ -108,7 +108,7 @@ export default async function SearchPage({
             {profiles.map((p, i) => (
               <Link
                 key={p.username}
-                href={`/profile/${p.username}`}
+                href={`/profile/${encodeURIComponent(p.username)}`}
                 className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--surface-2)]"
                 style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
               >

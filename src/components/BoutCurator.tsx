@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { Bout, Category } from "@/lib/types";
+import type { Bout, Category, Subcategory } from "@/lib/types";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 
 type SubmissionRow = {
@@ -17,6 +17,7 @@ type Sponsor = { id: string; name: string };
 
 const EMPTY_FORM = {
   category_id: "",
+  subcategory_id: "",
   title: "",
   competitor_a_name: "",
   competitor_a_submission_id: "",
@@ -37,12 +38,14 @@ type FormState = typeof EMPTY_FORM;
 export default function BoutCurator({
   initialBouts,
   categories,
+  subcategories = [],
   sponsors,
   submissions,
   tallyByBout,
 }: {
   initialBouts: Bout[];
   categories: Category[];
+  subcategories?: Subcategory[];
   sponsors: Sponsor[];
   submissions: SubmissionRow[];
   tallyByBout: Record<string, { a: number; b: number }>;
@@ -173,6 +176,7 @@ export default function BoutCurator({
       .from("bouts")
       .insert({
         category_id: form.category_id,
+        subcategory_id: form.subcategory_id || null,
         title: form.title.trim(),
         bout_mode: "closed",
         competitor_a_name: form.competitor_a_name.trim(),
@@ -203,6 +207,7 @@ export default function BoutCurator({
     setEditingId(b.id);
     setEditForm({
       category_id: b.category_id,
+      subcategory_id: (b as Bout & { subcategory_id?: string | null }).subcategory_id ?? "",
       title: b.title,
       competitor_a_name: b.competitor_a_name,
       competitor_a_submission_id: b.competitor_a_submission_id ?? "",
@@ -259,6 +264,7 @@ export default function BoutCurator({
       .from("bouts")
       .update({
         category_id: editForm.category_id,
+        subcategory_id: editForm.subcategory_id || null,
         title: editForm.title.trim(),
         competitor_a_name: editForm.competitor_a_name.trim(),
         competitor_a_submission_id: aSubmissionId,
@@ -343,7 +349,7 @@ export default function BoutCurator({
           <div className="flex flex-wrap gap-3">
             <select
               value={form.category_id}
-              onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value, subcategory_id: "" }))}
               className="rounded border border-neutral-300 px-3 py-2 text-sm"
             >
               {categories.map((c) => (
@@ -352,6 +358,23 @@ export default function BoutCurator({
                 </option>
               ))}
             </select>
+            {subcategories.some((sc) => sc.category_id === form.category_id) && (
+              <select
+                value={form.subcategory_id}
+                onChange={(e) => setForm((f) => ({ ...f, subcategory_id: e.target.value }))}
+                className="rounded border border-neutral-300 px-3 py-2 text-sm"
+                aria-label="Subcategory"
+              >
+                <option value="">Any subcategory</option>
+                {subcategories
+                  .filter((sc) => sc.category_id === form.category_id)
+                  .map((sc) => (
+                    <option key={sc.id} value={sc.id}>
+                      {sc.name}
+                    </option>
+                  ))}
+              </select>
+            )}
             <input
               type="text"
               required
@@ -525,7 +548,14 @@ export default function BoutCurator({
                           <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-neutral-500">
                             {b.status}
                           </span>
-                          <span className="text-xs text-neutral-400">{categoryName(b.category_id)}</span>
+                          <span className="text-xs text-neutral-400">
+                            {categoryName(b.category_id)}
+                            {(() => {
+                              const sid = (b as Bout & { subcategory_id?: string | null }).subcategory_id;
+                              const sc = sid ? subcategories.find((x) => x.id === sid) : null;
+                              return sc ? ` › ${sc.name}` : "";
+                            })()}
+                          </span>
                         </div>
                         <p className="mt-1 text-xs text-neutral-500">
                           {b.competitor_a_name} ({tally.a}) vs {b.competitor_b_name} ({tally.b})
@@ -599,7 +629,7 @@ export default function BoutCurator({
                       <div className="flex flex-wrap gap-3">
                         <select
                           value={editForm.category_id}
-                          onChange={(e) => setEditForm((f) => ({ ...f, category_id: e.target.value }))}
+                          onChange={(e) => setEditForm((f) => ({ ...f, category_id: e.target.value, subcategory_id: "" }))}
                           className="rounded border border-neutral-300 px-3 py-2 text-sm"
                         >
                           {categories.map((c) => (
@@ -608,6 +638,23 @@ export default function BoutCurator({
                             </option>
                           ))}
                         </select>
+                        {subcategories.some((sc) => sc.category_id === editForm.category_id) && (
+                          <select
+                            value={editForm.subcategory_id}
+                            onChange={(e) => setEditForm((f) => ({ ...f, subcategory_id: e.target.value }))}
+                            className="rounded border border-neutral-300 px-3 py-2 text-sm"
+                            aria-label="Subcategory"
+                          >
+                            <option value="">Any subcategory</option>
+                            {subcategories
+                              .filter((sc) => sc.category_id === editForm.category_id)
+                              .map((sc) => (
+                                <option key={sc.id} value={sc.id}>
+                                  {sc.name}
+                                </option>
+                              ))}
+                          </select>
+                        )}
                         <input
                           type="text"
                           value={editForm.title}

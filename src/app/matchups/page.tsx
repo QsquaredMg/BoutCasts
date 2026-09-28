@@ -18,7 +18,7 @@ export default async function MatchupsPage() {
 
   const { data: bouts, error } = await supabase
     .from("bouts")
-    .select("*, categories(name, sponsor_id, sponsors(name, logo_url, opportunity_type, banner_style)), sponsors(name, logo_url, opportunity_type, banner_style)")
+    .select("*, subcategories(name), categories(name, sponsor_id, sponsors(name, logo_url, opportunity_type, banner_style)), sponsors(name, logo_url, opportunity_type, banner_style)")
     .order("created_at", { ascending: false });
 
   const { data: bracketBoutsRaw } = await supabase
@@ -218,6 +218,7 @@ export default async function MatchupsPage() {
                 <div className="mt-0.5 text-xs" style={{ color: "var(--text-faint)" }}>
                   <span className="font-semibold" style={{ color: "var(--text-dim)" }}>
                     {bout.categories?.name ?? "Uncategorized"}
+                    {bout.subcategories?.name ? ` › ${bout.subcategories.name}` : ""}
                   </span>
                 </div>
                 {effectiveSponsor && (

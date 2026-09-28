@@ -27,7 +27,7 @@ export default async function FeaturedBout({
   const { data: bout } = await supabase
     .from("bouts")
     .select(
-      "*, categories(name, sponsor_id, sponsors(name, logo_url, website_url, opportunity_type, banner_style)), sponsors(name, logo_url, website_url, opportunity_type, banner_style)"
+      "*, subcategories(name), categories(name, sponsor_id, sponsors(name, logo_url, website_url, opportunity_type, banner_style)), sponsors(name, logo_url, website_url, opportunity_type, banner_style)"
     )
     .eq("id", boutId)
     .maybeSingle();
@@ -156,6 +156,7 @@ export default async function FeaturedBout({
         )}
         <span className="text-xs" style={{ color: "var(--text-faint)" }}>
           {bout.categories?.name ?? "Uncategorized"}
+          {bout.subcategories?.name ? ` › ${bout.subcategories.name}` : ""}
           {bout.bracket_key && (
             <>
               {" · "}

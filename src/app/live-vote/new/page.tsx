@@ -33,6 +33,10 @@ export default function NewLiveVoteEventPage() {
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [title, setTitle] = useState("");
+  const [catOptions, setCatOptions] = useState<{ id: string; name: string }[]>([]);
+  const [subOptions, setSubOptions] = useState<{ id: string; name: string; category_id: string }[]>([]);
+  const [categoryId, setCategoryId] = useState("");
+  const [subcategoryId, setSubcategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [voterMode, setVoterMode] = useState<"account" | "open_link">("account");
   const [votingMethod, setVotingMethod] = useState<"single" | "ranked">("single");
@@ -55,6 +59,18 @@ export default function NewLiveVoteEventPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    supabase
+      .from("categories")
+      .select("id, name")
+      .eq("is_listed", true)
+      .is("owner_id", null)
+      .order("sort_order")
+      .then(({ data }) => setCatOptions(data ?? []));
+    supabase
+      .from("subcategories")
+      .select("id, name, category_id")
+      .order("sort_order")
+      .then(({ data }) => setSubOptions(data ?? []));
   }, [supabase]);
 
   function updateOption(key: string, patch: Partial<OptionDraft>) {
@@ -126,6 +142,8 @@ export default function NewLiveVoteEventPage() {
         voting_method: scoringMode === "judges" ? "single" : votingMethod,
         scoring_mode: scoringMode,
         listed_publicly: listedPublicly,
+        category_id: categoryId || null,
+        subcategory_id: subcategoryId || null,
         tier,
         price_cents: tierConfig.priceCents,
         status: "draft",
@@ -233,6 +251,51 @@ export default function NewLiveVoteEventPage() {
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
           />
+        </div>
+
+        <div>
+          <label className={labelClass} style={labelStyle}>
+            Category (optional)
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select
+              className={inputClass}
+              style={inputStyle}
+              value={categoryId}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                setSubcategoryId("");
+              }}
+            >
+              <option value="">No category</option>
+              {catOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {subOptions.some((sc) => sc.category_id === categoryId) && (
+              <select
+                className={inputClass}
+                style={inputStyle}
+                value={subcategoryId}
+                onChange={(e) => setSubcategoryId(e.target.value)}
+                aria-label="Subcategory"
+              >
+                <option value="">Any subcategory</option>
+                {subOptions
+                  .filter((sc) => sc.category_id === categoryId)
+                  .map((sc) => (
+                    <option key={sc.id} value={sc.id}>
+                      {sc.name}
+                    </option>
+                  ))}
+              </select>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+            Helps people find your vote on Explore (e.g. Dance › Group/Crew).
+          </p>
         </div>
 
         <div>

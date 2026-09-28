@@ -32,6 +32,8 @@ type EventRow = {
   collect_demographics: boolean;
   super_votes_enabled: boolean;
   super_votes_mode: "separate" | "counted";
+  categories?: { name: string } | null;
+  subcategories?: { name: string } | null;
 };
 
 type OptionRow = {
@@ -92,7 +94,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode")
+      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -102,7 +104,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       return;
     }
 
-    setEvent(eventRow);
+    setEvent(eventRow as unknown as EventRow);
 
     const { data: optionRows } = await supabase
       .from("live_vote_options")
@@ -407,6 +409,12 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         />
       </div>
 
+      {event.categories?.name && (
+        <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--red)" }}>
+          {event.categories.name}
+          {event.subcategories?.name ? ` › ${event.subcategories.name}` : ""}
+        </p>
+      )}
       <h1 className="mb-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
         {event.title}
       </h1>
