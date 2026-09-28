@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
+import { useRouter } from "next/navigation";
+import { friendlyAuthError } from "@/lib/authMessages";
 
 const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Other", "Prefer not to say"];
 const ETHNICITY_OPTIONS = [
@@ -36,9 +38,31 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+  const router = useRouter();
+
+  function nextPath() {
+    return safeNext(new URLSearchParams(window.location.search).get("next"));
+  }
+  function redirectUrl() {
+    return `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`;
+  }
+
+  async function resend() {
+    setResendState("sending");
+    setError(null);
+    const { error } = await supabase.auth.resend({ type: "signup", email: email.trim(), options: { emailRedirectTo: redirectUrl() } });
+    if (error) {
+      setResendState("idle");
+      setError(friendlyAuthError(error.message));
+      return;
+    }
+    setResendState("sent");
+  }
 
   useEffect(() => {
     const ref = new URLSearchParams(window.location.search).get("ref");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ref) setReferralCode(ref.toUpperCase());
   }, []);
 
@@ -65,13 +89,13 @@ export default function SignupPage() {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext(new URLSearchParams(window.location.search).get("next")))}`,
+        emailRedirectTo: redirectUrl(),
         data: {
-          username: username || undefined,
+          username: username.trim() || undefined,
           referral_code: referralCode || undefined,
           birthday,
           gender,
@@ -82,7 +106,19 @@ export default function SignupPage() {
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error.message));
+      return;
+    }
+    // Supabase returns a user with no identities when the email is already
+    // registered (it doesn't say so outright, to avoid leaking accounts).
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      setError("An account with this email already exists. Sign in instead, or reset your password if you forgot it.");
+      return;
+    }
+    // Email confirmation turned off: they're signed in already.
+    if (data.session) {
+      router.push(nextPath());
+      router.refresh();
       return;
     }
     setDone(true);
@@ -92,15 +128,31 @@ export default function SignupPage() {
     return (
       <div className="mx-auto max-w-sm px-5 py-12">
         <h1 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-          Check your account
+          Check your email
         </h1>
         <p style={{ color: "var(--text-dim)" }}>
-          Account created. If email confirmation is required, check your inbox;
-          otherwise you can{" "}
-          <Link href={`/login?next=${encodeURIComponent(safeNext(typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("next")))}`} className="font-semibold underline" style={{ color: "var(--red)" }}>
-            sign in now
+          We sent a confirmation link to <strong>{email.trim()}</strong>. Tap it to activate your account, then
+          sign in with the password you just chose.
+        </p>
+        <ul className="mt-4 list-disc space-y-1 pl-5 text-sm" style={{ color: "var(--text-faint)" }}>
+          <li>Not there after a minute? Check your spam or promotions folder.</li>
+          <li>The link works once and expires after 24 hours.</li>
+          <li>You can&apos;t sign in until your email is confirmed.</li>
+        </ul>
+        <button
+          type="button"
+          onClick={resend}
+          disabled={resendState !== "idle"}
+          className="mt-5 text-sm font-semibold underline disabled:no-underline disabled:opacity-70"
+          style={{ color: "var(--red)" }}
+        >
+          {resendState === "sent" ? "New link sent." : resendState === "sending" ? "Sending…" : "Resend the email"}
+        </button>
+        {error && <p className="mt-2 text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
+        <p className="mt-5 text-sm">
+          <Link href={`/login?next=${encodeURIComponent(nextPath())}`} className="font-semibold underline" style={{ color: "var(--red)" }}>
+            Go to sign in
           </Link>
-          .
         </p>
       </div>
     );
@@ -134,6 +186,7 @@ export default function SignupPage() {
         <input
           type="email"
           required
+          autoComplete="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -144,6 +197,7 @@ export default function SignupPage() {
           type="password"
           required
           minLength={6}
+          autoComplete="new-password"
           placeholder="Password (min 6 chars)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -210,7 +264,16 @@ export default function SignupPage() {
           </select>
         </div>
 
-        {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
+        {error && (
+          <p className="text-sm" style={{ color: "var(--danger)" }} role="alert">
+            {error}{" "}
+            {error.includes("already exists") && (
+              <Link href="/login" className="font-semibold underline">
+                Sign in
+              </Link>
+            )}
+          </p>
+        )}
         <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Creating account..." : "Sign up"}
         </button>

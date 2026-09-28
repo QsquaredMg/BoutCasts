@@ -16,6 +16,9 @@ type AdPayload = {
 const SESSION_KEY = "bc_interstitial_shown_at";
 const MIN_GAP_MS = 30 * 60 * 1000; // don't re-fire more than once per 30 min in a session
 const SKIP_AFTER_MS = 5000;
+// Never cover account screens: a 5-second ad on top of sign-in, sign-up or an
+// email-confirmation link reads as "the site is broken" to new users.
+const NO_AD_PREFIXES = ["/admin", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/auth"];
 
 // Platform-wide interstitial ad slot — this is what sponsors buying the
 // "Platform-Wide Commercial" opportunity are actually paying for. Fires once
@@ -28,7 +31,7 @@ export default function AdInterstitial() {
   const [canSkip, setCanSkip] = useState(false);
 
   useEffect(() => {
-    if (pathname?.startsWith("/admin") || pathname === "/welcome") return;
+    if (!pathname || NO_AD_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return;
     let cancelled = false;
 
     try {
@@ -67,6 +70,7 @@ export default function AdInterstitial() {
 
   useEffect(() => {
     if (!visible) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanSkip(false);
     const t = setTimeout(() => setCanSkip(true), SKIP_AFTER_MS);
     return () => clearTimeout(t);

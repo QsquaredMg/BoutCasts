@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyAuthError } from "@/lib/authMessages";
 
 export default function ForgotPasswordPage() {
   const supabase = createClient();
@@ -10,19 +11,25 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpired(new URLSearchParams(window.location.search).get("notice") === "link_expired");
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     });
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error.message));
       return;
     }
     setSent(true);
@@ -36,6 +43,7 @@ export default function ForgotPasswordPage() {
         </h1>
         <p style={{ color: "var(--text-dim)" }}>
           If an account exists for <strong>{email}</strong>, we sent a link to reset your password.
+          Check your spam folder if it doesn&apos;t arrive in a minute. The link works once.
         </p>
         <p className="mt-4 text-sm">
           <Link href="/login" className="font-semibold underline" style={{ color: "var(--red)" }}>
@@ -51,6 +59,11 @@ export default function ForgotPasswordPage() {
       <h1 className="mb-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
         Reset your password
       </h1>
+      {expired && (
+        <p className="mb-4 rounded-xl border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-dim)" }}>
+          That reset link expired or was already used. Request a new one below and open it on this device.
+        </p>
+      )}
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Enter your email and we&apos;ll send you a link to reset your password.
       </p>
