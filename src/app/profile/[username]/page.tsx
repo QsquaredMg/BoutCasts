@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PushOptIn from "@/components/PushOptIn";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cloutTierFor } from "@/lib/clout";
@@ -165,6 +166,8 @@ export default async function ProfilePage({
           <FollowButton targetId={profile.id} initialFollowing={!!viewerFollow} />
         )}
       </div>
+
+      {isOwnProfile && <PushOptIn />}
 
       <div className="mb-8 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {[

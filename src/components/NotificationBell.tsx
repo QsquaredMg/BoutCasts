@@ -10,6 +10,7 @@ const TYPE_ICON: Record<string, string> = {
   challenge: "🥊",
   challenge_response: "🥊",
   badge: "🏅",
+  announcement: "📣",
 };
 
 function timeAgo(iso: string) {
@@ -37,6 +38,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
 
     const channel = supabase
