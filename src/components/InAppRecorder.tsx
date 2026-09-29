@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
-  onRecorded: (path: string | null) => void;
+  onRecorded: (path: string | null, durationSeconds?: number) => void;
+  /** Optional hard cap: recording stops on its own at this many seconds. */
+  maxSeconds?: number;
 };
 
 // Pick a recording format this browser supports. MP4 first: Safari/iPhone
@@ -29,7 +31,7 @@ function baseType(mime: string) {
   return (mime.split(";")[0] || "video/webm").trim();
 }
 
-export default function InAppRecorder({ onRecorded }: Props) {
+export default function InAppRecorder({ onRecorded, maxSeconds }: Props) {
   const supabase = createClient();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -90,7 +92,12 @@ export default function InAppRecorder({ onRecorded }: Props) {
       recorder.start(1000);
       setStatus("recording");
       setSeconds(0);
-      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      let elapsed = 0;
+      timerRef.current = setInterval(() => {
+        elapsed += 1;
+        setSeconds(elapsed);
+        if (maxSeconds && elapsed >= maxSeconds) stopRecording();
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't access camera/mic");
       setStatus("error");
@@ -140,7 +147,7 @@ export default function InAppRecorder({ onRecorded }: Props) {
 
     const { data: urlData } = supabase.storage.from("submission-clips").getPublicUrl(path);
     setStatus("uploaded");
-    onRecorded(urlData.publicUrl);
+    onRecorded(urlData.publicUrl, seconds);
   }
 
   return (
@@ -167,6 +174,12 @@ export default function InAppRecorder({ onRecorded }: Props) {
           <div className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold text-white">
             <span className="bc-live-dot" />
             {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+            {maxSeconds && (
+              <span style={{ color: maxSeconds - seconds <= 15 ? "#ff6b6b" : "rgba(255,255,255,0.7)" }}>
+                {" "}/ {Math.floor(maxSeconds / 60)}:{String(maxSeconds % 60).padStart(2, "0")} ·{" "}
+                {Math.max(0, maxSeconds - seconds)}s left
+              </span>
+            )}
           </div>
         )}
         {status === "idle" && (

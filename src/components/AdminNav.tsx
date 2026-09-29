@@ -11,6 +11,7 @@ const ADMIN_LINKS = [
   { href: "/admin/ads", label: "Ads" },
   { href: "/admin/live-vote", label: "Live Vote" },
   { href: "/admin/notifications", label: "Notifications" },
+  { href: "/debates", label: "Debates" },
   { href: "/admin/licenses", label: "Licenses" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/users", label: "Users" },

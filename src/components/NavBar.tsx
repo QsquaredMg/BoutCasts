@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/matchups", label: "Matchups" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/live-vote", label: "Live Vote" },
+  { href: "/debates", label: "Debates" },
   { href: "/explore", label: "Explore" },
   // Footer-only on desktop (kept in the phone menu) so the top bar fits on one row.
   { href: "/sponsor", label: "For Brands", mobileOnly: true },
