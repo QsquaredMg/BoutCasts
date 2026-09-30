@@ -16,7 +16,7 @@ export default function LogoUploadField({
 }: {
   value: string;
   onChange: (url: string) => void;
-  folder?: "applications" | "sponsors";
+  folder?: "applications" | "sponsors" | "teams";
   compact?: boolean;
 }) {
   const supabase = createClient();

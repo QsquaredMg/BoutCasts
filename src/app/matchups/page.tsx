@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
 import { getCategoryIcon } from "@/lib/categoryIcon";
@@ -114,6 +115,8 @@ export default async function MatchupsPage() {
       </p>
 
       <AdBanner />
+
+      <ShowcaseCards kind="bout" heading="Showcases — one video, vote for your favorite" />
 
       {brackets.length > 0 && (
         <section className="mb-8">

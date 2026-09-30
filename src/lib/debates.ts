@@ -125,6 +125,8 @@ type YTNamespace = {
   PlayerState: { PLAYING: number; ENDED: number; PAUSED: number };
 };
 export type YTPlayer = {
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  playVideo: () => void;
   getDuration: () => number;
   getCurrentTime: () => number;
   getPlayerState: () => number;

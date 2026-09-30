@@ -8,6 +8,7 @@ import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourceP
 import FileUploadPicker from "@/components/FileUploadPicker";
 import { LIVE_VOTE_TIERS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import { contrastRatio } from "@/lib/liveVoteEvents/roomTheme";
+import { parseClock } from "@/lib/showcases";
 
 type OptionDraft = {
   key: string;
@@ -15,6 +16,8 @@ type OptionDraft = {
   clip: ClipSourceValue;
   description: string;
   thumbnailUrl: string | null;
+  teamName: string;
+  start: string;
 };
 
 function newOption(): OptionDraft {
@@ -24,6 +27,8 @@ function newOption(): OptionDraft {
     clip: { sourceType: "link", sourceUrl: "" },
     description: "",
     thumbnailUrl: null,
+    teamName: "",
+    start: "",
   };
 }
 
@@ -46,6 +51,9 @@ export default function NewLiveVoteEventPage() {
   const [tier, setTier] = useState<LiveVoteTier>("free");
   const isFree = tier === "free";
   const [options, setOptions] = useState<OptionDraft[]>([newOption(), newOption()]);
+  // One video for the whole event (e.g. one dance video with 8 groups).
+  const [sharedVideo, setSharedVideo] = useState(false);
+  const [sharedClip, setSharedClip] = useState<ClipSourceValue>({ sourceType: "link", sourceUrl: "" });
 
   const [brandName, setBrandName] = useState("");
   const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
@@ -118,14 +126,23 @@ export default function NewLiveVoteEventPage() {
         setError("Every option needs a name.");
         return;
       }
-      if (!o.clip.sourceUrl) {
+      if (!sharedVideo && !o.clip.sourceUrl) {
         setError(`Add a clip for "${o.name || "an option"}" — upload, record, or paste a link.`);
+        return;
+      }
+      if (Number.isNaN(parseClock(o.start))) {
+        setError(`"${o.name}": the start time should look like 4:15 or 1:02:30.`);
         return;
       }
       if (o.description.length > 500) {
         setError(`The description for "${o.name || "an option"}" is over the 500-character limit.`);
         return;
       }
+    }
+
+    if (sharedVideo && !sharedClip.sourceUrl) {
+      setError("Add the one video everyone will watch — upload, record, or paste a link.");
+      return;
     }
 
     setLoading(true);
@@ -153,6 +170,8 @@ export default function NewLiveVoteEventPage() {
         brand_color: isFree ? null : brandColor,
         brand_bg_color: isFree ? null : brandBgColor,
         white_label: isFree ? false : whiteLabel,
+        shared_source_type: sharedVideo ? sharedClip.sourceType : null,
+        shared_source_url: sharedVideo ? sharedClip.sourceUrl : null,
       })
       .select("id")
       .single();
@@ -167,11 +186,13 @@ export default function NewLiveVoteEventPage() {
       options.map((o, idx) => ({
         event_id: event.id,
         name: o.name.trim(),
-        source_type: o.clip.sourceType,
-        source_url: o.clip.sourceUrl,
+        source_type: sharedVideo ? null : o.clip.sourceType,
+        source_url: sharedVideo ? null : o.clip.sourceUrl,
         sort_order: idx,
         description: o.description.trim() || null,
         thumbnail_url: o.thumbnailUrl,
+        team_name: o.teamName.trim() || null,
+        start_seconds: sharedVideo ? parseClock(o.start) : null,
       }))
     );
 
@@ -706,6 +727,24 @@ export default function NewLiveVoteEventPage() {
             </button>
           </div>
 
+          <div className="mb-4 rounded-xl border p-3" style={{ borderColor: sharedVideo ? "var(--red)" : "var(--border)", background: "var(--surface)" }}>
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--red)]" checked={sharedVideo} onChange={(e) => setSharedVideo(e.target.checked)} />
+              <span>
+                <b>One video for all options</b>
+                <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+                  e.g. one dance-competition video with 8 groups. Voters watch once, then pick. Add each group&apos;s start
+                  time so voters can jump to their part.
+                </span>
+              </span>
+            </label>
+            {sharedVideo && (
+              <div className="mt-3">
+                <ClipSourcePicker value={sharedClip} onChange={setSharedClip} inputClass={inputClass} inputStyle={inputStyle} />
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-col gap-4">
             {options.map((option, idx) => (
               <div
@@ -736,12 +775,32 @@ export default function NewLiveVoteEventPage() {
                   placeholder="Option name"
                   maxLength={140}
                 />
-                <ClipSourcePicker
-                  value={option.clip}
-                  onChange={(clip) => updateOption(option.key, { clip })}
-                  inputClass={inputClass}
-                  inputStyle={inputStyle}
-                />
+                <div className="mb-2.5 grid gap-2 sm:grid-cols-[1fr_140px]">
+                  <input
+                    className={inputClass}
+                    style={inputStyle}
+                    value={option.teamName}
+                    onChange={(e) => updateOption(option.key, { teamName: e.target.value.slice(0, 80) })}
+                    placeholder="Team / school (optional)"
+                  />
+                  {sharedVideo && (
+                    <input
+                      className={inputClass}
+                      style={inputStyle}
+                      value={option.start}
+                      onChange={(e) => updateOption(option.key, { start: e.target.value })}
+                      placeholder="Starts at 4:15"
+                    />
+                  )}
+                </div>
+                {!sharedVideo && (
+                  <ClipSourcePicker
+                    value={option.clip}
+                    onChange={(clip) => updateOption(option.key, { clip })}
+                    inputClass={inputClass}
+                    inputStyle={inputStyle}
+                  />
+                )}
 
                 <div className="mt-3">
                   <div className="mb-1 flex items-center justify-between">
@@ -765,7 +824,7 @@ export default function NewLiveVoteEventPage() {
 
                 <div className="mt-3">
                   <label className="mb-1 block text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-                    Thumbnail (optional)
+                    Logo or picture (optional)
                   </label>
                   {option.thumbnailUrl ? (
                     <div className="flex items-center gap-3">

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import SharedVideoPlayer from "@/components/showcases/SharedVideoPlayer";
+import { formatClock } from "@/lib/showcases";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ClipPlayer from "@/components/ClipPlayer";
@@ -18,6 +20,7 @@ type EventStatus = "draft" | "live" | "closed";
 
 type EventRow = {
   id: string;
+  shared_source_url: string | null;
   title: string;
   description: string | null;
   voter_mode: "account" | "open_link";
@@ -44,6 +47,8 @@ type OptionRow = {
   sort_order: number;
   description: string | null;
   thumbnail_url: string | null;
+  team_name: string | null;
+  start_seconds: number | null;
 };
 
 const VOTER_TOKEN_KEY = "bc_live_vote_voter_token";
@@ -68,6 +73,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   const voterTokenRef = useRef<string | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [seek, setSeek] = useState<{ t: number; n: number } | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [event, setEvent] = useState<EventRow | null>(null);
   const [options, setOptions] = useState<OptionRow[]>([]);
@@ -94,7 +100,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
+      .select("id, title, description, shared_source_url, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -108,7 +114,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: optionRows } = await supabase
       .from("live_vote_options")
-      .select("id, name, source_type, source_url, sort_order, description, thumbnail_url")
+      .select("id, name, source_type, source_url, sort_order, description, thumbnail_url, team_name, start_seconds")
       .eq("event_id", eventId)
       .order("sort_order");
     setOptions(optionRows ?? []);
@@ -524,6 +530,17 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         </div>
       )}
 
+      {event.shared_source_url && (
+        <div className="mb-4">
+          <SharedVideoPlayer sourceUrl={event.shared_source_url} label={event.title} seek={seek} />
+          {options.some((o) => o.start_seconds != null) && (
+            <p className="mt-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+              Tap a time below to jump to that part of the video.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-4">
         {options.map((option) => {
           const clip = displayClip(option);
@@ -542,15 +559,43 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                 background: "var(--surface)",
               }}
             >
-              <div className="mb-2 flex items-center justify-between">
-                <p className="font-semibold">
-                  {option.name}
-                  {isLeader && (
-                    <span className="ml-2 text-xs font-bold" style={{ color: "var(--red)" }}>
-                      Leading
-                    </span>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  {option.thumbnail_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={option.thumbnail_url}
+                      alt=""
+                      className="h-12 w-12 flex-shrink-0 rounded-lg border object-cover"
+                      style={{ borderColor: "var(--border)" }}
+                    />
                   )}
-                </p>
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      {option.name}
+                      {isLeader && (
+                        <span className="ml-2 text-xs font-bold" style={{ color: "var(--red)" }}>
+                          Leading
+                        </span>
+                      )}
+                    </p>
+                    {(option.team_name || (event.shared_source_url && option.start_seconds != null)) && (
+                      <p className="flex flex-wrap items-center gap-x-3 text-xs" style={{ color: "var(--text-dim)" }}>
+                        {option.team_name && <span className="truncate">{option.team_name}</span>}
+                        {event.shared_source_url && option.start_seconds != null && (
+                          <button
+                            type="button"
+                            onClick={() => setSeek({ t: option.start_seconds!, n: Date.now() })}
+                            className="font-bold"
+                            style={{ color: "var(--red)" }}
+                          >
+                            ▶ {formatClock(option.start_seconds)}
+                          </button>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
                 {isMine && (
                   <span className="text-xs font-bold" style={{ color: "var(--red)" }}>
                     ✓ Your vote
@@ -572,17 +617,8 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                 </a>
               )}
 
-              {(option.thumbnail_url || option.description) && (
+              {option.description && (
                 <div className="mt-3 flex gap-3">
-                  {option.thumbnail_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={option.thumbnail_url}
-                      alt={`${option.name} thumbnail`}
-                      className="h-14 w-14 flex-shrink-0 rounded-lg border object-cover"
-                      style={{ borderColor: "var(--border)" }}
-                    />
-                  )}
                   {option.description && (
                     <p className="text-sm" style={{ color: "var(--text-dim)" }}>
                       {option.description}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { scoringLabel, type DebateTopic } from "@/lib/debates";
@@ -42,15 +43,22 @@ export default async function DebatesPage() {
           </h1>
         </div>
         {isAdmin && (
-          <Link href="/debates/new" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">
-            + New debate topic
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/debates/new" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">
+              + 1-on-1 debate topic
+            </Link>
+            <Link href="/showcase/new?kind=debate" className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>
+              + Panel debate (one video)
+            </Link>
+          </div>
         )}
       </div>
       <p className="mb-7 text-sm" style={{ color: "var(--text-dim)" }}>
         Pick a side, answer on video in 3 minutes or less, and watch your opponent before you respond. The crowd or a
         panel of judges picks the winner.
       </p>
+
+      <ShowcaseCards kind="debate" heading="Panel debates — one video, vote for the best debater" />
 
       {topics.length === 0 && (
         <p className="rounded-xl border p-5 text-center text-sm" style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}>

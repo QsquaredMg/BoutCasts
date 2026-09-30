@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -116,6 +117,7 @@ export default async function HubPage({ params }: { params: Promise<{ id: string
       </div>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-8">
+        <ShowcaseCards categoryId={hub.id} heading="Showcases & panel debates" />
         <section>
           <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
             Live now ({live.length})

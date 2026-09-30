@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import BracketBuilder from "@/components/BracketBuilder";
 import BracketFromBouts from "@/components/BracketFromBouts";
@@ -48,9 +49,19 @@ export default async function AdminBoutsPage() {
 
   return (
     <div>
-      <h2 className="mb-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Bouts &amp; brackets
-      </h2>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+          Bouts &amp; brackets
+        </h2>
+        <span className="flex flex-wrap gap-2">
+          <Link href="/showcase/new" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">
+            + Showcase (one video, many groups)
+          </Link>
+          <Link href="/showcase/new?kind=debate" className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>
+            + Panel debate
+          </Link>
+        </span>
+      </div>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Curate individual bouts directly, or turn a set of approved submissions into a bracket.
       </p>
