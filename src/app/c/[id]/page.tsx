@@ -1,3 +1,4 @@
+import { isPublicBout } from "@/lib/publicBouts";
 import type { Metadata } from "next";
 import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import Link from "next/link";
@@ -29,6 +30,9 @@ type HubBout = {
   winner_side: string | null;
   closes_at: string | null;
   sponsor_prize_description: string | null;
+  bout_mode: "open" | "closed";
+  competitor_a_submission_id: string | null;
+  competitor_b_submission_id: string | null;
 };
 
 async function loadHub(id: string) {
@@ -63,14 +67,14 @@ export default async function HubPage({ params }: { params: Promise<{ id: string
   const supabase = await createClient();
   const { data: boutRows } = await supabase
     .from("bouts")
-    .select("id, status, bracket_key, round_number, competitor_a_name, competitor_b_name, winner_side, closes_at, sponsor_prize_description")
+    .select("id, status, bracket_key, round_number, competitor_a_name, competitor_b_name, winner_side, closes_at, sponsor_prize_description, bout_mode, competitor_a_submission_id, competitor_b_submission_id")
     .eq("category_id", id)
     .order("created_at", { ascending: false })
     .limit(100);
   const bouts = (boutRows ?? []) as HubBout[];
-  const live = bouts.filter((b) => b.status === "live");
+  const live = bouts.filter((b) => b.status === "live" && isPublicBout(b));
   const brackets = Array.from(new Set(bouts.map((b) => b.bracket_key).filter(Boolean))) as string[];
-  const winners = bouts.filter((b) => b.status === "final" && b.winner_side).slice(0, 6);
+  const winners = bouts.filter((b) => b.status === "final" && b.winner_side && isPublicBout(b)).slice(0, 6);
   const prize = bouts.find((b) => b.sponsor_prize_description)?.sponsor_prize_description;
   const title = hubTitle(hub);
   const theme = roomThemeVars(hub.hub_color, null) as React.CSSProperties;

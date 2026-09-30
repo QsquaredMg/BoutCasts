@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { isPublicBout } from "@/lib/publicBouts";
 import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
@@ -7,6 +9,8 @@ import ContributeButton from "@/components/ContributeButton";
 import StopPropagation from "@/components/StopPropagation";
 import SponsorBadge from "@/components/SponsorBadge";
 import AdBanner from "@/components/AdBanner";
+
+export const metadata: Metadata = { title: "Matchups — vote on today’s bouts" };
 
 const STATUS_LABEL: Record<Bout["status"], string> = {
   live: "LIVE",
@@ -17,10 +21,11 @@ const STATUS_LABEL: Record<Bout["status"], string> = {
 export default async function MatchupsPage() {
   const supabase = await createClient();
 
-  const { data: bouts, error } = await supabase
+  const { data: allBouts, error } = await supabase
     .from("bouts")
     .select("*, subcategories(name), categories(name, sponsor_id, sponsors(name, logo_url, opportunity_type, banner_style)), sponsors(name, logo_url, opportunity_type, banner_style)")
     .order("created_at", { ascending: false });
+  const bouts = (allBouts ?? []).filter(isPublicBout);
 
   const { data: bracketBoutsRaw } = await supabase
     .from("bouts")
@@ -72,7 +77,7 @@ export default async function MatchupsPage() {
   }
   const brackets = Array.from(bracketsByKey.values()).filter((b) => b.total > 1);
 
-  const boutIds = (bouts ?? []).map((b) => b.id);
+  const boutIds = bouts.map((b) => b.id);
   const tallies: Record<string, { a: number; b: number }> = {};
   const poolByBout = new Map<string, { id: string; goal_amount: number; raised: number }>();
 
@@ -177,12 +182,12 @@ export default async function MatchupsPage() {
         </p>
       )}
 
-      {!error && (!bouts || bouts.length === 0) && (
+      {!error && bouts.length === 0 && (
         <p style={{ color: "var(--text-faint)" }}>No bouts yet.</p>
       )}
 
       <div className="bc-card flex flex-col overflow-hidden">
-        {bouts?.map((bout: Bout, i: number) => {
+        {bouts.map((bout: Bout, i: number) => {
           const tally = tallies[bout.id] ?? { a: 0, b: 0 };
           const total = tally.a + tally.b;
           const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;

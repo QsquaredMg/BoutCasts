@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | BoutCasts",
+  title: "Terms of Service",
   description: "The terms that govern your use of BoutCasts.",
 };
 
@@ -15,7 +15,7 @@ export default function TermsPage() {
         Terms of Service
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Last updated {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+        Last updated September 30, 2026
       </p>
 
       <p className={BODY} style={{ color: "var(--text-dim)" }}>

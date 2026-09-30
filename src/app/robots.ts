@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api", "/wallet", "/challenges"],
+        disallow: ["/admin", "/api", "/wallet", "/challenges", "/judge", "/debates/judge", "/showcase/judge"],
       },
     ],
     sitemap: "https://www.boutcasts.com/sitemap.xml",

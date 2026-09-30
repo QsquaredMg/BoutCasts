@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | BoutCasts",
+  title: "Privacy Policy",
   description: "How BoutCasts collects, uses, and protects your information.",
 };
 
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Last updated {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+        Last updated September 30, 2026
       </p>
 
       <p className={BODY} style={{ color: "var(--text-dim)" }}>
@@ -33,7 +33,9 @@ export default function PrivacyPage() {
         <li>Voting and engagement activity: which bouts you vote on, points earned, badges, and challenges you send or receive.</li>
         <li>Payment information: if you sponsor a category, payments are processed by Stripe. We do not store your card number — Stripe handles and stores that directly.</li>
         <li>Wallet activity: your BoutBucks balance and history.</li>
-        <li>Usage data: pages visited, device/browser type, and similar technical information collected automatically.</li>
+        <li>Usage data: pages visited, device/browser type, and similar technical information collected automatically. We use privacy-friendly analytics that don&apos;t use advertising cookies.</li>
+        <li>Guest voting: if you vote without an account, we keep a random identifier in your browser and a one-way hash of your IP address so each guest gets one vote per day. We don&apos;t store your raw IP address with your vote.</li>
+        <li>Push notifications: if you turn them on, we store your browser&apos;s push subscription so we can send you alerts. You can turn them off at any time in your browser settings.</li>
       </ul>
 
       <h2 className={SECTION_HEADING} style={{ fontFamily: "var(--font-display)" }}>
@@ -52,7 +54,7 @@ export default function PrivacyPage() {
       </h2>
       <p className={BODY} style={{ color: "var(--text-dim)" }}>
         We share information with service providers who help us run BoutCasts — currently Supabase
-        (database, authentication, and storage) and Stripe (payment processing). We do not sell your
+        (database, authentication, and storage), Vercel (hosting and site analytics) and Stripe (payment processing). We do not sell your
         personal information. We may disclose information if required by law, or to protect the
         rights, property, or safety of BoutCasts, our users, or others.
       </p>

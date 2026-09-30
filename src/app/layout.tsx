@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import AdInterstitial from "@/components/AdInterstitial";
 import SplashGate from "@/components/SplashGate";
 import { ToastProvider } from "@/components/Toast";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // Wide, heavy display face — used for headlines everywhere (homepage,
@@ -88,6 +90,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Footer />
           <AdInterstitial />
         </ToastProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

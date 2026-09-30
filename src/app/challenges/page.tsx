@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ChallengeInbox from "@/components/ChallengeInbox";
 import type { Challenge } from "@/lib/types";
+
+export const metadata: Metadata = { title: "Challenges" };
 
 export default async function ChallengesPage() {
   const supabase = await createClient();

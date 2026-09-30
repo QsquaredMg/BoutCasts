@@ -1,3 +1,4 @@
+import { isPublicBout, PUBLIC_BOUT_FIELDS } from "@/lib/publicBouts";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +30,9 @@ type LiveRow = {
   round_number: number;
   bracket_key: string | null;
   categories: { name: string } | { name: string }[] | null;
+  bout_mode: "open" | "closed";
+  competitor_a_submission_id: string | null;
+  competitor_b_submission_id: string | null;
 };
 
 function categoryName(c: LiveRow["categories"]): string | null {
@@ -66,27 +70,24 @@ async function loadLiveBouts(): Promise<LiveRow[]> {
   try {
     const supabase = await createClient();
     const select =
-      "id, title, status, competitor_a_name, competitor_b_name, round_number, bracket_key, categories(name)";
+      `id, title, status, competitor_a_name, competitor_b_name, round_number, bracket_key, categories(name), ${PUBLIC_BOUT_FIELDS}`;
     const { data: live } = await supabase
       .from("bouts")
       .select(select)
       .eq("status", "live")
       .order("created_at", { ascending: false })
-      .limit(3);
-    let rows = (live as LiveRow[] | null) ?? [];
+      .limit(12);
+    let rows = ((live as LiveRow[] | null) ?? []).filter(isPublicBout).slice(0, 3);
     if (rows.length < 3) {
       const { data: upcoming } = await supabase
         .from("bouts")
         .select(select)
         .eq("status", "upcoming")
         .order("created_at", { ascending: false })
-        .limit(3 - rows.length);
-      rows = rows.concat((upcoming as LiveRow[] | null) ?? []);
+        .limit(12);
+      rows = rows.concat(((upcoming as LiveRow[] | null) ?? []).filter(isPublicBout)).slice(0, 3);
     }
-    // Hide placeholder slots that don't have both competitors yet.
-    return rows.filter(
-      (b) => b.competitor_a_name && b.competitor_b_name && b.competitor_a_name !== "TBD" && b.competitor_b_name !== "TBD",
-    );
+    return rows;
   } catch {
     return [];
   }

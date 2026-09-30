@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRoundRecap, roundLabelFor } from "@/lib/recap";
 import VersusCard from "@/components/VersusCard";
 import RecapVideoPlayer from "@/components/RecapVideoPlayer";
+
+export async function generateMetadata({ params }: { params: Promise<{ key: string; round: string }> }): Promise<Metadata> {
+  const { round } = await params;
+  return { title: `Round ${Number(round) || ""} recap`.replace("  ", " ") };
+}
 
 export default async function RoundRecapPage({
   params,

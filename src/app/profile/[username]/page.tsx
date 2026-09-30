@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import PushOptIn from "@/components/PushOptIn";
 import { notFound } from "next/navigation";
@@ -16,6 +17,17 @@ const REASON_LABEL: Record<string, string> = {
   referral_signup: "Referral signup bonus",
   challenge_accepted: "Challenge accepted",
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  let name = username;
+  try {
+    name = decodeURIComponent(username);
+  } catch {
+    // malformed escape — use as-is
+  }
+  return { title: `@${name}` };
+}
 
 export default async function ProfilePage({
   params,

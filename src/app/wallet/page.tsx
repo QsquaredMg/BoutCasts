@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { WalletEvent } from "@/lib/types";
+
+export const metadata: Metadata = { title: "Wallet" };
 
 const REASON_LABEL: Record<string, string> = {
   submission_rejected_refund: "Paid entry refund (credit)",

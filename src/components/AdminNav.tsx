@@ -15,6 +15,7 @@ const ADMIN_LINKS = [
   { href: "/admin/licenses", label: "Licenses" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/users", label: "Users" },
+  { href: "/admin/errors", label: "Errors" },
 ];
 
 export default function AdminNav() {

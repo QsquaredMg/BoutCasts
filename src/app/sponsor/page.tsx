@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import SponsorApplyForm from "@/components/SponsorApplyForm";
+
+export const metadata: Metadata = { title: "Sponsor BoutCasts" };
 
 export default async function SponsorPage({
   searchParams,

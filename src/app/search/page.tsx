@@ -1,7 +1,11 @@
+import { isPublicBout } from "@/lib/publicBouts";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
 import SearchBar from "@/components/SearchBar";
+
+export const metadata: Metadata = { title: "Search" };
 
 export default async function SearchPage({
   searchParams,
@@ -40,7 +44,7 @@ export default async function SearchPage({
         .ilike("name", like)
         .limit(10),
     ]);
-    bouts = (boutsRes.data as Bout[]) ?? [];
+    bouts = ((boutsRes.data as Bout[]) ?? []).filter(isPublicBout);
     profiles = profilesRes.data ?? [];
     categories = categoriesRes.data ?? [];
   }

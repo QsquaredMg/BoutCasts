@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CLOUT_TIERS } from "@/lib/clout";
+
+export const metadata: Metadata = { title: "How it works" };
 
 const STEPS = [
   {

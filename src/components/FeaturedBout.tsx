@@ -326,11 +326,11 @@ export default async function FeaturedBout({
         <AdBanner />
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
-          🔒 Verified voting — one vote per account
+          🔒 Verified voting — one vote per person
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <a
             href={`/api/bouts/${bout.id}/vote-card`}
             target="_blank"

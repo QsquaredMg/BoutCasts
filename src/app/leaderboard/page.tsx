@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Badge, UserBadge } from "@/lib/types";
 import ChallengeButton from "@/components/ChallengeButton";
 import { cloutTierFor } from "@/lib/clout";
+
+export const metadata: Metadata = { title: "Leaderboard" };
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
