@@ -397,7 +397,7 @@ export default function NewLiveVoteEventPage() {
             <span className="font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
               Custom branding
             </span>{" "}
-            — add your logo, sponsor name and a post-vote graphic on any paid tier.
+— your logo, colors, a background photo, a post-vote graphic and a white-label page come with every paid size.
           </div>
         ) : (
         <div
@@ -531,9 +531,7 @@ export default function NewLiveVoteEventPage() {
               <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
                 Hide the BoutCasts menu and footer so your brand is front and center (a small
                 &ldquo;Powered by BoutCasts&rdquo; line stays).{" "}
-                {visibility === "private"
-                  ? "Included with every paid private event."
-                  : "Included with Large, Pro analytics or Organizer Pro."}
+Included with every paid event.
               </span>
             </span>
           </label>

@@ -174,7 +174,7 @@ export default function EventBrandingEditor({
                   <span className="font-semibold">White-label voting page</span>
                   <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
                     Hide the BoutCasts menu and footer so the page is all yours (a small &ldquo;Powered by BoutCasts&rdquo; line stays).
-                    {isPrivate ? " Included with every paid private event." : " Needs Large, Pro analytics or Organizer Pro."}
+ Included with every paid event.
                   </span>
                 </span>
               </label>

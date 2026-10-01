@@ -436,6 +436,11 @@ export default async function HostPage() {
                   style={{ borderColor: featured ? "var(--lp-ink-line)" : "var(--lp-line)", color: featured ? "var(--lp-body-dark)" : "var(--lp-muted)" }}
                 >
                   Great for: {note.fit}
+                  {key !== "free" && (
+                    <span className="mt-2 block font-semibold" style={{ color: featured ? "#fff" : "var(--lp-ink)" }}>
+                      ✓ Your logo, colors &amp; background · white-label page · sponsors
+                    </span>
+                  )}
                 </div>
                 <Link
                   href={CREATE_HREF}
