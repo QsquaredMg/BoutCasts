@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 import FileUploadPicker from "@/components/FileUploadPicker";
+import ImageField from "@/components/ImageField";
 import { LIVE_VOTE_TIERS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import { contrastRatio } from "@/lib/liveVoteEvents/roomTheme";
 import { parseClock } from "@/lib/showcases";
@@ -16,6 +17,9 @@ type OptionDraft = {
   clip: ClipSourceValue;
   description: string;
   thumbnailUrl: string | null;
+  imageUrl: string | null;
+  showPhoto: boolean;
+  showVideo: boolean;
   teamName: string;
   start: string;
 };
@@ -27,6 +31,9 @@ function newOption(): OptionDraft {
     clip: { sourceType: "link", sourceUrl: "" },
     description: "",
     thumbnailUrl: null,
+    imageUrl: null,
+    showPhoto: false,
+    showVideo: false,
     teamName: "",
     start: "",
   };
@@ -62,6 +69,8 @@ export default function NewLiveVoteEventPage() {
   const [brandColor, setBrandColor] = useState<string | null>(null);
   const [brandBgColor, setBrandBgColor] = useState<string | null>(null);
   const [whiteLabel, setWhiteLabel] = useState(false);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [brandBgImageUrl, setBrandBgImageUrl] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -127,8 +136,8 @@ export default function NewLiveVoteEventPage() {
         setError("Every option needs a name.");
         return;
       }
-      if (!sharedVideo && !o.clip.sourceUrl) {
-        setError(`Add a clip for "${o.name || "an option"}" — upload, record, or paste a link.`);
+      if (!sharedVideo && o.showVideo && !o.clip.sourceUrl?.trim()) {
+        setError(`Add the video for "${o.name || "an option"}" — upload, record, or paste a link — or turn video off.`);
         return;
       }
       if (Number.isNaN(parseClock(o.start))) {
@@ -172,6 +181,8 @@ export default function NewLiveVoteEventPage() {
         brand_color: isFree ? null : brandColor,
         brand_bg_color: isFree ? null : brandBgColor,
         white_label: isFree ? false : whiteLabel,
+        brand_bg_image_url: isFree ? null : brandBgImageUrl,
+        cover_image_url: coverImageUrl,
         shared_source_type: sharedVideo ? sharedClip.sourceType : null,
         shared_source_url: sharedVideo ? sharedClip.sourceUrl : null,
       })
@@ -188,8 +199,9 @@ export default function NewLiveVoteEventPage() {
       options.map((o, idx) => ({
         event_id: event.id,
         name: o.name.trim(),
-        source_type: sharedVideo ? null : o.clip.sourceType,
-        source_url: sharedVideo ? null : o.clip.sourceUrl,
+        source_type: sharedVideo || !o.showVideo || !o.clip.sourceUrl?.trim() ? null : o.clip.sourceType,
+        source_url: sharedVideo || !o.showVideo || !o.clip.sourceUrl?.trim() ? null : o.clip.sourceUrl.trim(),
+        image_url: o.showPhoto ? o.imageUrl : null,
         sort_order: idx,
         description: o.description.trim() || null,
         thumbnail_url: o.thumbnailUrl,
@@ -274,6 +286,16 @@ export default function NewLiveVoteEventPage() {
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
           />
+        </div>
+
+        <div>
+          <label className={labelClass} style={labelStyle}>
+            Cover photo (optional)
+          </label>
+          <p className="mb-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+            A banner across the top of your voting page — a team photo, school building, flyer or event poster.
+          </p>
+          <ImageField value={coverImageUrl} onChange={setCoverImageUrl} label="cover photo" wide />
         </div>
 
         <div>
@@ -383,50 +405,31 @@ export default function NewLiveVoteEventPage() {
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
         >
           <p className="mb-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
-            Custom branding (optional)
+            {visibility === "private" ? "Your school or company's look (optional)" : "Custom branding (optional)"}
           </p>
           <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
-            Sponsoring a vote for a brand or client? Add their name and logo, and a graphic that
-            voters see right after they submit their vote.
+            {visibility === "private"
+              ? "Put your logo, colors and background on the voting page so it looks like yours, not ours. You can change these later from the event page."
+              : "Sponsoring a vote for a brand or client? Add their name and logo, and a graphic that voters see right after they submit their vote."}
           </p>
 
           <label className={labelClass} style={labelStyle}>
-            Brand / client name
+            {visibility === "private" ? "School / organization name" : "Brand / client name"}
           </label>
           <input
             className={inputClass}
             style={{ ...inputStyle, marginBottom: 12 }}
             value={brandName}
             onChange={(e) => setBrandName(e.target.value)}
-            placeholder="e.g. Acme Sneakers"
+            placeholder={visibility === "private" ? "e.g. Jim Hill High School" : "e.g. Acme Sneakers"}
             maxLength={140}
           />
 
           <label className={labelClass} style={labelStyle}>
-            Brand logo
+            Logo
           </label>
           <div className="mb-3">
-            {brandLogoUrl ? (
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={brandLogoUrl}
-                  alt="Brand logo"
-                  className="h-12 w-12 rounded-lg border object-cover"
-                  style={{ borderColor: "var(--border)" }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setBrandLogoUrl(null)}
-                  className="text-xs font-semibold"
-                  style={{ color: "var(--text-faint)" }}
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <FileUploadPicker onUploaded={setBrandLogoUrl} />
-            )}
+            <ImageField value={brandLogoUrl} onChange={setBrandLogoUrl} label="logo" />
           </div>
 
           <label className={labelClass} style={labelStyle}>
@@ -506,6 +509,16 @@ export default function NewLiveVoteEventPage() {
             </p>
           )}
 
+          <div className="mt-4">
+            <label className={labelClass} style={labelStyle}>
+              Background image (optional)
+            </label>
+            <p className="mb-1.5 text-xs" style={{ color: "var(--text-faint)" }}>
+              Fills the page behind the ballot — a campus photo, team photo or pattern. Your background color is laid over it so text stays readable.
+            </p>
+            <ImageField value={brandBgImageUrl} onChange={setBrandBgImageUrl} label="background" wide />
+          </div>
+
           <label className="mt-4 flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
@@ -517,8 +530,10 @@ export default function NewLiveVoteEventPage() {
               <span className="font-semibold">White-label voting page</span>
               <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
                 Hide the BoutCasts menu and footer so your brand is front and center (a small
-                &ldquo;Powered by BoutCasts&rdquo; line stays). Included with Large, Pro analytics or
-                Organizer Pro.
+                &ldquo;Powered by BoutCasts&rdquo; line stays).{" "}
+                {visibility === "private"
+                  ? "Included with every paid private event."
+                  : "Included with Large, Pro analytics or Organizer Pro."}
               </span>
             </span>
           </label>
@@ -813,13 +828,53 @@ export default function NewLiveVoteEventPage() {
                     />
                   )}
                 </div>
-                {!sharedVideo && (
-                  <ClipSourcePicker
-                    value={option.clip}
-                    onChange={(clip) => updateOption(option.key, { clip })}
-                    inputClass={inputClass}
-                    inputStyle={inputStyle}
-                  />
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ["showPhoto", "📷 Photo"],
+                      ...(sharedVideo ? [] : ([["showVideo", "🎬 Video"]] as const)),
+                    ] as const
+                  ).map(([key, label]) => {
+                    const on = option[key];
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => updateOption(option.key, { [key]: !on })}
+                        className="rounded-full border px-3 py-1.5 text-xs font-bold"
+                        style={{
+                          borderColor: on ? "var(--red)" : "var(--border)",
+                          background: on ? "var(--red-soft)" : "transparent",
+                          color: on ? "var(--red)" : "var(--text-dim)",
+                        }}
+                        aria-pressed={on}
+                      >
+                        {on ? "✓ " : "+ "}
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {option.showPhoto && (
+                  <div className="mt-2.5">
+                    <p className="mb-1 text-xs" style={{ color: "var(--text-faint)" }}>
+                      A big photo voters see on this option — a headshot, poster, product shot or artwork.
+                    </p>
+                    <ImageField value={option.imageUrl} onChange={(url) => updateOption(option.key, { imageUrl: url })} wide />
+                  </div>
+                )}
+                {!sharedVideo && option.showVideo && (
+                  <div className="mt-2.5">
+                    <p className="mb-1 text-xs" style={{ color: "var(--text-faint)" }}>
+                      Upload a video, record one, or paste a YouTube / TikTok / Instagram link.
+                    </p>
+                    <ClipSourcePicker
+                      value={option.clip}
+                      onChange={(clip) => updateOption(option.key, { clip })}
+                      inputClass={inputClass}
+                      inputStyle={inputStyle}
+                    />
+                  </div>
                 )}
 
                 <div className="mt-3">
@@ -844,7 +899,7 @@ export default function NewLiveVoteEventPage() {
 
                 <div className="mt-3">
                   <label className="mb-1 block text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-                    Logo or picture (optional)
+                    Small logo or headshot (optional, shown next to the name)
                   </label>
                   {option.thumbnailUrl ? (
                     <div className="flex items-center gap-3">

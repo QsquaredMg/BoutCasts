@@ -28,6 +28,8 @@ type EventRow = {
   closes_at: string | null;
   brand_name: string | null;
   brand_logo_url: string | null;
+  cover_image_url: string | null;
+  is_private: boolean;
   ads_enabled: boolean;
   post_vote_graphic_url: string | null;
   voting_method: "single" | "ranked";
@@ -47,6 +49,7 @@ type OptionRow = {
   sort_order: number;
   description: string | null;
   thumbnail_url: string | null;
+  image_url: string | null;
   team_name: string | null;
   start_seconds: number | null;
 };
@@ -100,7 +103,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, shared_source_url, voter_mode, status, closes_at, brand_name, brand_logo_url, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
+      .select("id, title, description, shared_source_url, voter_mode, status, closes_at, brand_name, brand_logo_url, cover_image_url, is_private, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -114,7 +117,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: optionRows } = await supabase
       .from("live_vote_options")
-      .select("id, name, source_type, source_url, sort_order, description, thumbnail_url, team_name, start_seconds")
+      .select("id, name, source_type, source_url, sort_order, description, thumbnail_url, image_url, team_name, start_seconds")
       .eq("event_id", eventId)
       .order("sort_order");
     setOptions(optionRows ?? []);
@@ -378,23 +381,50 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
   return (
     <div>
-      {(event.brand_name || event.brand_logo_url) && (
-        <div className="mb-3 flex items-center gap-2.5">
-          {event.brand_logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={event.brand_logo_url}
-              alt={event.brand_name ? `${event.brand_name} logo` : "Brand logo"}
-              className="h-9 w-9 rounded-lg border object-cover"
-              style={{ borderColor: "var(--border)" }}
-            />
-          )}
-          {event.brand_name && (
-            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
-              Presented by {event.brand_name}
-            </span>
-          )}
-        </div>
+      {(event.brand_name || event.brand_logo_url) &&
+        (event.is_private ? (
+          // School / company event: their logo and name are the header.
+          <div className="mb-4 flex flex-col items-center gap-2 text-center">
+            {event.brand_logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={event.brand_logo_url}
+                alt={event.brand_name ? `${event.brand_name} logo` : "Logo"}
+                className="h-20 max-w-[220px] object-contain"
+              />
+            )}
+            {event.brand_name && (
+              <span className="text-sm font-black uppercase tracking-[0.12em]" style={{ color: "var(--text-dim)" }}>
+                {event.brand_name}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="mb-3 flex items-center gap-2.5">
+            {event.brand_logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={event.brand_logo_url}
+                alt={event.brand_name ? `${event.brand_name} logo` : "Brand logo"}
+                className="h-9 w-9 rounded-lg border object-cover"
+                style={{ borderColor: "var(--border)" }}
+              />
+            )}
+            {event.brand_name && (
+              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+                Presented by {event.brand_name}
+              </span>
+            )}
+          </div>
+        ))}
+      {event.cover_image_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={event.cover_image_url}
+          alt=""
+          className="mb-4 aspect-[16/9] w-full rounded-2xl border object-cover"
+          style={{ borderColor: "var(--border)" }}
+        />
       )}
       {event.ads_enabled && <AdBanner placement="live_vote" />}
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -603,6 +633,16 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                 )}
               </div>
 
+              {option.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={option.image_url}
+                  alt={option.name}
+                  loading="lazy"
+                  className="mb-2 max-h-[420px] w-full rounded-lg object-cover"
+                  style={{ background: "var(--surface-2)" }}
+                />
+              )}
               {clip?.kind === "hosted" && <ClipPlayer src={clip.url} isAudio={clip.isAudio} label={option.name} />}
               {clip?.kind === "embed" && <EmbeddedClipPlayer sourceUrl={clip.url} label={option.name} />}
               {clip?.kind === "link" && (

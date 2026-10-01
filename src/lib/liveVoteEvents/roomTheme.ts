@@ -26,8 +26,20 @@ export function isHexColor(v: unknown): v is string {
   return typeof v === "string" && HEX.test(v);
 }
 
-export function roomThemeVars(accent: string | null, background: string | null): Record<string, string> {
+export function roomThemeVars(
+  accent: string | null,
+  background: string | null,
+  backgroundImage?: string | null
+): Record<string, string> {
   const vars: Record<string, string> = {};
+  // A background photo sits under a wash of the background color (84%) so the
+  // ballot stays readable whatever the photo looks like.
+  if (typeof backgroundImage === "string" && /^https:\/\/[^\s"'()\\]+$/i.test(backgroundImage)) {
+    const [r, g, b] = rgb(isHexColor(background) ? background : "#f4f6fb");
+    vars.backgroundImage = `linear-gradient(rgba(${r}, ${g}, ${b}, 0.84), rgba(${r}, ${g}, ${b}, 0.84)), url("${backgroundImage}")`;
+    vars.backgroundSize = "cover";
+    vars.backgroundPosition = "center";
+  }
   if (isHexColor(accent)) {
     const [r, g, b] = rgb(accent);
     vars["--red"] = accent;
@@ -36,7 +48,7 @@ export function roomThemeVars(accent: string | null, background: string | null):
   if (isHexColor(background)) {
     const dark = luminance(background) < 0.2;
     vars["--bg"] = background;
-    vars.background = background;
+    vars.backgroundColor = background;
     if (dark) {
       Object.assign(vars, {
         "--surface": "rgba(255, 255, 255, 0.06)",

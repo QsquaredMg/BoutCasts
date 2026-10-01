@@ -43,8 +43,17 @@ export default async function VotePage({
   const { id } = await params;
   const supabase = await createClient();
   const { data: room } = await supabase.rpc("get_live_vote_room", { p_event_id: id });
-  const theme = (room ?? {}) as { brand_color?: string | null; brand_bg_color?: string | null; white_label?: boolean };
-  const style = roomThemeVars(theme.brand_color ?? null, theme.brand_bg_color ?? null) as React.CSSProperties;
+  const theme = (room ?? {}) as {
+    brand_color?: string | null;
+    brand_bg_color?: string | null;
+    brand_bg_image_url?: string | null;
+    white_label?: boolean;
+  };
+  const style = roomThemeVars(
+    theme.brand_color ?? null,
+    theme.brand_bg_color ?? null,
+    theme.brand_bg_image_url ?? null
+  ) as React.CSSProperties;
 
   // data-white-label hides the site menu and footer (see globals.css) so the
   // organizer's brand is front and center; a small credit stays at the bottom.

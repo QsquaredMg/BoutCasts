@@ -9,6 +9,7 @@ import EventSponsorManager from "@/components/EventSponsorManager";
 import SuperVotesManager from "@/components/SuperVotesManager";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import EventBrandingEditor from "@/components/EventBrandingEditor";
 import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -447,6 +448,8 @@ export default function LiveVoteEventManager({
           </span>
         </label>
       )}
+
+      <EventBrandingEditor eventId={event.id} isFree={isFree} isPrivate={event.is_private} editable={event.status !== "closed"} />
 
       {isFree ? (
         <div className="mb-4 rounded-xl border p-3.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
