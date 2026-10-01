@@ -10,6 +10,8 @@ import ContributeButton from "@/components/ContributeButton";
 import ClipSourceTag from "@/components/ClipSourceTag";
 import ClipPlayer from "@/components/ClipPlayer";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
+import InstrumentalPlayer from "@/components/InstrumentalPlayer";
+import type { Instrumental } from "@/lib/types";
 import AdBanner from "@/components/AdBanner";
 import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
 
@@ -35,6 +37,17 @@ export default async function FeaturedBout({
 
   if (!bout) {
     return null;
+  }
+
+  let instrumental: Instrumental | null = null;
+  if (bout.instrumental_id) {
+    const { data } = await supabase
+      .from("instrumentals")
+      .select("*")
+      .eq("id", bout.instrumental_id)
+      .eq("status", "approved")
+      .maybeSingle();
+    instrumental = (data as Instrumental | null) ?? null;
   }
 
   const [{ data: subA }, { data: subB }] = await Promise.all([
@@ -246,6 +259,8 @@ export default async function FeaturedBout({
           {bout.round_theme_rules}
         </div>
       )}
+
+      {instrumental && <InstrumentalPlayer instrumental={instrumental} />}
 
       {BOUTBUCKS_ENABLED && pool && (
         <div

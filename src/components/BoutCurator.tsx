@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Bout, Category, Subcategory } from "@/lib/types";
+import InstrumentalPicker from "@/components/InstrumentalPicker";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 
 type SubmissionRow = {
@@ -29,6 +30,7 @@ const EMPTY_FORM = {
   closes_at: "",
   round_theme_name: "",
   round_theme_rules: "",
+  instrumental_id: "",
   sponsor_id: "",
   sponsor_prize_description: "",
 };
@@ -187,6 +189,7 @@ export default function BoutCurator({
         closes_at: form.closes_at ? new Date(form.closes_at).toISOString() : null,
         round_theme_name: form.round_theme_name.trim() || null,
         round_theme_rules: form.round_theme_rules.trim() || null,
+        ...(form.instrumental_id ? { instrumental_id: form.instrumental_id } : {}),
         sponsor_id: form.sponsor_id || null,
         sponsor_prize_description: form.sponsor_prize_description.trim() || null,
       })
@@ -219,6 +222,7 @@ export default function BoutCurator({
       closes_at: b.closes_at ? b.closes_at.slice(0, 16) : "",
       round_theme_name: b.round_theme_name ?? "",
       round_theme_rules: b.round_theme_rules ?? "",
+      instrumental_id: b.instrumental_id ?? "",
       sponsor_id: b.sponsor_id ?? "",
       sponsor_prize_description: b.sponsor_prize_description ?? "",
     });
@@ -274,6 +278,9 @@ export default function BoutCurator({
         closes_at: editForm.closes_at ? new Date(editForm.closes_at).toISOString() : null,
         round_theme_name: editForm.round_theme_name.trim() || null,
         round_theme_rules: editForm.round_theme_rules.trim() || null,
+        ...(editForm.instrumental_id || (bouts.find((x) => x.id === id)?.instrumental_id ?? null)
+          ? { instrumental_id: editForm.instrumental_id || null }
+          : {}),
         sponsor_id: editForm.sponsor_id || null,
         sponsor_prize_description: editForm.sponsor_prize_description.trim() || null,
       })
@@ -517,6 +524,10 @@ export default function BoutCurator({
             onChange={(e) => setForm((f) => ({ ...f, round_theme_rules: e.target.value }))}
             className="rounded border border-neutral-300 px-3 py-2 text-sm"
             rows={2}
+          />
+          <InstrumentalPicker
+            value={form.instrumental_id}
+            onChange={(v) => setForm((f) => ({ ...f, instrumental_id: v }))}
           />
 
           <button
@@ -795,6 +806,10 @@ export default function BoutCurator({
                         onChange={(e) => setEditForm((f) => ({ ...f, round_theme_rules: e.target.value }))}
                         className="rounded border border-neutral-300 px-3 py-2 text-sm"
                         rows={2}
+                      />
+                      <InstrumentalPicker
+                        value={editForm.instrumental_id}
+                        onChange={(v) => setEditForm((f) => ({ ...f, instrumental_id: v }))}
                       />
                       <div className="flex gap-2">
                         <button
