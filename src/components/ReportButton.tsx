@@ -7,6 +7,9 @@ const REASONS = [
   "Inappropriate content",
   "Fake or duplicate entry",
   "Harassment",
+  "Hate speech or slurs",
+  "Roast without the target's consent",
+  "Threats or private information",
   "Copyright issue",
   "Other",
 ];

@@ -26,6 +26,9 @@ export default function Footer() {
           <Link href="/terms" className="hover:underline">
             Terms of Service
           </Link>
+          <Link href="/rules" className="hover:underline">
+            Battle Rules
+          </Link>
           <a href="mailto:support@boutcasts.com" className="hover:underline">
             Contact
           </a>
