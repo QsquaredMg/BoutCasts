@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import InstrumentalAdmin from "@/components/InstrumentalAdmin";
 import InstrumentalUpload from "@/components/InstrumentalUpload";
@@ -18,6 +19,11 @@ export default async function InstrumentalsAdminPage() {
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Approve beats submitted by producers and organizers. Only approved tracks appear in the bout picker.
         {" "}{items.filter((i) => i.status === "pending").length} pending.
+      </p>
+      <p className="mb-4 text-sm">
+        <Link href="/admin/instrumentals/report" className="font-semibold underline" style={{ color: "var(--blue)" }}>
+          Producer reports
+        </Link>
       </p>
       <InstrumentalAdmin initial={items} />
       <h3 className="mb-2 mt-8 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Upload a track</h3>
