@@ -15,6 +15,9 @@ type AdPayload = {
 };
 
 const SESSION_KEY = "bc_interstitial_shown_at";
+// Set by AfterVote once this browser has cast a vote. Full-screen ads wait
+// until then, so a first-time visitor's first experience is voting, not an ad.
+export const HAS_VOTED_KEY = "bc_has_voted";
 const MIN_GAP_MS = 30 * 60 * 1000; // don't re-fire more than once per 30 min in a session
 const SKIP_AFTER_MS = 5000;
 // Never cover account screens: a 5-second ad on top of sign-in, sign-up or an
@@ -34,6 +37,12 @@ export default function AdInterstitial() {
   useEffect(() => {
     if (!pathname || NO_AD_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return;
     let cancelled = false;
+
+    try {
+      if (localStorage.getItem(HAS_VOTED_KEY) !== "1") return;
+    } catch {
+      return; // can't tell whether they've voted — don't risk covering the first vote
+    }
 
     try {
       const lastShown = sessionStorage.getItem(SESSION_KEY);

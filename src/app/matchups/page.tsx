@@ -1,3 +1,4 @@
+import { BOUTBUCKS_ENABLED } from "@/lib/features";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { isPlaceholderName, isPublicBout } from "@/lib/publicBouts";
@@ -232,7 +233,7 @@ export default async function MatchupsPage() {
                     <SponsorBadge sponsor={effectiveSponsor} />
                   </div>
                 )}
-                {poolByBout.has(bout.id) && (() => {
+                {BOUTBUCKS_ENABLED && poolByBout.has(bout.id) && (() => {
                   const pool = poolByBout.get(bout.id)!;
                   const pct = Math.min(100, Math.round((pool.raised / pool.goal_amount) * 100));
                   return (

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import AfterVote from "@/components/AfterVote";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SharedVideoPlayer from "@/components/showcases/SharedVideoPlayer";
@@ -244,6 +245,18 @@ export default function ShowcaseView({
           );
         })}
       </div>
+
+      {state?.my_vote && me !== undefined && (() => {
+        const picked = choices.find((c) => c.id === state.my_vote);
+        if (!picked) return null;
+        const count = state.counts?.[picked.id];
+        const pct = state.counts && state.total > 0 && count !== undefined ? Math.round((count / state.total) * 100) : null;
+        return (
+          <div className="mt-4">
+            <AfterVote title={showcase.title} pickedName={picked.name} pickedPct={pct} signedIn={!!me} />
+          </div>
+        );
+      })()}
 
       {live && showcase.scoring_mode === "judges" && (
         <p className="mt-3 text-sm" style={{ color: "var(--text-dim)" }}>

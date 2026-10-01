@@ -13,7 +13,6 @@ export default function SuperVotesManager({
   eventId,
   status,
   enabled,
-  mode,
   eligible,
   isAdmin,
   onChanged,
@@ -21,6 +20,7 @@ export default function SuperVotesManager({
   eventId: string;
   status: "draft" | "live" | "closed";
   enabled: boolean;
+  /** Always "separate" now; kept so callers don't need to change. */
   mode: "separate" | "counted";
   eligible: boolean;
   isAdmin: boolean;
@@ -72,7 +72,6 @@ export default function SuperVotesManager({
 
   const box = { borderColor: "var(--border)", background: "var(--surface)" };
   const money = (c: number) => `$${(c / 100).toFixed(2)}`;
-  const locked = (earnings?.purchases ?? 0) > 0;
 
   if (!eligible && !enabled) return null;
 
@@ -112,36 +111,10 @@ export default function SuperVotesManager({
         </>
       ) : (
         <>
-          <div className="mb-3 flex flex-col gap-1.5 text-sm">
-            {(
-              [
-                ["separate", "Separate Fan Boost total (recommended)", "Super Votes show next to each contestant but don't decide the winner."],
-                ["counted", "Count toward the winner", "Super Votes are added to the main tally. Paid votes deciding a prize can be regulated where you are — check local rules."],
-              ] as const
-            ).map(([value, label, hint]) => (
-              <label key={value} className="flex cursor-pointer items-start gap-2.5">
-                <input
-                  type="radio"
-                  name="sv-mode"
-                  className="mt-1 accent-[var(--red)]"
-                  checked={mode === value}
-                  disabled={busy || locked || status === "closed"}
-                  onChange={() => rpc("set_live_vote_super_votes_mode", { p_event_id: eventId, p_mode: value })}
-                />
-                <span>
-                  <span className="font-semibold">{label}</span>
-                  <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
-                    {hint}
-                  </span>
-                </span>
-              </label>
-            ))}
-            {locked && (
-              <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-                Locked after the first purchase so the rules don&apos;t change mid-vote.
-              </p>
-            )}
-          </div>
+          <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>
+            Super Votes show as a separate <strong>Fan Boost</strong> total next to each contestant. They
+            don&apos;t decide the winner. Regular votes do.
+          </p>
           {earnings && (
             <div className="grid grid-cols-3 gap-2 text-center">
               {[

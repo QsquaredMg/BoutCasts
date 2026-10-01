@@ -1,3 +1,4 @@
+import { BOUTBUCKS_ENABLED } from "@/lib/features";
 import { createClient } from "@/lib/supabase/server";
 import ModerationQueue from "@/components/ModerationQueue";
 import PrizePoolManager from "@/components/PrizePoolManager";
@@ -46,10 +47,14 @@ export default async function ModerationPage() {
       </p>
       <ModerationQueue submissions={pending ?? []} />
 
-      <h2 className="mb-3 mt-10 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Prize pools
-      </h2>
-      <PrizePoolManager boutsWithoutPool={boutsWithoutPool} initialPools={poolRows} />
+      {BOUTBUCKS_ENABLED && (
+        <>
+          <h2 className="mb-3 mt-10 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Prize pools
+          </h2>
+          <PrizePoolManager boutsWithoutPool={boutsWithoutPool} initialPools={poolRows} />
+        </>
+      )}
 
       <h2 className="mb-3 mt-10 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
         Open reports

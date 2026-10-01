@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import AfterVote from "@/components/AfterVote";
 
 // Guests (no account) get one free bout vote per day, tracked by a random
 // token kept on this device. The database also caps free votes per network.
@@ -32,6 +33,8 @@ function resetTime(iso: string | null): string {
 
 type Props = {
   boutId: string;
+  /** Bout title, used in the share message. */
+  title?: string;
   aName: string;
   bName: string;
   initialTally: { a: number; b: number };
@@ -42,6 +45,7 @@ type Props = {
 
 export default function VotePanel({
   boutId,
+  title,
   aName,
   bName,
   initialTally,
@@ -146,8 +150,7 @@ export default function VotePanel({
 
     setMyVote(side);
     setTally((prev) => ({ ...prev, [side]: prev[side] + 1 }));
-    setMessageKind("info");
-    setMessage("Vote cast!");
+    setMessage(null);
     setPending(false);
   }
 
@@ -168,7 +171,7 @@ export default function VotePanel({
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {sides.map((s) => {
         const voted = myVote === s.key;
         return (
@@ -234,6 +237,19 @@ export default function VotePanel({
           </Link>{" "}
           to vote on every bout.
         </p>
+      )}
+
+      {myVote !== null && signedIn !== null && (
+        <div className="col-span-full min-w-0">
+          <AfterVote
+            title={title || `${aName} vs ${bName}`}
+            pickedName={myVote === "a" ? aName : bName}
+            pickedPct={myVote === "a" ? pctA : pctB}
+            graphicUrl={`/api/bouts/${boutId}/vote-card`}
+            excludeBoutId={boutId}
+            signedIn={signedIn}
+          />
+        </div>
       )}
 
       {signedIn === false && (guestVotedHere || guestUsedToday) && (

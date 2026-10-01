@@ -35,12 +35,6 @@ const STEPS = [
     body:
       "Winning bouts, climbing brackets, and staying active earns points toward your Clout tier and unlocks badges shown on your profile.",
   },
-  {
-    icon: "💰",
-    title: "BoutBucks wallet",
-    body:
-      "Some bouts and challenges pay out BoutBucks. Use your balance to enter paid challenges or chip in on crowdfunded prize pools.",
-  },
 ];
 
 export default function HowItWorksPage() {

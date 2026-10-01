@@ -10,7 +10,19 @@ import { useEffect, useRef, useState } from "react";
 // sheet (navigator.share carries the caption + link together); desktop
 // gets a small menu with direct X/Facebook share links plus copy-link,
 // since desktop browsers largely don't implement navigator.share.
-export default function ShareButton({ title, text }: { title: string; text?: string }) {
+export default function ShareButton({
+  title,
+  text,
+  label = "🔗 Share",
+  big = false,
+}: {
+  title: string;
+  text?: string;
+  /** Button text (defaults to "🔗 Share"). */
+  label?: string;
+  /** Full-width solid button instead of the small pill. */
+  big?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -69,10 +81,14 @@ export default function ShareButton({ title, text }: { title: string; text?: str
       <button
         type="button"
         onClick={handleShareClick}
-        className="flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold"
-        style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+        className={
+          big
+            ? "bc-btn-solid flex min-h-[44px] w-full items-center justify-center rounded-full px-4 text-sm font-bold"
+            : "flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold"
+        }
+        style={big ? undefined : { borderColor: "var(--border)", color: "var(--text-dim)" }}
       >
-        {copied ? "Link copied!" : "🔗 Share"}
+        {copied ? "Link copied!" : label}
       </button>
       {open && (
         <div

@@ -1,3 +1,4 @@
+import { BOUTBUCKS_ENABLED } from "@/lib/features";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -18,6 +19,9 @@ export default async function WalletPage() {
   const user = userData.user;
   if (!user) {
     redirect("/login");
+  }
+  if (!BOUTBUCKS_ENABLED) {
+    redirect("/");
   }
 
   const [{ data: profile }, { data: events }] = await Promise.all([

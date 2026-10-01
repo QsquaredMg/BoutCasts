@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BOUTBUCKS_ENABLED } from "@/lib/features";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -205,7 +206,7 @@ export default function NavBar() {
           )}
           {loading ? null : user ? (
             <>
-              {walletBalance !== null && (
+              {BOUTBUCKS_ENABLED && walletBalance !== null && (
                 <Link
                   href="/wallet"
                   title="BoutBucks wallet balance"
@@ -298,7 +299,7 @@ export default function NavBar() {
               🥊 Challenges{pendingChallenges > 0 ? ` (${pendingChallenges})` : ""}
             </Link>
           )}
-          {user && walletBalance !== null && (
+          {BOUTBUCKS_ENABLED && user && walletBalance !== null && (
             <Link href="/wallet" className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: "var(--gold)" }}>
               💰 Wallet — {walletBalance} BB
             </Link>

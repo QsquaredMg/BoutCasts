@@ -1,3 +1,4 @@
+import { BOUTBUCKS_ENABLED } from "@/lib/features";
 import Link from "next/link";
 import SponsorBadge from "@/components/SponsorBadge";
 import { createClient } from "@/lib/supabase/server";
@@ -246,7 +247,7 @@ export default async function FeaturedBout({
         </div>
       )}
 
-      {pool && (
+      {BOUTBUCKS_ENABLED && pool && (
         <div
           className="mb-5 rounded-xl border p-3"
           style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
@@ -315,6 +316,7 @@ export default async function FeaturedBout({
 
       <VotePanel
         boutId={bout.id}
+        title={bout.title}
         aName={bout.competitor_a_name}
         bName={bout.competitor_b_name}
         initialTally={tally}
