@@ -9,6 +9,9 @@ export const revalidate = 3600;
 
 const STATIC_ROUTES = [
   "",
+  "/host",
+  "/discover",
+  "/create",
   "/matchups",
   "/explore",
   "/debates",

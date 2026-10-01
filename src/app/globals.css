@@ -322,3 +322,13 @@ html[data-splash="on"] .splash-root { display: flex; }
 body:has([data-white-label]) [data-site-chrome] {
   display: none;
 }
+
+/* Phones: leave room for the fixed bottom tab bar. */
+@media (max-width: 767px) {
+  body:has([data-bottom-tabs]) {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  body:has([data-white-label]) {
+    padding-bottom: 0;
+  }
+}

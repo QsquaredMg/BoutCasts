@@ -58,8 +58,13 @@ function LoginForm() {
     }
     let dest = next;
     if (!hasNext && data.user) {
-      const { data: profile } = await supabase.from("profiles").select("username").eq("id", data.user.id).maybeSingle();
-      if (profile?.username) dest = `/profile/${encodeURIComponent(profile.username)}`;
+      const [{ data: profile }, { count: events }] = await Promise.all([
+        supabase.from("profiles").select("username").eq("id", data.user.id).maybeSingle(),
+        supabase.from("live_vote_events").select("id", { count: "exact", head: true }).eq("organizer_id", data.user.id),
+      ]);
+      // Organizers land on their events; everyone else on their profile.
+      if ((events ?? 0) > 0) dest = "/live-vote";
+      else if (profile?.username) dest = `/profile/${encodeURIComponent(profile.username)}`;
     }
     router.push(dest);
     router.refresh();
