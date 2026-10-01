@@ -41,7 +41,8 @@ export default function InstrumentalUpload({ onDone }: { onDone?: () => void }) 
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
     if (!user) {
-      window.location.href = "/login";
+      setBusy(false);
+      setError("Please sign in to upload.");
       return;
     }
 
