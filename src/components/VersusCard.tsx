@@ -31,7 +31,7 @@ export default function VersusCard({
     const color = side === "a" ? "var(--red)" : "var(--blue)";
     return (
       <div
-        className="flex flex-1 flex-col items-center gap-1.5 rounded-xl p-3"
+        className="flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl p-3"
         style={{ background: isWinner ? "var(--gold-soft)" : "var(--surface-2)" }}
       >
         {isWinner && (
@@ -45,7 +45,7 @@ export default function VersusCard({
         >
           {initials(name)}
         </span>
-        <span className="truncate text-center text-xs font-bold">{name}</span>
+        <span className="line-clamp-2 w-full break-words text-center text-xs font-bold">{name}</span>
         <span
           className="rounded-full px-2 py-0.5 text-[10px] font-bold"
           style={{ background: "var(--surface)", color }}
@@ -66,7 +66,7 @@ export default function VersusCard({
           {categoryName}
         </span>
       </div>
-      <div className="px-4 pt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
+      <div className="truncate px-4 pt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
         {levelText}
       </div>
       <div className="flex items-stretch gap-2 p-4">

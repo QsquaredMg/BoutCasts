@@ -277,6 +277,17 @@ export default function SignupPage() {
         <button type="submit" disabled={loading} className="bc-btn-red py-2.5 disabled:opacity-60">
           {loading ? "Creating account..." : "Sign up"}
         </button>
+        <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+          By signing up, you agree to our{" "}
+          <Link href="/terms" target="_blank" className="underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" target="_blank" className="underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
       <p className="mt-4 text-sm" style={{ color: "var(--text-faint)" }}>
         Already have an account?{" "}

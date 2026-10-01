@@ -85,13 +85,13 @@ export default async function RoundRecapPage({
         </div>
       )}
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {recap.bouts.map((b) => {
           const total = b.tally_a + b.tally_b;
           const pctA = total > 0 ? Math.round((b.tally_a / total) * 100) : 0;
           const pctB = total > 0 ? 100 - pctA : 0;
           return (
-            <Link key={b.id} href={`/bout/${b.id}`} className="block transition hover:brightness-105">
+            <Link key={b.id} href={`/bout/${b.id}`} className="block min-w-0 transition hover:brightness-105">
               <VersusCard
                 categoryName={recap.categoryName}
                 levelText={`${label} · ${b.title}`}

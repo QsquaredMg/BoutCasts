@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isPublicBout } from "@/lib/publicBouts";
+import { isPlaceholderName, isPublicBout } from "@/lib/publicBouts";
 import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
@@ -54,7 +54,6 @@ export default async function MatchupsPage() {
   >();
   for (const row of (bracketBoutsRaw as BracketRow[] | null) ?? []) {
     const existing = bracketsByKey.get(row.bracket_key);
-    const isFinalRound = !existing || row.round_number >= existing.rounds;
     const entry = existing ?? {
       key: row.bracket_key,
       categoryName: catName(row.categories),
@@ -69,9 +68,10 @@ export default async function MatchupsPage() {
     if (row.status === "live") entry.live += 1;
     if (row.round_number >= entry.rounds) {
       entry.rounds = row.round_number;
-      if (row.competitor_a_name && row.competitor_b_name) {
-        entry.finalMatchup = `${row.competitor_a_name} vs ${row.competitor_b_name}`;
-      }
+      entry.finalMatchup =
+        isPlaceholderName(row.competitor_a_name) || isPlaceholderName(row.competitor_b_name)
+          ? null
+          : `${row.competitor_a_name} vs ${row.competitor_b_name}`;
     }
     bracketsByKey.set(row.bracket_key, entry);
   }
@@ -155,11 +155,9 @@ export default async function MatchupsPage() {
                       {isDone ? "FINAL" : isLive ? "LIVE" : "UPCOMING"}
                     </span>
                   </div>
-                  {b.finalMatchup && (
-                    <div className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-                      {b.finalMatchup}
-                    </div>
-                  )}
+                  <div className="line-clamp-2 text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                    {b.finalMatchup ? `Final: ${b.finalMatchup}` : "Final: to be decided"}
+                  </div>
                   <div className="text-xs" style={{ color: "var(--text-faint)" }}>
                     {b.final} of {b.total} bouts final &middot; {b.rounds} round{b.rounds === 1 ? "" : "s"}
                   </div>

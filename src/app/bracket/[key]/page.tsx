@@ -15,13 +15,14 @@ export async function generateMetadata({
   const supabase = await createClient();
   const { data: bouts } = await supabase
     .from("bouts")
-    .select("categories(name)")
+    .select("title, categories(name)")
     .eq("bracket_key", key)
+    .order("round_number", { ascending: true })
     .limit(1);
 
-  const first = bouts?.[0] as { categories?: { name: string } | { name: string }[] | null } | undefined;
+  const first = bouts?.[0] as { title?: string | null; categories?: { name: string } | { name: string }[] | null } | undefined;
   const categoryName = Array.isArray(first?.categories) ? first?.categories[0]?.name : first?.categories?.name;
-  const title = categoryName ? `${categoryName} Bracket` : "Bracket";
+  const title = first?.title?.trim() ? `${first.title.trim()} — Bracket` : categoryName ? `${categoryName} Bracket` : "Bracket";
   const description = "Vote through the bracket as it fills in — or start your own Bout — on BoutCasts.";
 
   return {

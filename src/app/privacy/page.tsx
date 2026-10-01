@@ -28,13 +28,14 @@ export default function PrivacyPage() {
         Information we collect
       </h2>
       <ul className={`${BODY} list-disc space-y-1 pl-5`} style={{ color: "var(--text-dim)" }}>
-        <li>Account information: email address, username, and password (stored securely, hashed, via our authentication provider).</li>
+        <li>Account information: email address, username, birthday (to confirm you&apos;re at least 13), and password (stored securely, hashed, via our authentication provider).</li>
         <li>Content you submit: clips, links, titles, descriptions, comments, and other material you post to compete in or comment on bouts.</li>
         <li>Voting and engagement activity: which bouts you vote on, points earned, badges, and challenges you send or receive.</li>
         <li>Payment information: if you sponsor a category, payments are processed by Stripe. We do not store your card number — Stripe handles and stores that directly.</li>
         <li>Wallet activity: your BoutBucks balance and history.</li>
         <li>Usage data: pages visited, device/browser type, and similar technical information collected automatically. We use privacy-friendly analytics that don&apos;t use advertising cookies.</li>
         <li>Guest voting: if you vote without an account, we keep a random identifier in your browser and a one-way hash of your IP address so each guest gets one vote per day. We don&apos;t store your raw IP address with your vote.</li>
+        <li>Optional Live Vote survey: some organizers ask voters an optional question about age range, gender, or race/ethnicity. Answering is voluntary. Organizers only see combined totals, never who answered what.</li>
         <li>Push notifications: if you turn them on, we store your browser&apos;s push subscription so we can send you alerts. You can turn them off at any time in your browser settings.</li>
       </ul>
 
