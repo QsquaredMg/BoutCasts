@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Instrumental } from "@/lib/types";
 
 // Shows the shared instrumental for a music bout so voters can hear what both
@@ -18,7 +19,13 @@ export default function InstrumentalPlayer({ instrumental }: { instrumental: Ins
         🎧 Same instrumental for both: {instrumental.title}
       </div>
       <div className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>
-        Produced by {instrumental.producer_name}
+        Produced by{" "}
+        <Link
+          href={`/instrumentals?producer=${encodeURIComponent(instrumental.producer_name)}`}
+          className="font-semibold underline"
+        >
+          {instrumental.producer_name}
+        </Link>
         {details.length > 0 ? ` · ${details.join(" · ")}` : ""}
       </div>
       <audio src={instrumental.file_url} controls preload="none" className="w-full" />
