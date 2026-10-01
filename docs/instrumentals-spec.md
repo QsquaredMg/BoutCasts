@@ -25,7 +25,9 @@ See `docs/sql/instrumentals_phase1.sql`.
 ## Licensing terms (shown to every uploader)
 Non-exclusive license for BoutCasts to host the track and let performers use it in battles, with the producer credited on the bout page. A takedown path uses the existing "Copyright issue" report reason. No ripped or copyrighted beats.
 
-## In-app recording (phase 3)
+## In-app recording (phase 3 — implemented in draft/instrumentals-phase2)
+Implemented in `InAppRecorder` (`instrumentalUrl` prop): headphones checkbox gates Start, beat plays to headphones only, mic + beat are mixed with Web Audio into the saved clip, recording auto-stops when the beat ends. Wired into /submit (music categories) and the admin BoutCurator.
+
 - Show: "Headphones required. Without them the beat will bleed into your microphone." plus a confirmation checkbox. Browsers cannot reliably detect headphones, so this is a message, not a hard block.
 - Mix the beat and the microphone in the browser (Web Audio API) so the saved clip contains both and stays in sync for voters.
 - Uploaded videos are trusted at launch; moderators spot-check and viewers can report a mismatch.

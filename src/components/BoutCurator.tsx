@@ -61,6 +61,8 @@ export default function BoutCurator({
     category_id: categories[0]?.id ?? "",
   });
   const [formResetKey, setFormResetKey] = useState(0);
+  const [formBeatUrl, setFormBeatUrl] = useState<string | null>(null);
+  const [editBeatUrl, setEditBeatUrl] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -444,6 +446,7 @@ export default function BoutCurator({
                     Or attach a clip directly
                   </p>
                   <ClipSourcePicker
+                    instrumentalUrl={formBeatUrl}
                     key={`a-${formResetKey}`}
                     value={form.competitor_a_clip}
                     onChange={(next) => setForm((f) => ({ ...f, competitor_a_clip: next }))}
@@ -482,6 +485,7 @@ export default function BoutCurator({
                     Or attach a clip directly
                   </p>
                   <ClipSourcePicker
+                    instrumentalUrl={formBeatUrl}
                     key={`b-${formResetKey}`}
                     value={form.competitor_b_clip}
                     onChange={(next) => setForm((f) => ({ ...f, competitor_b_clip: next }))}
@@ -528,6 +532,7 @@ export default function BoutCurator({
           <InstrumentalPicker
             value={form.instrumental_id}
             onChange={(v) => setForm((f) => ({ ...f, instrumental_id: v }))}
+            onSelect={(i) => setFormBeatUrl(i?.file_url ?? null)}
           />
 
           <button
@@ -726,6 +731,7 @@ export default function BoutCurator({
                                 Or attach a clip directly
                               </p>
                               <ClipSourcePicker
+                                instrumentalUrl={editBeatUrl}
                                 value={editForm.competitor_a_clip}
                                 onChange={(next) => setEditForm((f) => ({ ...f, competitor_a_clip: next }))}
                                 inputClass="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
@@ -765,6 +771,7 @@ export default function BoutCurator({
                                 Or attach a clip directly
                               </p>
                               <ClipSourcePicker
+                                instrumentalUrl={editBeatUrl}
                                 value={editForm.competitor_b_clip}
                                 onChange={(next) => setEditForm((f) => ({ ...f, competitor_b_clip: next }))}
                                 inputClass="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
@@ -810,6 +817,7 @@ export default function BoutCurator({
                       <InstrumentalPicker
                         value={editForm.instrumental_id}
                         onChange={(v) => setEditForm((f) => ({ ...f, instrumental_id: v }))}
+                        onSelect={(i) => setEditBeatUrl(i?.file_url ?? null)}
                       />
                       <div className="flex gap-2">
                         <button

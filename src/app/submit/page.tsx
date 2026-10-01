@@ -5,6 +5,7 @@ import SignInCard from "@/components/SignInCard";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, Subcategory } from "@/lib/types";
+import InstrumentalPicker from "@/components/InstrumentalPicker";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 
 export default function SubmitPage() {
@@ -24,6 +25,8 @@ export default function SubmitPage() {
   const [teammates, setTeammates] = useState<string[]>([""]);
   const [optOut, setOptOut] = useState(false);
   const [rulesOk, setRulesOk] = useState(false);
+  const [beatId, setBeatId] = useState("");
+  const [beatUrl, setBeatUrl] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -32,6 +35,8 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false);
   // Rap and roast bouts require agreeing to the battle rules before entering.
   const needsRules = /roast|rap/i.test(selectedCategory?.name ?? "");
+  // Music categories can record over a library beat.
+  const musicCategory = /rap|sing|dance|music|beat|freestyle|vocal/i.test(selectedCategory?.name ?? "");
 
   useEffect(() => {
     async function load() {
@@ -225,7 +230,23 @@ export default function SubmitPage() {
 
         <div>
           <label className={labelClass} style={labelStyle}>Clip</label>
-          <ClipSourcePicker value={clip} onChange={setClip} inputClass={inputClass} inputStyle={inputStyle} />
+          {musicCategory && (
+            <div className="mb-3">
+              <InstrumentalPicker
+                value={beatId}
+                onChange={setBeatId}
+                onSelect={(i) => setBeatUrl(i?.file_url ?? null)}
+                label="Record over a library beat (optional). You can also download it and upload your own video."
+              />
+            </div>
+          )}
+          <ClipSourcePicker
+            value={clip}
+            onChange={setClip}
+            inputClass={inputClass}
+            inputStyle={inputStyle}
+            instrumentalUrl={musicCategory ? beatUrl : null}
+          />
         </div>
 
         <div>
