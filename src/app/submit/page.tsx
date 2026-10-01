@@ -23,12 +23,15 @@ export default function SubmitPage() {
   const [crewName, setCrewName] = useState("");
   const [teammates, setTeammates] = useState<string[]>([""]);
   const [optOut, setOptOut] = useState(false);
+  const [rulesOk, setRulesOk] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const organizerRun = Boolean(selectedCategory?.owner_id);
   const [loading, setLoading] = useState(false);
+  // Rap and roast bouts require agreeing to the battle rules before entering.
+  const needsRules = /roast|rap/i.test(selectedCategory?.name ?? "");
 
   useEffect(() => {
     async function load() {
@@ -92,6 +95,12 @@ export default function SubmitPage() {
 
     if (clip.sourceType === "record" && !clip.sourceUrl) {
       setError("Record a clip before submitting.");
+      setLoading(false);
+      return;
+    }
+
+    if (needsRules && !rulesOk) {
+      setError("Please agree to the battle rules before submitting.");
       setLoading(false);
       return;
     }
@@ -292,6 +301,29 @@ export default function SubmitPage() {
             </span>
           </label>
         </div>
+
+        {needsRules && (
+          <div>
+            <label className="flex items-start gap-2 text-sm font-bold" style={{ color: "var(--text-dim)" }}>
+              <input
+                type="checkbox"
+                checked={rulesOk}
+                onChange={(e) => setRulesOk(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                I agree to the{" "}
+                <a href="/rules" target="_blank" rel="noreferrer" className="underline">
+                  battle rules
+                </a>
+                <span className="mt-0.5 block text-xs font-normal" style={{ color: "var(--text-faint)" }}>
+                  My entry is original, I own the rights to everything in it, and it follows the content
+                  rules. For roasts, my target has agreed to be roasted or is my opponent in this bout.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
 
         {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
         {success && (
