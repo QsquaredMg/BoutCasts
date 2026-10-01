@@ -20,6 +20,8 @@ type LiveVoteEventDetail = {
   scoring_mode: "crowd" | "judges";
   results_released: boolean;
   listed_publicly: boolean;
+  is_private: boolean;
+  access_code: string | null;
   pro_enabled: boolean;
   collect_demographics: boolean;
   super_votes_enabled: boolean;
@@ -88,7 +90,7 @@ export default function LiveVoteEventManager({
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, pro_enabled, collect_demographics, super_votes_enabled, super_votes_mode, tier, status, starts_at, closes_at")
+      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, is_private, access_code, pro_enabled, collect_demographics, super_votes_enabled, super_votes_mode, tier, status, starts_at, closes_at")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -312,7 +314,12 @@ export default function LiveVoteEventManager({
   return (
     <div>
       {shareOpen && shareUrl && (
-        <ShareEventModal url={shareUrl} title={event.title} onClose={() => setShareOpen(false)} />
+        <ShareEventModal
+          url={shareUrl}
+          title={event.title}
+          code={event.is_private ? event.access_code : null}
+          onClose={() => setShareOpen(false)}
+        />
       )}
       {checkoutStatus === "success" && event.status === "draft" && (
         <p
@@ -401,26 +408,45 @@ export default function LiveVoteEventManager({
         </div>
       )}
 
+      {event.is_private ? (
+        <div className="mb-4 rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <p className="text-sm font-semibold">🔒 Private event</p>
+          <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+            Never listed or searchable on BoutCasts, and no ads. Voters get in with your link, QR code or event code
+            {event.access_code ? (
+              <>
+                {" "}
+                <strong className="tracking-[0.15em]" style={{ color: "var(--text)" }}>
+                  {event.access_code}
+                </strong>{" "}
+                at boutcasts.com/join
+              </>
+            ) : null}
+            .
+          </p>
+        </div>
+      ) : (
       <label
-        className="mb-4 flex cursor-pointer items-start gap-3 rounded-lg border p-3"
-        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-      >
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 accent-[var(--red)]"
-          checked={event.listed_publicly}
-          disabled={listing}
-          onChange={toggleListed}
-        />
-        <span className="text-sm">
-          <span className="font-semibold">List on the Explore page</span>
-          <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
-            {event.listed_publicly
-              ? "Anyone browsing BoutCasts can find this event while it's live."
-              : "Only people with your link can find this event. Leave this off for school and private events."}
+          className="mb-4 flex cursor-pointer items-start gap-3 rounded-lg border p-3"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 accent-[var(--red)]"
+            checked={event.listed_publicly}
+            disabled={listing}
+            onChange={toggleListed}
+          />
+          <span className="text-sm">
+            <span className="font-semibold">List on the Explore page</span>
+            <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+              {event.listed_publicly
+                ? "Anyone browsing BoutCasts can find this event while it's live."
+                : "Only people with your link can find this event. Leave this off for school and private events."}
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
 
       {!isFree && <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />}
 
@@ -582,6 +608,15 @@ export default function LiveVoteEventManager({
                 {copied ? "Copied!" : "Copy"}
               </button>
             </div>
+            {event.is_private && event.access_code && (
+              <p className="mt-2 text-sm" style={{ color: "var(--text-dim)" }}>
+                Event code:{" "}
+                <strong className="tracking-[0.2em]" style={{ color: "var(--text)" }}>
+                  {event.access_code}
+                </strong>{" "}
+                · voters enter it at boutcasts.com/join
+              </p>
+            )}
             <button
               onClick={() => setShareOpen(true)}
               className="bc-btn-solid mt-2.5 w-full rounded-full px-4 py-2.5 text-sm font-bold"

@@ -17,6 +17,8 @@ export default async function AdminNotificationsPage() {
       .from("live_vote_events")
       .select("id, title, status, listed_publicly")
       .eq("status", "live")
+      // Private (school/group) events are never pushed to everyone.
+      .eq("is_private", false)
       .order("created_at", { ascending: false })
       .limit(100),
     admin.from("push_subscriptions").select("id", { count: "exact", head: true }),

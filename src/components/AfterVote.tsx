@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ShareButton from "@/components/ShareButton";
+import type { ShareTarget } from "@/lib/shareLog";
 import { HAS_VOTED_KEY } from "@/components/AdInterstitial";
 import { isPublicBout, PUBLIC_BOUT_FIELDS } from "@/lib/publicBouts";
 
@@ -19,6 +20,7 @@ export default function AfterVote({
   graphicUrl,
   excludeBoutId,
   signedIn,
+  track,
 }: {
   title: string;
   pickedName: string;
@@ -28,6 +30,8 @@ export default function AfterVote({
   graphicUrl?: string;
   excludeBoutId?: string;
   signedIn: boolean;
+  /** What to count shares against in sponsor reports. */
+  track?: ShareTarget;
 }) {
   const [next, setNext] = useState<NextBout | null | undefined>(undefined);
 
@@ -89,7 +93,7 @@ export default function AfterVote({
       </p>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <ShareButton title={title} text={shareText} label="📣 Share your vote" big />
+        <ShareButton title={title} text={shareText} label="📣 Share your vote" big track={track} />
         {graphicUrl && (
           <a
             href={graphicUrl}

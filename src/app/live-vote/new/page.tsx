@@ -47,7 +47,8 @@ export default function NewLiveVoteEventPage() {
   const [votingMethod, setVotingMethod] = useState<"single" | "ranked">("single");
   const [scoringMode, setScoringMode] = useState<"crowd" | "judges">("crowd");
   const [criteria, setCriteria] = useState<string[]>([""]);
-  const [listedPublicly, setListedPublicly] = useState(false);
+  // Private (default): link, code or QR only; never listed. Public: listed on Explore.
+  const [visibility, setVisibility] = useState<"private" | "public">("private");
   const [tier, setTier] = useState<LiveVoteTier>("free");
   const isFree = tier === "free";
   const [options, setOptions] = useState<OptionDraft[]>([newOption(), newOption()]);
@@ -158,7 +159,8 @@ export default function NewLiveVoteEventPage() {
         voter_mode: voterMode,
         voting_method: scoringMode === "judges" ? "single" : votingMethod,
         scoring_mode: scoringMode,
-        listed_publicly: listedPublicly,
+        listed_publicly: visibility === "public",
+        is_private: visibility === "private",
         category_id: categoryId || null,
         subcategory_id: subcategoryId || null,
         tier,
@@ -526,24 +528,42 @@ export default function NewLiveVoteEventPage() {
         </div>
         )}
 
-        <label
-          className="flex cursor-pointer items-start gap-3 rounded-xl border p-3.5"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-        >
-          <input
-            type="checkbox"
-            className="mt-0.5 h-4 w-4 accent-[var(--red)]"
-            checked={listedPublicly}
-            onChange={(e) => setListedPublicly(e.target.checked)}
-          />
-          <span className="text-sm">
-            <span className="font-semibold">List on the Explore page</span>
-            <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
-              Let anyone browsing BoutCasts find and vote in this event. Leave off for school and
-              private events — only people with your link will see it. You can change this later.
-            </span>
-          </span>
-        </label>
+        <div>
+          <label className={labelClass} style={labelStyle}>
+            Who can find this event?
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                ["private", "🔒 Private", "Schools, teams & private groups. Only people with your link, 6-letter code or QR code can vote. Never shown publicly. No ads."],
+                ["public", "🌎 Public", "Listed on the Explore page so anyone on BoutCasts can find it and vote."],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <label
+                key={value}
+                className="flex cursor-pointer items-start gap-3 rounded-xl border p-3.5"
+                style={{
+                  borderColor: visibility === value ? "var(--red)" : "var(--border)",
+                  background: visibility === value ? "var(--red-soft)" : "var(--surface)",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="visibility"
+                  className="mt-0.5 h-4 w-4 accent-[var(--red)]"
+                  checked={visibility === value}
+                  onChange={() => setVisibility(value)}
+                />
+                <span className="text-sm">
+                  <span className="font-semibold">{label}</span>
+                  <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+                    {hint}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
 
         <div>
           <label className={labelClass} style={labelStyle}>

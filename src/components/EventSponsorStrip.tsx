@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createEventClient } from "@/lib/supabase/client";
 
 // "Thanks to our sponsors" strip in an organizer's event room.
 type Sponsor = { id: string; name: string; logo_url: string | null; link_url: string | null };
 
 export default function EventSponsorStrip({ eventId }: { eventId: string }) {
-  const supabase = createClient();
+  const [supabase] = useState(() => createEventClient(eventId));
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
 
   useEffect(() => {

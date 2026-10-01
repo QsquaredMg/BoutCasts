@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { logShare, type ShareTarget } from "@/lib/shareLog";
 
 // Branded share control. The link itself already renders as a BoutCasts-
 // branded card wherever it's pasted (per-page opengraph-image + metadata),
@@ -15,6 +16,7 @@ export default function ShareButton({
   text,
   label = "🔗 Share",
   big = false,
+  track,
 }: {
   title: string;
   text?: string;
@@ -22,6 +24,8 @@ export default function ShareButton({
   label?: string;
   /** Full-width solid button instead of the small pill. */
   big?: boolean;
+  /** When set, each share is counted for sponsor reports. */
+  track?: ShareTarget;
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -39,6 +43,7 @@ export default function ShareButton({
   }, [open]);
 
   async function handleShareClick() {
+    logShare(track, "share");
     const url = window.location.href;
     if (navigator.share) {
       try {

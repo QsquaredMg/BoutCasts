@@ -253,7 +253,13 @@ export default function ShowcaseView({
         const pct = state.counts && state.total > 0 && count !== undefined ? Math.round((count / state.total) * 100) : null;
         return (
           <div className="mt-4">
-            <AfterVote title={showcase.title} pickedName={picked.name} pickedPct={pct} signedIn={!!me} />
+            <AfterVote
+              title={showcase.title}
+              pickedName={picked.name}
+              pickedPct={pct}
+              signedIn={!!me}
+              track={{ type: "showcase", id: showcase.id }}
+            />
           </div>
         );
       })()}

@@ -332,3 +332,15 @@ body:has([data-white-label]) [data-site-chrome] {
     padding-bottom: 0;
   }
 }
+
+/* Printable sponsor report: just the report, no site chrome. */
+@media print {
+  body:has(.sponsor-report) [data-site-chrome],
+  body:has(.sponsor-report) nav,
+  body:has(.sponsor-report) footer {
+    display: none !important;
+  }
+  body:has(.sponsor-report) {
+    padding-bottom: 0 !important;
+  }
+}

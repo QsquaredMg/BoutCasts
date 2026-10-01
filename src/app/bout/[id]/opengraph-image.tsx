@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
+import { loadBoutSponsor, SponsorBar } from "@/lib/og/sponsor";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -18,6 +19,7 @@ export default async function OGImage({
     .eq("id", id)
     .maybeSingle();
 
+  const sponsor = bout ? await loadBoutSponsor(supabase, bout) : null;
   const { data: votes } = await supabase.from("votes").select("side").eq("bout_id", id);
   const tally = { a: 0, b: 0 };
   for (const v of votes ?? []) tally[v.side as "a" | "b"]++;
@@ -138,9 +140,15 @@ export default async function OGImage({
           </div>
         </div>
 
-        <div style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center" }}>
-          {total} votes cast — vote now at boutcasts.com
-        </div>
+        {sponsor ? (
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}>
+            <SponsorBar sponsor={sponsor} scale={0.7} />
+          </div>
+        ) : (
+          <div style={{ fontSize: 18, color: "rgba(255,255,255,0.5)", textAlign: "center", marginTop: 24, display: "flex", justifyContent: "center" }}>
+            {total} votes cast — vote now at boutcasts.com
+          </div>
+        )}
       </div>
     ),
     { ...size }

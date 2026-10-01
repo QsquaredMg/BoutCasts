@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import SharedVideoPlayer from "@/components/showcases/SharedVideoPlayer";
 import { formatClock } from "@/lib/showcases";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { createEventClient } from "@/lib/supabase/client";
 import ClipPlayer from "@/components/ClipPlayer";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import AdBanner from "@/components/AdBanner";
@@ -69,7 +69,7 @@ function getOrCreateVoterToken(): string {
 }
 
 export default function LiveVoteBallot({ eventId }: { eventId: string }) {
-  const supabase = createClient();
+  const [supabase] = useState(() => createEventClient(eventId));
   const voterTokenRef = useRef<string | null>(null);
 
   const [loading, setLoading] = useState(true);

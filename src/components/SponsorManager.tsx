@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import LogoUploadField from "@/components/LogoUploadField";
 import { createClient } from "@/lib/supabase/client";
 import type { Sponsor, Category, Bout } from "@/lib/types";
@@ -209,12 +210,17 @@ export default function SponsorManager({
                     </a>
                   )}
                 </div>
-                <button
-                  onClick={() => handleDelete(s.id)}
-                  className="text-xs font-medium text-red-600 hover:underline"
-                >
-                  Remove
-                </button>
+                <span className="flex items-center gap-3">
+                  <Link href={`/admin/sponsors/${s.id}/report`} className="text-xs font-bold hover:underline" style={{ color: "var(--red)" }}>
+                    Report
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    className="text-xs font-medium text-red-600 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </span>
               </div>
             ))}
           </div>

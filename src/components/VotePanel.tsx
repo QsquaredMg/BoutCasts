@@ -248,6 +248,7 @@ export default function VotePanel({
             graphicUrl={`/api/bouts/${boutId}/vote-card`}
             excludeBoutId={boutId}
             signedIn={signedIn}
+            track={{ type: "bout", id: boutId }}
           />
         </div>
       )}

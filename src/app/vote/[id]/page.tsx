@@ -9,15 +9,15 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = await createClient({ eventId: id });
   const { data: event } = await supabase
     .from("live_vote_events")
-    .select("title, brand_name")
+    .select("title, brand_name, is_private")
     .eq("id", id)
     .maybeSingle();
 
   if (!event) {
-    return { title: "Live Vote" };
+    return { title: "Live Vote", robots: { index: false } };
   }
 
   const title = event.title;
@@ -30,6 +30,8 @@ export async function generateMetadata({
     description,
     openGraph: { title, description },
     twitter: { title, description },
+    // Private events never appear in search results.
+    ...(event.is_private ? { robots: { index: false, follow: false } } : {}),
   };
 }
 

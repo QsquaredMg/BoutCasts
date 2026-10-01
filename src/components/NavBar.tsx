@@ -13,6 +13,7 @@ import type { User } from "@supabase/supabase-js";
 type Tab = { key: string; label: string; href: string; icon: (active: boolean) => React.ReactNode; match: (p: string) => boolean };
 
 const DISCOVER_PREFIXES = [
+  "/join",
   "/discover", "/matchups", "/explore", "/debates", "/leaderboard", "/c/", "/bracket", "/bout/",
   "/showcase/", "/competitions", "/search", "/boutcard", "/how-it-works",
 ];
@@ -243,6 +244,7 @@ export default function NavBar() {
                 <MenuLink href="/host" strong>
                   🎤 Host a vote — for schools, leagues &amp; events
                 </MenuLink>
+                <MenuLink href="/join">🔒 Have an event code? Join</MenuLink>
                 <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
                 <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>
                 {user && (

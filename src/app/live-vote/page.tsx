@@ -15,6 +15,8 @@ type LiveVoteEventRow = {
   voter_mode: "account" | "open_link";
   created_at: string;
   closes_at: string | null;
+  is_private: boolean;
+  access_code: string | null;
 };
 
 const STATUS_LABEL: Record<LiveVoteEventRow["status"], string> = {
@@ -34,6 +36,7 @@ export default function LiveVoteEventsPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [events, setEvents] = useState<LiveVoteEventRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"private" | "public">("private");
 
   useEffect(() => {
     async function load() {
@@ -48,11 +51,12 @@ export default function LiveVoteEventsPage() {
 
       const { data } = await supabase
         .from("live_vote_events")
-        .select("id, title, status, tier, voter_mode, created_at, closes_at")
+        .select("id, title, status, tier, voter_mode, created_at, closes_at, is_private, access_code")
         .eq("organizer_id", user.id)
         .order("created_at", { ascending: false });
 
       setEvents(data ?? []);
+      if (data && data.length > 0 && !data.some((e) => e.is_private)) setTab("public");
       setLoading(false);
     }
     load();
@@ -89,6 +93,85 @@ export default function LiveVoteEventsPage() {
           + Create event
         </Link>
       </div>
+
+      {signedIn && (
+        <section className="mb-8">
+          <div className="mb-3 flex gap-1 rounded-full border p-1" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            {(
+              [
+                ["private", "🔒 Private events", events.filter((e) => e.is_private).length],
+                ["public", "🌎 Public events", events.filter((e) => !e.is_private).length],
+              ] as const
+            ).map(([key, label, n]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className="flex-1 rounded-full px-3 py-2 text-sm font-semibold"
+                style={{
+                  background: tab === key ? "var(--surface-2)" : "transparent",
+                  color: tab === key ? "var(--text)" : "var(--text-dim)",
+                  boxShadow: tab === key ? "inset 0 0 0 1px var(--border)" : "none",
+                }}
+              >
+                {label} ({n})
+              </button>
+            ))}
+          </div>
+          <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
+            {tab === "private"
+              ? "School, team and private-group events. Never shown publicly — voters get in with your link, QR code or event code."
+              : "Events anyone can find on the Explore page (when listed) or open with your link."}
+          </p>
+          {loading ? (
+            <p className="text-sm" style={{ color: "var(--text-faint)" }}>
+              Loading…
+            </p>
+          ) : events.filter((e) => e.is_private === (tab === "private")).length === 0 ? (
+            <div className="rounded-xl border p-4 text-sm" style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}>
+              No {tab} events yet.{" "}
+              <Link href="/live-vote/new" className="font-semibold underline" style={{ color: "var(--red)" }}>
+                Create one
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {events
+                .filter((e) => e.is_private === (tab === "private"))
+                .map((event) => (
+                  <Link
+                    key={event.id}
+                    href={`/live-vote/${event.id}`}
+                    className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 hover:opacity-90"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{event.title}</p>
+                      <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+                        {LIVE_VOTE_TIERS[event.tier]?.label ?? event.tier} ·{" "}
+                        {event.voter_mode === "account" ? "Account required" : "Open link"}
+                        {event.is_private && event.access_code ? (
+                          <>
+                            {" "}· Code{" "}
+                            <strong className="tracking-[0.15em]" style={{ color: "var(--text)" }}>
+                              {event.access_code}
+                            </strong>
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
+                    <span
+                      className="flex-shrink-0 rounded-full px-3 py-1 text-xs font-bold"
+                      style={{ color: STATUS_COLOR[event.status], background: "var(--surface-2)" }}
+                    >
+                      {STATUS_LABEL[event.status]}
+                    </span>
+                  </Link>
+                ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {(Object.keys(LIVE_VOTE_TIERS) as LiveVoteTier[]).length > 0 && (
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -152,40 +235,6 @@ export default function LiveVoteEventsPage() {
         </span>
       </Link>
 
-      {loading ? (
-        <p className="text-sm" style={{ color: "var(--text-faint)" }}>
-          Loading…
-        </p>
-      ) : events.length === 0 ? (
-        <p className="text-sm" style={{ color: "var(--text-faint)" }}>
-          You haven&apos;t created a Live Vote Event yet.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {events.map((event) => (
-            <Link
-              key={event.id}
-              href={`/live-vote/${event.id}`}
-              className="flex items-center justify-between rounded-xl border px-4 py-3 hover:opacity-90"
-              style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-            >
-              <div>
-                <p className="font-semibold">{event.title}</p>
-                <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-                  {LIVE_VOTE_TIERS[event.tier]?.label ?? event.tier} ·{" "}
-                  {event.voter_mode === "account" ? "Account required" : "Open link"}
-                </p>
-              </div>
-              <span
-                className="rounded-full px-3 py-1 text-xs font-bold"
-                style={{ color: STATUS_COLOR[event.status], background: "var(--surface-2)" }}
-              >
-                {STATUS_LABEL[event.status]}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ export default async function OGImage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = await createClient({ eventId: id });
 
   const { data: event } = await supabase
     .from("live_vote_events")

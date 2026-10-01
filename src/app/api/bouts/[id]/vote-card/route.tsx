@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
+import { loadBoutSponsor, SponsorBar } from "@/lib/og/sponsor";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ export async function GET(
 
   const { data: bout } = await supabase
     .from("bouts")
-    .select("title, competitor_a_name, competitor_b_name, categories(name)")
+    .select("title, competitor_a_name, competitor_b_name, sponsor_id, category_id, categories(name)")
     .eq("id", id)
     .maybeSingle();
 
@@ -23,6 +24,9 @@ export async function GET(
   const categoriesJoin = bout.categories as unknown as { name: string }[] | { name: string } | null;
   const categoryName = (Array.isArray(categoriesJoin) ? categoriesJoin[0]?.name : categoriesJoin?.name) ?? "BoutCasts";
 
+  const sponsor = await loadBoutSponsor(supabase, bout);
+  // Each fetch of this graphic is someone opening or saving it — count it for sponsor reports.
+  await supabase.rpc("log_share", { p_type: "bout", p_id: id, p_action: "save_graphic" });
   const { data: votes } = await supabase.from("votes").select("side").eq("bout_id", id);
   const tally = { a: 0, b: 0 };
   for (const v of votes ?? []) tally[v.side as "a" | "b"]++;
@@ -165,6 +169,11 @@ export async function GET(
         >
           {total} vote{total === 1 ? "" : "s"} so far — cast yours at boutcasts.com
         </div>
+        {sponsor && (
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 24 }}>
+            <SponsorBar sponsor={sponsor} />
+          </div>
+        )}
       </div>
     ),
     { width: 1080, height: 1080 }

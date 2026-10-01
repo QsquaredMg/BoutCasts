@@ -127,8 +127,14 @@ export default async function Home() {
               </div>
             </Link>
           </div>
+          <p className="mt-5 text-sm" style={{ color: "#9aa3b8" }}>
+            Got a code from your school or event?{" "}
+            <Link href="/join" className="font-bold underline" style={{ color: "#fff" }}>
+              Join a private event
+            </Link>
+          </p>
           {!signedIn && (
-            <p className="mt-5 text-sm" style={{ color: "#9aa3b8" }}>
+            <p className="mt-2 text-sm" style={{ color: "#9aa3b8" }}>
               Already on BoutCasts?{" "}
               <Link href="/login" className="font-bold underline" style={{ color: "#fff" }}>
                 Log in

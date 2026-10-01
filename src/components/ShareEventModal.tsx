@@ -13,12 +13,15 @@ export default function ShareEventModal({
   onClose,
   heading = "Share your Live Vote",
   callToAction = "Scan to vote",
+  code,
 }: {
   url: string;
   title: string;
   onClose: () => void;
   heading?: string;
   callToAction?: string;
+  /** Private-event access code, shown next to the QR code. */
+  code?: string | null;
 }) {
   const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -98,7 +101,16 @@ export default function ShareEventModal({
             style={{ width: "min(70vmin, 640px)", height: "min(70vmin, 640px)" }}
           />
         )}
-        <p className="text-center text-xl font-bold sm:text-2xl">{shortUrl}</p>
+        {code ? (
+          <p className="text-center text-xl font-bold sm:text-2xl">
+            or go to boutcasts.com/join and enter{" "}
+            <span className="rounded-lg px-3 py-1 tracking-[0.25em]" style={{ background: "#1b4fe4" }}>
+              {code}
+            </span>
+          </p>
+        ) : (
+          <p className="text-center text-xl font-bold sm:text-2xl">{shortUrl}</p>
+        )}
         <button
           type="button"
           onClick={() => setFullscreen(false)}
@@ -154,6 +166,16 @@ export default function ShareEventModal({
           )}
         </div>
 
+        {code && (
+          <div className="mb-3 rounded-lg p-3 text-center" style={{ background: "var(--surface-2)" }}>
+            <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+              Event code · boutcasts.com/join
+            </p>
+            <p className="text-3xl font-black tracking-[0.3em]" style={{ fontFamily: "var(--font-display)" }}>
+              {code}
+            </p>
+          </div>
+        )}
         <div className="mb-3 flex items-center gap-2 rounded-lg border px-3 py-2" style={{ borderColor: "var(--border)" }}>
           <code className="flex-1 truncate text-sm">{shortUrl}</code>
           <button type="button" onClick={copy} className="text-xs font-bold" style={{ color: "var(--red)" }}>
