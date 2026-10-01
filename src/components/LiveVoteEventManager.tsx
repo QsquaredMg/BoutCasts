@@ -448,7 +448,17 @@ export default function LiveVoteEventManager({
         </label>
       )}
 
-      {!isFree && <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />}
+      {isFree ? (
+        <div className="mb-4 rounded-xl border p-3.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <p className="text-sm font-semibold">💰 Fundraise with sponsors</p>
+          <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+            Sell sponsor spots to local businesses and show their logos on your voting page, with a sponsor report to send
+            them afterward. Available on any paid event size.
+          </p>
+        </div>
+      ) : (
+        <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />
+      )}
 
       <SuperVotesManager
         eventId={event.id}

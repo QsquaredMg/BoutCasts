@@ -535,7 +535,7 @@ export default function NewLiveVoteEventPage() {
           <div className="grid gap-2 sm:grid-cols-2">
             {(
               [
-                ["private", "🔒 Private", "Schools, teams & private groups. Only people with your link, 6-letter code or QR code can vote. Never shown publicly. No ads."],
+                ["private", "🔒 Private", "Schools, teams & private groups. Only people with your link, 6-letter code or QR code can vote. Never shown publicly. No ads — add your own sponsors to fundraise."],
                 ["public", "🌎 Public", "Listed on the Explore page so anyone on BoutCasts can find it and vote."],
               ] as const
             ).map(([value, label, hint]) => (

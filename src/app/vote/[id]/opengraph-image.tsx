@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
+import { logoDataUrl, SponsorBar, type OgSponsor } from "@/lib/og/sponsor";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -23,6 +24,15 @@ export default async function OGImage({
     .select("id")
     .eq("event_id", id);
   const optionCount = options?.length ?? 0;
+
+  // The organizer's title sponsor (fundraising) gets "Presented by" on the preview.
+  const { data: titleRow } = await supabase
+    .from("live_vote_sponsors")
+    .select("name, logo_url")
+    .eq("event_id", id)
+    .eq("level", "title")
+    .maybeSingle();
+  const titleSponsor: OgSponsor | null = titleRow?.name ? { name: titleRow.name, logo: await logoDataUrl(titleRow.logo_url) } : null;
 
   return new ImageResponse(
     (
@@ -118,6 +128,11 @@ export default async function OGImage({
           {optionCount > 0 ? `${optionCount} option${optionCount === 1 ? "" : "s"} — ` : ""}
           Cast your vote at boutcasts.com — or start your own Bout
         </div>
+        {titleSponsor && (
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+            <SponsorBar sponsor={titleSponsor} scale={0.7} />
+          </div>
+        )}
       </div>
     ),
     { ...size }
