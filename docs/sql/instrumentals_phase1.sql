@@ -24,16 +24,50 @@ alter table public.bouts
 
 alter table public.instrumentals enable row level security;
 
--- Anyone can read approved tracks; uploaders can read their own.
+-- Helper checks (security definer so RLS on profiles/categories doesn't interfere).
+create or replace function public.is_admin_user() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false)
+$$;
+
+create or replace function public.is_organizer_user() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.categories where owner_id = auth.uid())
+$$;
+
+-- Read: approved tracks are public; uploaders see their own; admins see everything.
 create policy "instrumentals_read" on public.instrumentals
-  for select using (status = 'approved' or uploaded_by = auth.uid());
+  for select using (status = 'approved' or uploaded_by = auth.uid() or public.is_admin_user());
 
--- Signed-in users can add tracks as pending. Staff approval happens via the admin UI / SQL.
+-- Insert: staff (admins) and organizers only, always as pending.
 create policy "instrumentals_insert" on public.instrumentals
-  for insert with check (uploaded_by = auth.uid() and status = 'pending');
+  for insert with check (
+    uploaded_by = auth.uid() and status = 'pending'
+    and (public.is_admin_user() or public.is_organizer_user())
+  );
 
--- NOTE: add an UPDATE policy for admins to approve/reject/remove, using whatever
--- admin check the rest of the app uses (for example the same one behind moderate_submission).
+-- Admins approve / reject / remove.
+create policy "instrumentals_admin_update" on public.instrumentals
+  for update using (public.is_admin_user()) with check (public.is_admin_user());
 
--- Storage: create a public-read bucket named "instrumentals" (audio/mpeg, audio/wav, audio/mp4)
--- and allow authenticated uploads under "<user_id>/..." paths, mirroring "submission-clips".
+create policy "instrumentals_admin_delete" on public.instrumentals
+  for delete using (public.is_admin_user());
+
+-- Storage bucket (public read, 50 MB, audio only).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('instrumentals', 'instrumentals', true, 52428800,
+        array['audio/mpeg','audio/wav','audio/x-wav','audio/mp4','audio/x-m4a'])
+on conflict (id) do nothing;
+
+create policy "instrumentals_bucket_select_all" on storage.objects
+  for select using (bucket_id = 'instrumentals');
+
+create policy "instrumentals_bucket_insert_own" on storage.objects
+  for insert to authenticated with check (
+    bucket_id = 'instrumentals'
+    and (storage.foldername(name))[1] = auth.uid()::text
+    and (public.is_admin_user() or public.is_organizer_user())
+  );
+
+create policy "instrumentals_bucket_delete_admin" on storage.objects
+  for delete using (bucket_id = 'instrumentals' and public.is_admin_user());

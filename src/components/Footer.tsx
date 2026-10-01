@@ -29,6 +29,9 @@ export default function Footer() {
           <Link href="/rules" className="hover:underline">
             Battle Rules
           </Link>
+          <Link href="/instrumentals/upload" className="hover:underline">
+            Producers: Upload a Beat
+          </Link>
           <a href="mailto:support@boutcasts.com" className="hover:underline">
             Contact
           </a>
