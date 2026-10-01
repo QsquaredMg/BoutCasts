@@ -9,6 +9,7 @@ export default async function AdminDashboardPage() {
     { count: openReports },
     { count: liveBouts },
     { count: pendingSponsorApps },
+    { count: pendingInstrumentals },
     { count: unfulfilledSponsorPrizes },
     { count: totalUsers },
     { data: pools },
@@ -18,6 +19,7 @@ export default async function AdminDashboardPage() {
     supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("bouts").select("*", { count: "exact", head: true }).eq("status", "live"),
     supabase.from("sponsor_applications").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("instrumentals").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase
       .from("bouts")
       .select("*", { count: "exact", head: true })
@@ -36,6 +38,7 @@ export default async function AdminDashboardPage() {
     { label: "Open reports", value: openReports ?? 0, href: "/admin/moderation" },
     { label: "Live bouts", value: liveBouts ?? 0, href: "/admin/bouts" },
     { label: "Pending sponsor applications", value: pendingSponsorApps ?? 0, href: "/admin/sponsors" },
+    { label: "Pending instrumentals", value: pendingInstrumentals ?? 0, href: "/admin/instrumentals" },
     { label: "Unfulfilled sponsor prizes", value: unfulfilledSponsorPrizes ?? 0, href: "/admin/bouts" },
     { label: "Total users", value: totalUsers ?? 0, href: "/admin/users" },
     {

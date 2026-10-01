@@ -56,6 +56,7 @@ export type Bout = {
   sponsor_prize_description?: string | null;
   sponsor_prize_fulfilled?: boolean;
   sponsor_prize_fulfilled_at?: string | null;
+  instrumental_id?: string | null;
   categories?: { name: string; sponsor_id?: string | null; sponsors?: Sponsor | null } | null;
   subcategories?: { name: string } | null;
   sponsors?: Sponsor | null;
@@ -180,3 +181,20 @@ export type PoolContribution = {
   created_at: string;
 };
 
+
+export type Instrumental = {
+  id: string;
+  title: string;
+  producer_name: string;
+  producer_id?: string | null;
+  file_url: string;
+  bpm?: number | null;
+  musical_key?: string | null;
+  genre?: string | null;
+  duration_seconds?: number | null;
+  license_type: "original" | "royalty_free" | "licensed_to_boutcasts";
+  license_source_url?: string | null;
+  status: "pending" | "approved" | "rejected" | "removed";
+  uploaded_by: string;
+  created_at: string;
+};
