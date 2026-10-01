@@ -11,10 +11,15 @@ export default function InstrumentalPicker({
   value,
   onChange,
   disabled = false,
+  onSelect,
+  label = "Instrumental (both performers use the same track)",
 }: {
   value: string;
   onChange: (id: string) => void;
   disabled?: boolean;
+  /** Called with the selected track (or null) whenever the selection or list changes. */
+  onSelect?: (item: Instrumental | null) => void;
+  label?: string;
 }) {
   const supabase = createClient();
   const [items, setItems] = useState<Instrumental[] | null>(null);
@@ -34,10 +39,16 @@ export default function InstrumentalPicker({
     };
   }, [supabase]);
 
+  useEffect(() => {
+    if (!onSelect || items === null) return;
+    onSelect(items.find((i) => i.id === value) ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, value]);
+
   return (
     <div className="flex-1">
       <label className="mb-1 block text-xs font-semibold text-neutral-600">
-        Instrumental (both performers use the same track)
+        {label}
       </label>
       <select
         value={value}

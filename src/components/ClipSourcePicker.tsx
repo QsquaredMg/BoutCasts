@@ -16,11 +16,14 @@ export default function ClipSourcePicker({
   onChange,
   inputClass,
   inputStyle,
+  instrumentalUrl,
 }: {
   value: ClipSourceValue;
   onChange: (next: ClipSourceValue) => void;
   inputClass: string;
   inputStyle: React.CSSProperties;
+  /** When set, in-app recording plays this beat and mixes it into the clip. */
+  instrumentalUrl?: string | null;
 }) {
   return (
     <div>
@@ -60,7 +63,10 @@ export default function ClipSourcePicker({
       )}
 
       {value.sourceType === "record" && (
-        <InAppRecorder onRecorded={(url) => onChange({ sourceType: "record", sourceUrl: url })} />
+        <InAppRecorder
+          instrumentalUrl={instrumentalUrl}
+          onRecorded={(url) => onChange({ sourceType: "record", sourceUrl: url })}
+        />
       )}
 
       {value.sourceType === "upload" && (
