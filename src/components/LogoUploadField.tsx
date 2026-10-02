@@ -2,11 +2,11 @@
 
 import { useId, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { prepareImage, isPhotoFile, PHOTO_ACCEPT, PHOTO_FORMATS_LABEL, UnsupportedPhotoError } from "@/lib/prepareImage";
 
-// Upload a sponsor logo (PNG/JPG/WebP/GIF, 5 MB max) to the sponsor-logos
-// bucket, or paste a logo URL instead. `folder` is "applications" for brands
+// Upload a logo (any common photo format; converted and shrunk in the browser,
+// 5 MB max after that) to the sponsor-logos bucket, or paste a logo URL instead. `folder` is "applications" for brands
 // applying publicly, or "sponsors" for admins.
-const TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 export default function LogoUploadField({
   value,
@@ -25,20 +25,29 @@ export default function LogoUploadField({
   const [error, setError] = useState<string | null>(null);
 
   async function pick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const picked = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
-    if (!TYPES.includes(file.type)) {
-      setError("Use a PNG, JPG, WebP or GIF image.");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Logo must be 5 MB or smaller.");
+    if (!picked) return;
+    if (!isPhotoFile(picked)) {
+      setError(`Use an image: ${PHOTO_FORMATS_LABEL}.`);
       return;
     }
     setBusy(true);
     setError(null);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    let file: File;
+    try {
+      file = await prepareImage(picked);
+    } catch (err) {
+      setBusy(false);
+      setError(err instanceof UnsupportedPhotoError ? err.message : "We couldn't read that image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setBusy(false);
+      setError("Logo must be 5 MB or smaller.");
+      return;
+    }
+    const ext = (file.type.split("/")[1] || "png").replace("jpeg", "jpg");
     const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const { error: upErr } = await supabase.storage.from("sponsor-logos").upload(path, file, { contentType: file.type });
     setBusy(false);
@@ -67,7 +76,7 @@ export default function LogoUploadField({
         >
           {busy ? "Uploading…" : value ? "Replace logo" : "Upload logo"}
         </label>
-        <input id={inputId} type="file" accept={TYPES.join(",")} onChange={pick} className="sr-only" />
+        <input id={inputId} type="file" accept={PHOTO_ACCEPT} onChange={pick} className="sr-only" />
         {value && (
           <button type="button" onClick={() => onChange("")} className="text-xs underline" style={{ color: "var(--text-faint)" }}>
             Remove

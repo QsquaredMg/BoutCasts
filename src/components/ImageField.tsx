@@ -2,11 +2,10 @@
 
 import { useId, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { downscaleImage } from "@/lib/downscaleImage";
+import { prepareImage, isPhotoFile, PHOTO_ACCEPT, PHOTO_FORMATS_LABEL, UnsupportedPhotoError } from "@/lib/prepareImage";
 
-// A photo: upload one (phone photos are shrunk first) or paste an image link.
-// Uploads go to the same storage bucket as clips, under the user's folder.
-const TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+// A photo: upload one (any common format — iPhone HEIC etc. are converted, big
+// photos shrunk) or paste an image link. Uploads go to the clips bucket.
 
 export default function ImageField({
   value,
@@ -30,7 +29,7 @@ export default function ImageField({
     const picked = e.target.files?.[0];
     e.target.value = "";
     if (!picked) return;
-    if (!TYPES.includes(picked.type)) return setError("Use a PNG, JPG, WebP or GIF image.");
+    if (!isPhotoFile(picked)) return setError(`Use a photo: ${PHOTO_FORMATS_LABEL}.`);
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -39,7 +38,13 @@ export default function ImageField({
       setBusy(false);
       return setError("Sign in to upload.");
     }
-    const file = picked.type === "image/gif" ? picked : await downscaleImage(picked);
+    let file: File;
+    try {
+      file = await prepareImage(picked);
+    } catch (err) {
+      setBusy(false);
+      return setError(err instanceof UnsupportedPhotoError ? err.message : "We couldn't read that photo.");
+    }
     const ext = (file.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
     const path = `${u.user.id}/img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
     const { error: upErr } = await supabase.storage.from("submission-clips").upload(path, file, { contentType: file.type });
@@ -83,7 +88,7 @@ export default function ImageField({
         >
           {busy ? "Uploading…" : `📷 Upload ${label}`}
         </label>
-        <input id={inputId} type="file" accept={TYPES.join(",")} onChange={pick} className="sr-only" disabled={busy} />
+        <input id={inputId} type="file" accept={PHOTO_ACCEPT} onChange={pick} className="sr-only" disabled={busy} />
         <span className="text-xs" style={{ color: "var(--text-faint)" }}>
           or
         </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { prepareImage, isPhotoFile, UnsupportedPhotoError } from "@/lib/prepareImage";
 import { createClient } from "@/lib/supabase/client";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import { normalizeEmbedInput } from "@/lib/clipSource";
@@ -64,8 +65,17 @@ export default function AdManager({
   }
 
   async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const picked = e.target.files?.[0];
+    if (!picked) return;
+    let file = picked;
+    if (!picked.type.startsWith("video/") && isPhotoFile(picked)) {
+      try {
+        file = await prepareImage(picked);
+      } catch (err) {
+        setError(err instanceof UnsupportedPhotoError ? err.message : "We couldn't read that image.");
+        return;
+      }
+    }
     if (file.size > MAX_BYTES) {
       setError(`That file is too large — the limit is 75 MB.`);
       return;
@@ -73,7 +83,7 @@ export default function AdManager({
     setError(null);
     setUploading(true);
 
-    const ext = file.name.split(".").pop() || "bin";
+    const ext = file.type.startsWith("image/") ? (file.type.split("/")[1] || "jpg").replace("jpeg", "jpg") : file.name.split(".").pop() || "bin";
     const path = `${form.sponsor_id || "unassigned"}/${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage.from("ad-creatives").upload(path, file, {
       contentType: file.type,
@@ -229,7 +239,7 @@ export default function AdManager({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
+                  accept="image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.svg,video/mp4,video/webm"
                   onChange={handleFilePick}
                   className="text-xs"
                 />

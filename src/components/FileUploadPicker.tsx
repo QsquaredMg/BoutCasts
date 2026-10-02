@@ -2,13 +2,14 @@
 
 import { startTransition, useId, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { downscaleImage } from "@/lib/downscaleImage";
+import { prepareImage, isPhotoFile, UnsupportedPhotoError } from "@/lib/prepareImage";
 
 type Props = {
   onUploaded: (url: string | null) => void;
 };
 
-const ACCEPT = "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm,image/jpeg,image/png,image/webp";
+const ACCEPT =
+  "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm,image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.svg";
 const MAX_BYTES = 777 * 1024 * 1024; // 777MB, matches the storage bucket's limit
 
 function formatBytes(bytes: number) {
@@ -45,10 +46,16 @@ export default function FileUploadPicker({ onUploaded }: Props) {
     startTransition(() => onUploaded(null));
 
     let ready = picked;
-    if (picked.type.startsWith("image/")) {
-      // Shrink big phone photos before preview + upload (5–10 MB -> ~300 KB).
+    if (isPhotoFile(picked) && !picked.type.startsWith("video/") && !picked.type.startsWith("audio/")) {
+      // Convert (HEIC, AVIF, BMP, TIFF, SVG…) and shrink big phone photos before preview + upload.
       setStatus("optimizing");
-      ready = await downscaleImage(picked);
+      try {
+        ready = await prepareImage(picked);
+      } catch (err) {
+        setStatus("idle");
+        setError(err instanceof UnsupportedPhotoError ? err.message : "We couldn't read that photo.");
+        return;
+      }
     }
 
     setFile(ready);
@@ -81,7 +88,11 @@ export default function FileUploadPicker({ onUploaded }: Props) {
       return;
     }
 
-    const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+    const ext = file.type.startsWith("image/")
+      ? (file.type.split("/")[1] || "jpg").replace("jpeg", "jpg")
+      : file.name.includes(".")
+        ? file.name.split(".").pop()
+        : "bin";
     const path = `${user.id}/${Date.now()}.${ext}`;
 
     // The Supabase JS client doesn't expose upload progress for a plain
@@ -127,7 +138,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
           <span className="text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
             Tap to choose a video, audio, or image file
           </span>
-          <span className="text-xs">MP4, WebM, MOV, MP3, WAV, JPG, PNG — up to 777 MB</span>
+          <span className="text-xs">Video, audio or any photo (JPG, PNG, HEIC, WebP, GIF…) — up to 777 MB</span>
         </label>
       )}
 
