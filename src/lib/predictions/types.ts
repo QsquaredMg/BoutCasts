@@ -31,11 +31,15 @@ export type PredSlate = {
   closes_at: string | null;
   locks_at: string | null;
   bracket_size: number | null;
+  brand_name: string | null;
+  brand_logo_url: string | null;
+  brand_color: string | null;
+  white_label: boolean;
 };
 
 export type BracketTeam = { id: string; seed: number; name: string; logo: string | null };
 
-export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size";
+export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label";
 
 export type PredPrediction = {
   id: string;

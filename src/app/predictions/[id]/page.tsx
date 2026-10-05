@@ -7,6 +7,7 @@ import LocalTime from "@/components/LocalTime";
 import PredictionForm from "@/components/PredictionForm";
 import GameAdminPanel from "@/components/GameAdminPanel";
 import WinnersGraphic from "@/components/WinnersGraphic";
+import PredSponsorStrip from "@/components/PredSponsorStrip";
 import ShareButton from "@/components/ShareButton";
 import { GAME_FIELDS, isLocked, type PredGame, type PredPrediction } from "@/lib/predictions/types";
 
@@ -38,7 +39,7 @@ export default async function GamePage({ params }: Props) {
   const [{ data: picks }, { data: me }, { data: slate }] = await Promise.all([
     supabase.from("pred_predictions").select("id, game_id, user_id, pick, pred_home, pred_away, pts_entry, pts_winner, pts_exact, pts_close, pts_total, graded_at").eq("game_id", id).order("pts_total", { ascending: false, nullsFirst: false }).limit(200),
     user ? supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
-    game.slate_id ? supabase.from("pred_slates").select("id, title").eq("id", game.slate_id).maybeSingle() : Promise.resolve({ data: null }),
+    game.slate_id ? supabase.from("pred_slates").select("id, title, brand_name, brand_logo_url, white_label").eq("id", game.slate_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const all = (picks ?? []) as PredPrediction[];
   const mine = all.find((p) => p.user_id === user?.id) ?? null;
@@ -72,6 +73,8 @@ export default async function GamePage({ params }: Props) {
       <Link href={slate ? `/predictions/slate/${slate.id}` : "/predictions"} className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
         &larr; {slate ? slate.title : "Bout Predictions"}
       </Link>
+
+      {slate && <PredSponsorStrip bracketId={slate.id} />}
 
       <div className="bc-card mb-5 p-5">
         <p className="mb-3 text-center text-xs font-bold" style={{ color: "var(--text-faint)" }}>
@@ -135,6 +138,7 @@ export default async function GamePage({ params }: Props) {
             winners={winners}
             homeLogo={game.home_logo}
             awayLogo={game.away_logo}
+            brand={slate ? { name: slate.brand_name, logo: slate.brand_logo_url, whiteLabel: slate.white_label && !!(slate.brand_name || slate.brand_logo_url) } : null}
             fileName={`winners-${game.home_name}-vs-${game.away_name}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
           />
         </div>

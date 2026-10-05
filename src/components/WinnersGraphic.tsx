@@ -14,7 +14,15 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-async function draw(canvas: HTMLCanvasElement, o: { title: string; subtitle: string; winners: Winner[]; homeLogo?: string | null; awayLogo?: string | null }) {
+export type GraphicBrand = { name?: string | null; logo?: string | null; whiteLabel?: boolean };
+
+type DrawOpts = {
+  title: string; subtitle: string; winners: Winner[];
+  homeLogo?: string | null; awayLogo?: string | null;
+  brand?: GraphicBrand | null; presenter?: string | null;
+};
+
+async function draw(canvas: HTMLCanvasElement, o: DrawOpts) {
   const W = 1080, H = 1350;
   canvas.width = W;
   canvas.height = H;
@@ -29,12 +37,29 @@ async function draw(canvas: HTMLCanvasElement, o: { title: string; subtitle: str
   c.beginPath(); c.moveTo(0, H * 0.72); c.lineTo(W, H * 0.55); c.lineTo(W, H); c.lineTo(0, H); c.fill();
 
   c.textAlign = "center";
+  const white = !!o.brand?.whiteLabel && !!(o.brand?.logo || o.brand?.name);
+  // Header: centered logo on a white card, "Predictions - Winners" beneath it.
+  const mark = await loadImg(white && o.brand?.logo ? o.brand.logo : "/boutcasts-wordmark.png");
+  const cardW = 460, cardH = 128, cardX = (W - cardW) / 2, cardY = 36;
+  c.fillStyle = "#fff";
+  c.beginPath(); c.roundRect(cardX, cardY, cardW, cardH, 30); c.fill();
+  if (mark) {
+    const r = Math.min((cardW - 40) / mark.width, (cardH - 24) / mark.height);
+    c.drawImage(mark, cardX + (cardW - mark.width * r) / 2, cardY + (cardH - mark.height * r) / 2, mark.width * r, mark.height * r);
+  } else {
+    c.fillStyle = "#0b1a4a"; c.font = "900 52px system-ui, sans-serif";
+    c.fillText(white ? o.brand?.name || "" : "BoutCasts", W / 2, cardY + 82);
+  }
   c.fillStyle = "#ffd36b";
   c.font = "800 44px system-ui, sans-serif";
-  c.fillText("BOUT PREDICTIONS · WINNERS", W / 2, 110);
+  c.fillText("Predictions - Winners", W / 2, cardY + cardH + 62);
+  if (!white && o.brand?.name) {
+    c.fillStyle = "rgba(255,255,255,.85)"; c.font = "600 30px system-ui, sans-serif";
+    c.fillText(`Hosted by ${o.brand.name}`, W / 2, cardY + cardH + 106);
+  }
 
   const logos = await Promise.all([o.homeLogo ? loadImg(o.homeLogo) : null, o.awayLogo ? loadImg(o.awayLogo) : null]);
-  let y = 170;
+  let y = !white && o.brand?.name ? 300 : 250;
   if (logos[0] || logos[1]) {
     const s = 150;
     const pos = [W / 2 - 150 - s, W / 2 + 150];
@@ -80,21 +105,25 @@ async function draw(canvas: HTMLCanvasElement, o: { title: string; subtitle: str
     c.font = "700 28px system-ui, sans-serif"; c.fillText("PTS", W - 100, top + 135);
   });
   c.textAlign = "center";
+  if (o.presenter) {
+    c.fillStyle = "#ffd36b"; c.font = "800 34px system-ui, sans-serif";
+    c.fillText(`Presented by ${o.presenter}`, W / 2, H - 125);
+  }
   c.fillStyle = "rgba(255,255,255,.85)"; c.font = "700 36px system-ui, sans-serif";
-  c.fillText("Make your picks at boutcasts.com/predictions", W / 2, H - 70);
+  c.fillText(white ? o.brand?.name || "" : "Make your picks at boutcasts.com/predictions", W / 2, H - 70);
 }
 
 export default function WinnersGraphic({
-  title, subtitle, winners, homeLogo, awayLogo, fileName = "bout-predictions-winners",
-}: { title: string; subtitle: string; winners: Winner[]; homeLogo?: string | null; awayLogo?: string | null; fileName?: string }) {
+  title, subtitle, winners, homeLogo, awayLogo, brand, presenter, fileName = "bout-predictions-winners",
+}: { title: string; subtitle: string; winners: Winner[]; homeLogo?: string | null; awayLogo?: string | null; brand?: GraphicBrand | null; presenter?: string | null; fileName?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [canShare, setCanShare] = useState(false);
-  const key = JSON.stringify([title, subtitle, winners, homeLogo, awayLogo]);
+  const key = JSON.stringify([title, subtitle, winners, homeLogo, awayLogo, brand, presenter]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof navigator.canShare === "function");
-    if (ref.current) draw(ref.current, { title, subtitle, winners, homeLogo, awayLogo });
+    if (ref.current) draw(ref.current, { title, subtitle, winners, homeLogo, awayLogo, brand, presenter });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 

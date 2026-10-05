@@ -8,6 +8,9 @@ import WinnersGraphic from "@/components/WinnersGraphic";
 import ShareButton from "@/components/ShareButton";
 import BracketOwnerPanel from "@/components/BracketOwnerPanel";
 import EliminationBracket, { type BracketPick } from "@/components/EliminationBracket";
+import PredSponsorStrip from "@/components/PredSponsorStrip";
+import PredSponsorManager from "@/components/PredSponsorManager";
+import PredBrandingEditor from "@/components/PredBrandingEditor";
 import LocalTime from "@/components/LocalTime";
 import { GAME_FIELDS, SLATE_FIELDS, hasPassed, type BracketTeam, type LeaderRow, type PredGame, type PredSlate } from "@/lib/predictions/types";
 
@@ -38,12 +41,15 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const slate = slateRow as PredSlate;
   const isElim = slate.kind === "elimination";
 
-  const [{ data: gameRows }, { data: lb }, { data: teamRows }, { data: me }] = await Promise.all([
+  const [{ data: gameRows }, { data: lb }, { data: teamRows }, { data: me }, { data: sponsorRows }] = await Promise.all([
     supabase.from("pred_games").select(GAME_FIELDS).eq("slate_id", id).neq("status", "cancelled").order("starts_at"),
     supabase.rpc("pred_leaderboard", { p_scope: "season", p_slate: id, p_limit: 25 }),
     isElim ? supabase.from("pred_bracket_teams").select("id, seed, name, logo").eq("bracket_id", id).order("seed") : Promise.resolve({ data: [] }),
     user ? supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.rpc("get_pred_sponsors", { p_bracket: id }),
   ]);
+  const presenter = ((sponsorRows ?? []) as { name: string; level: string }[]).find((x) => x.level === "title")?.name ?? null;
+  const whiteLabel = slate.white_label && !!(slate.brand_name || slate.brand_logo_url);
   const games = (gameRows ?? []) as PredGame[];
   const rows = (lb ?? []) as LeaderRow[];
   const teams = (teamRows ?? []) as BracketTeam[];
@@ -75,6 +81,15 @@ export default async function SlatePage({ params, searchParams }: Props) {
       <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--blue)" }}>
         {isElim ? `${slate.bracket_size}-team bracket` : "Weekly slate"} · {statusText}
       </p>
+      {(slate.brand_name || slate.brand_logo_url) && (
+        <div className="mb-3 flex items-center gap-3" style={slate.brand_color ? { borderLeft: `4px solid ${slate.brand_color}`, paddingLeft: 12 } : undefined}>
+          {slate.brand_logo_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={slate.brand_logo_url} alt={slate.brand_name ?? "Host logo"} className="h-12 max-w-[160px] object-contain" />
+          )}
+          {slate.brand_name && <span className="text-sm font-bold" style={{ color: "var(--text-dim)" }}>{whiteLabel ? slate.brand_name : `Hosted by ${slate.brand_name}`}</span>}
+        </div>
+      )}
       <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{slate.title}</h1>
       <p className="mb-4 text-sm" style={{ color: "var(--text-faint)" }}>
         {games.length} {games.length === 1 ? "game" : "games"} · {finals} final · points add up across the whole {isElim ? "bracket" : "slate"}
@@ -88,7 +103,16 @@ export default async function SlatePage({ params, searchParams }: Props) {
         {slate.status !== "pending" && <ShareButton title={slate.title} text={`${slate.title}: make your picks on BoutCasts!`} />}
       </div>
 
+      {slate.status !== "pending" && <PredSponsorStrip bracketId={slate.id} />}
+
       {isOwner && <BracketOwnerPanel slate={slate} justPaid={checkout === "success"} isAdmin={!!me?.is_admin} />}
+
+      {isOwner && slate.status !== "pending" && (
+        <div className="mb-6 grid gap-3">
+          <PredBrandingEditor slate={slate} />
+          <PredSponsorManager bracketId={slate.id} />
+        </div>
+      )}
 
       {isElim ? (
         <EliminationBracket slate={slate} teams={teams} games={games} myPicks={myPicks} canPredict={canPredict} signedIn={!!user} />
@@ -108,6 +132,8 @@ export default async function SlatePage({ params, searchParams }: Props) {
           title={slate.title}
           subtitle={allFinal ? "Final winners" : `Leaders after ${finals} of ${games.length} games`}
           winners={rows.slice(0, 3).map((r) => ({ name: r.username ?? "Player", points: Number(r.points), detail: `${r.games} games · ${r.perfect} perfect` }))}
+          brand={{ name: slate.brand_name, logo: slate.brand_logo_url, whiteLabel }}
+          presenter={presenter}
           fileName={`winners-${slate.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
         />
       )}
