@@ -8,6 +8,7 @@ const ADMIN_LINKS = [
   { href: "/admin/moderation", label: "Moderation" },
   { href: "/admin/sponsors", label: "Sponsors" },
   { href: "/admin/bouts", label: "Bouts" },
+  { href: "/admin/predictions", label: "Predict" },
   { href: "/admin/instrumentals", label: "Instrumentals" },
   { href: "/admin/ads", label: "Ads" },
   { href: "/admin/live-vote", label: "Live Vote" },

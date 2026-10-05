@@ -125,7 +125,7 @@ export default async function GamePage({ params }: Props) {
         </div>
       )}
 
-      {canManage && <div className="mb-5"><GameAdminPanel game={game} /></div>}
+      {canManage && <div className="mb-5"><GameAdminPanel game={game} isAdmin={!!me?.is_admin} /></div>}
 
       {final && graded.length > 0 && (
         <div className="mb-5">

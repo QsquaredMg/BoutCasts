@@ -34,6 +34,18 @@ export default async function AdminBoutsPage() {
     used: usedIds.has(s.id),
   }));
 
+  // Everything created by organizers: competitions (categories) and showcases, drafts included.
+  const [{ data: allCompetitions }, { data: allShowcases }] = await Promise.all([
+    supabase.from("categories").select("id, name, owner_id, is_listed, created_at").order("created_at", { ascending: false }),
+    supabase.from("showcases").select("id, title, kind, status, created_by, created_at, closes_at").order("created_at", { ascending: false }).limit(300),
+  ]);
+  const ownerIds = [
+    ...new Set([...(allCompetitions ?? []).map((c) => c.owner_id), ...(allShowcases ?? []).map((x) => x.created_by)].filter((x): x is string => !!x)),
+  ];
+  const { data: ownerRows } = ownerIds.length ? await supabase.from("profiles").select("id, username").in("id", ownerIds) : { data: [] as { id: string; username: string | null }[] };
+  const ownerName = new Map((ownerRows ?? []).map((o) => [o.id, o.username ?? "unknown"]));
+  const when = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" });
+
   const boutIds = (bouts ?? []).map((b) => b.id);
   const { data: votesRaw } =
     boutIds.length > 0
@@ -74,6 +86,47 @@ export default async function AdminBoutsPage() {
         submissions={submissions}
         tallyByBout={Object.fromEntries(tallyByBout)}
       />
+
+      <h2 className="mb-1 mt-12 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        All competitions ({(allCompetitions ?? []).length})
+      </h2>
+      <p className="mb-3 text-sm" style={{ color: "var(--text-faint)" }}>Every competition hub, including unlisted ones. Open the hub to see it as a fan, or manage it as its organizer.</p>
+      <div className="mb-10 flex flex-col gap-2">
+        {(allCompetitions ?? []).length === 0 && <p className="text-sm" style={{ color: "var(--text-faint)" }}>No competitions yet.</p>}
+        {(allCompetitions ?? []).map((c) => (
+          <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">{c.name}</p>
+              <p className="text-xs" style={{ color: "var(--text-dim)" }}>
+                {c.owner_id ? `by ${ownerName.get(c.owner_id) ?? "unknown"}` : "BoutCasts"} · {c.is_listed ? "Listed" : "Unlisted"} · {when(c.created_at)}
+              </p>
+            </div>
+            <span className="flex gap-2 text-xs font-semibold">
+              <Link href={`/c/${c.id}`} className="rounded-full border px-3 py-1.5" style={{ borderColor: "var(--border)" }}>Open hub</Link>
+              <Link href={`/competitions/${c.id}`} className="rounded-full border px-3 py-1.5" style={{ borderColor: "var(--border)" }}>Manage</Link>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="mb-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        All showcases &amp; debates ({(allShowcases ?? []).length})
+      </h2>
+      <p className="mb-3 text-sm" style={{ color: "var(--text-faint)" }}>Includes drafts and closed ones, so nothing gets lost.</p>
+      <div className="flex flex-col gap-2">
+        {(allShowcases ?? []).length === 0 && <p className="text-sm" style={{ color: "var(--text-faint)" }}>No showcases yet.</p>}
+        {(allShowcases ?? []).map((x) => (
+          <div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">{x.title}</p>
+              <p className="text-xs" style={{ color: "var(--text-dim)" }}>
+                {x.kind === "debate" ? "Panel debate" : "Showcase"} · {x.status} · by {ownerName.get(x.created_by) ?? "unknown"} · {when(x.created_at)}
+              </p>
+            </div>
+            <Link href={`/showcase/${x.id}`} className="rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: "var(--border)" }}>Open</Link>
+          </div>
+        ))}
+      </div>
 
       <h2 className="mb-1 mt-12 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
         Build a bracket

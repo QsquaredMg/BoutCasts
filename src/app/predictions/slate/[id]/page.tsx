@@ -88,7 +88,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
         {slate.status !== "pending" && <ShareButton title={slate.title} text={`${slate.title}: make your picks on BoutCasts!`} />}
       </div>
 
-      {isOwner && <BracketOwnerPanel slate={slate} justPaid={checkout === "success"} />}
+      {isOwner && <BracketOwnerPanel slate={slate} justPaid={checkout === "success"} isAdmin={!!me?.is_admin} />}
 
       {isElim ? (
         <EliminationBracket slate={slate} teams={teams} games={games} myPicks={myPicks} canPredict={canPredict} signedIn={!!user} />

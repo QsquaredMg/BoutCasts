@@ -7,7 +7,7 @@ import { useNow } from "@/lib/predictions/useNow";
 import type { PredGame } from "@/lib/predictions/types";
 
 // Organizer tools: enter the final score, move the start time, or cancel.
-export default function GameAdminPanel({ game }: { game: PredGame }) {
+export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGame; isAdmin?: boolean }) {
   const router = useRouter();
   const [home, setHome] = useState(game.home_score ?? 0);
   const [away, setAway] = useState(game.away_score ?? 0);
@@ -36,7 +36,14 @@ export default function GameAdminPanel({ game }: { game: PredGame }) {
       {game.status === "cancelled" ? (
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>This game was cancelled.</p>
       ) : game.round !== null && !started ? (
-        <p className="text-sm" style={{ color: "var(--text-dim)" }}>Bracket games keep the schedule you set. You can enter this score once the game starts and the earlier round is final.</p>
+        <>
+          <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>Bracket games keep the schedule you set. You can enter this score once the game starts and the earlier round is final.</p>
+          {isAdmin && (
+            <button type="button" disabled={busy} onClick={() => run(() => sb.rpc("admin_start_pred_game", { p_game: game.id }), "Game started. Predictions are closed.")} className="rounded-full border px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+              Admin: start now
+            </button>
+          )}
+        </>
       ) : started ? (
         <>
           <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>
@@ -69,6 +76,11 @@ export default function GameAdminPanel({ game }: { game: PredGame }) {
             New start time
             <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 h-11 w-full rounded-xl border bg-transparent px-3" style={{ borderColor: "var(--border)" }} />
           </label>
+          {isAdmin && (
+            <button type="button" disabled={busy} onClick={() => run(() => sb.rpc("admin_start_pred_game", { p_game: game.id }), "Game started. Predictions are closed.")} className="mb-2 w-full rounded-full border px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+              Admin: start now
+            </button>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"

@@ -8,7 +8,7 @@ import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
 import type { PredSlate } from "@/lib/predictions/types";
 
 // Owner controls for a bracket: pay, upgrade, set a close time, close now.
-export default function BracketOwnerPanel({ slate, justPaid }: { slate: PredSlate; justPaid: boolean }) {
+export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: { slate: PredSlate; justPaid: boolean; isAdmin?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function BracketOwnerPanel({ slate, justPaid }: { slate: PredSlat
     window.location.assign(out.url);
   }
 
-  async function rpc(name: "close_pred_bracket" | "set_pred_bracket_close_time", args: Record<string, unknown>, ok: string) {
+  async function rpc(name: "close_pred_bracket" | "set_pred_bracket_close_time" | "admin_open_pred_bracket" | "admin_reopen_pred_bracket", args: Record<string, unknown>, ok: string) {
     setBusy(true);
     setMsg(null);
     const { error } = await createClient().rpc(name, args);
@@ -73,6 +73,11 @@ export default function BracketOwnerPanel({ slate, justPaid }: { slate: PredSlat
                   {money(BRACKET_PRICING.seasonCents)} · whole season
                 </button>
               </div>
+              {isAdmin && (
+                <button type="button" disabled={busy} onClick={() => rpc("admin_open_pred_bracket", { p_id: slate.id, p_tier: "season" }, "Bracket opened (free).")} className={`${btn} mt-2 w-full`} style={border}>
+                  Admin: open for free
+                </button>
+              )}
             </>
           )}
         </>
@@ -127,6 +132,11 @@ export default function BracketOwnerPanel({ slate, justPaid }: { slate: PredSlat
           {slate.tier === "weekly" && (
             <button type="button" disabled={busy} onClick={() => pay("upgrade")} className={btn} style={border}>
               Reopen as a season bracket · {money(BRACKET_PRICING.upgradeCents)}
+            </button>
+          )}
+          {isAdmin && (
+            <button type="button" disabled={busy} onClick={() => rpc("admin_reopen_pred_bracket", { p_id: slate.id }, "Bracket reopened.")} className={`${btn} ml-2`} style={border}>
+              Admin: reopen
             </button>
           )}
         </>
