@@ -9,6 +9,8 @@ export type PredGame = {
   starts_at: string;
   allow_draw: boolean;
   status: "scheduled" | "final" | "cancelled";
+  scoring_version: number;
+  crowd_state: "ready" | "too_few" | null;
   home_score: number | null;
   away_score: number | null;
   finalized_at: string | null;
@@ -67,7 +69,7 @@ export type LeaderRow = {
 };
 
 export const GAME_FIELDS =
-  "id, slate_id, created_by, home_name, home_logo, away_name, away_logo, starts_at, allow_draw, status, home_score, away_score, finalized_at, round, slot, home_team_id, away_team_id, winner_team_id, feeds_game_id, feeds_side";
+  "id, slate_id, created_by, home_name, home_logo, away_name, away_logo, starts_at, allow_draw, status, scoring_version, crowd_state, home_score, away_score, finalized_at, round, slot, home_team_id, away_team_id, winner_team_id, feeds_game_id, feeds_side";
 
 /** locked = started, closed or cancelled. */
 export function isLocked(g: Pick<PredGame, "starts_at" | "status">, now = Date.now()) {

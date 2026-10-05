@@ -8,6 +8,9 @@ import PredictionForm from "@/components/PredictionForm";
 import GameAdminPanel from "@/components/GameAdminPanel";
 import WinnersGraphic from "@/components/WinnersGraphic";
 import PredSponsorStrip from "@/components/PredSponsorStrip";
+import CrowdSummary from "@/components/CrowdSummary";
+import CrowdGraphic from "@/components/CrowdGraphic";
+import type { CrowdStats } from "@/lib/predictions/crowd";
 import ShareButton from "@/components/ShareButton";
 import { GAME_FIELDS, isLocked, type PredGame, type PredPrediction } from "@/lib/predictions/types";
 
@@ -43,6 +46,13 @@ export default async function GamePage({ params }: Props) {
   ]);
   const all = (picks ?? []) as PredPrediction[];
   const mine = all.find((p) => p.user_id === user?.id) ?? null;
+  const crowdRes = game.round === null && game.status !== "cancelled" && isLocked(game) ? await supabase.rpc("pred_crowd_stats", { p_game: id }) : null;
+  const crowd = (crowdRes?.data ?? null) as CrowdStats | null;
+  let presenter: string | null = null;
+  if (game.slate_id) {
+    const { data: sp } = await supabase.rpc("get_pred_sponsors", { p_bracket: game.slate_id });
+    presenter = ((sp ?? []) as { name: string; level: string }[]).find((x) => x.level === "title")?.name ?? null;
+  }
   const canManage = !!user && (game.created_by === user.id || !!me?.is_admin);
 
   const ids = [...new Set(all.map((p) => p.user_id))];
@@ -119,7 +129,7 @@ export default async function GamePage({ params }: Props) {
                 <>
                   <br />
                   <strong style={{ color: "var(--blue)" }}>{mine.pts_total} points</strong>
-                  {" "}({mine.pts_entry} entry + {mine.pts_winner} winner + {mine.pts_exact} exact score + {mine.pts_close} close)
+                  {" "}({mine.pts_entry ? `${mine.pts_entry} entry + ` : ""}{mine.pts_winner} winner + {mine.pts_exact} exact score + {mine.pts_close} close)
                 </>
               )}
             </p>
@@ -144,6 +154,31 @@ export default async function GamePage({ params }: Props) {
         </div>
       )}
 
+      {crowd?.locked && crowd.n ? <CrowdSummary stats={crowd} home={game.home_name} away={game.away_name} /> : null}
+
+      {crowd?.locked && crowd.n ? (
+        crowd.state === "ready" ? (
+          <div className="mb-5">
+            <CrowdGraphic
+              stats={crowd}
+              title={`${game.home_name} vs ${game.away_name}`}
+              home={game.home_name}
+              away={game.away_name}
+              homeLogo={game.home_logo}
+              awayLogo={game.away_logo}
+              brand={slate ? { name: slate.brand_name, logo: slate.brand_logo_url, whiteLabel: slate.white_label && !!(slate.brand_name || slate.brand_logo_url) } : null}
+              presenter={presenter}
+            />
+          </div>
+        ) : (
+          <p className="bc-card mb-5 p-4 text-center text-sm" style={{ color: "var(--text-dim)" }}>
+            {crowd.state === "too_few"
+              ? "The crowd graphic needs at least 5 predictions, so none was made for this game."
+              : "The shareable crowd graphic appears here 5 minutes after picks close."}
+          </p>
+        )
+      ) : null}
+
       {locked && all.length > 0 && (
         <section className="mb-5">
           <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Everyone&apos;s picks ({all.length})</h2>
@@ -160,7 +195,9 @@ export default async function GamePage({ params }: Props) {
       )}
 
       <p className="text-center text-xs" style={{ color: "var(--text-faint)" }}>
-        Scoring: 2 for entering · 3 correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5.
+        {game.scoring_version === 1
+          ? "Scoring: 2 for entering · 3 correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5."
+          : "Scoring: 5 for the correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5."}
       </p>
     </div>
   );

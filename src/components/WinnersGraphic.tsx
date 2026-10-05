@@ -1,20 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { drawFooter, drawHeader, loadImg, GW, GH, type GraphicBrand } from "@/lib/predictions/graphicParts";
+
+export type { GraphicBrand };
 
 export type Winner = { name: string; points: number; detail?: string };
-
-function loadImg(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const i = new Image();
-    i.crossOrigin = "anonymous";
-    i.onload = () => resolve(i);
-    i.onerror = () => resolve(null);
-    i.src = src;
-  });
-}
-
-export type GraphicBrand = { name?: string | null; logo?: string | null; whiteLabel?: boolean };
 
 type DrawOpts = {
   title: string; subtitle: string; winners: Winner[];
@@ -23,43 +14,15 @@ type DrawOpts = {
 };
 
 async function draw(canvas: HTMLCanvasElement, o: DrawOpts) {
-  const W = 1080, H = 1350;
+  const W = GW, H = GH;
   canvas.width = W;
   canvas.height = H;
   const c = canvas.getContext("2d");
   if (!c) return;
-  const g = c.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, "#0b1a4a");
-  g.addColorStop(1, "#1b4fe4");
-  c.fillStyle = g;
-  c.fillRect(0, 0, W, H);
-  c.fillStyle = "rgba(255,255,255,.06)";
-  c.beginPath(); c.moveTo(0, H * 0.72); c.lineTo(W, H * 0.55); c.lineTo(W, H); c.lineTo(0, H); c.fill();
-
-  c.textAlign = "center";
-  const white = !!o.brand?.whiteLabel && !!(o.brand?.logo || o.brand?.name);
-  // Header: centered logo on a white card, "Predictions - Winners" beneath it.
-  const mark = await loadImg(white && o.brand?.logo ? o.brand.logo : "/boutcasts-wordmark.png");
-  const cardW = 460, cardH = 128, cardX = (W - cardW) / 2, cardY = 36;
-  c.fillStyle = "#fff";
-  c.beginPath(); c.roundRect(cardX, cardY, cardW, cardH, 30); c.fill();
-  if (mark) {
-    const r = Math.min((cardW - 40) / mark.width, (cardH - 24) / mark.height);
-    c.drawImage(mark, cardX + (cardW - mark.width * r) / 2, cardY + (cardH - mark.height * r) / 2, mark.width * r, mark.height * r);
-  } else {
-    c.fillStyle = "#0b1a4a"; c.font = "900 52px system-ui, sans-serif";
-    c.fillText(white ? o.brand?.name || "" : "BoutCasts", W / 2, cardY + 82);
-  }
-  c.fillStyle = "#ffd36b";
-  c.font = "800 44px system-ui, sans-serif";
-  c.fillText("Predictions - Winners", W / 2, cardY + cardH + 62);
-  if (!white && o.brand?.name) {
-    c.fillStyle = "rgba(255,255,255,.85)"; c.font = "600 30px system-ui, sans-serif";
-    c.fillText(`Hosted by ${o.brand.name}`, W / 2, cardY + cardH + 106);
-  }
+  const { white, y: startY } = await drawHeader(c, { heading: "Predictions - Winners", brand: o.brand });
 
   const logos = await Promise.all([o.homeLogo ? loadImg(o.homeLogo) : null, o.awayLogo ? loadImg(o.awayLogo) : null]);
-  let y = !white && o.brand?.name ? 300 : 250;
+  let y = startY;
   if (logos[0] || logos[1]) {
     const s = 150;
     const pos = [W / 2 - 150 - s, W / 2 + 150];
@@ -104,13 +67,7 @@ async function draw(canvas: HTMLCanvasElement, o: DrawOpts) {
     c.fillStyle = "#ffd36b"; c.font = "900 72px system-ui, sans-serif"; c.fillText(String(w.points), W - 130, top + 98);
     c.font = "700 28px system-ui, sans-serif"; c.fillText("PTS", W - 100, top + 135);
   });
-  c.textAlign = "center";
-  if (o.presenter) {
-    c.fillStyle = "#ffd36b"; c.font = "800 34px system-ui, sans-serif";
-    c.fillText(`Presented by ${o.presenter}`, W / 2, H - 125);
-  }
-  c.fillStyle = "rgba(255,255,255,.85)"; c.font = "700 36px system-ui, sans-serif";
-  c.fillText(white ? o.brand?.name || "" : "Make your picks at boutcasts.com/predictions", W / 2, H - 70);
+  drawFooter(c, { white, brand: o.brand, presenter: o.presenter });
 }
 
 export default function WinnersGraphic({

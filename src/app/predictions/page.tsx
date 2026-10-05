@@ -41,7 +41,7 @@ export default async function PredictionsPage() {
         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--blue)" }}>Bout Predictions</p>
         <h1 className="mb-2 text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>Call the game. Call the score.</h1>
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-          Pick the winner and the final score before kickoff. You earn {SCORING.entry} points just for playing, plus bonus points for being right or close.
+          Pick the winner and the final score before kickoff. Call the winner for {SCORING.winner} points, then earn bonus points for nailing the score or getting close.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/predictions/bracket/new" className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold">Create a bracket</Link>

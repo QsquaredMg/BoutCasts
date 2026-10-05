@@ -12,6 +12,7 @@ const TYPE_ICON: Record<string, string> = {
   badge: "🏅",
   announcement: "📣",
   prediction_score_needed: "🎯",
+  prediction_crowd_ready: "📊",
 };
 
 function timeAgo(iso: string) {

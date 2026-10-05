@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import PredTeam from "@/components/PredTeam";
-import { SCORING, pickFor } from "@/lib/predictions/scoring";
+import { pickFor } from "@/lib/predictions/scoring";
 import { countdown, useNow } from "@/lib/predictions/useNow";
 import type { PredGame } from "@/lib/predictions/types";
 
@@ -55,7 +55,7 @@ export default function PredictionForm({
       setMsg({ ok: false, text: error.message });
       return;
     }
-    setMsg({ ok: true, text: existing ? "Prediction updated." : `Locked in! You earn ${SCORING.entry} points when the game is final, plus bonuses for accuracy.` });
+    setMsg({ ok: true, text: existing ? "Prediction updated." : "Locked in! Points are awarded when the game is final. You can change your pick until it starts." });
     router.refresh();
   }
 
