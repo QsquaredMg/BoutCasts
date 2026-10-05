@@ -6,9 +6,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
 
-type Slate = { id: string; title: string };
-
-export default function NewGameForm({ slates, presetSlate }: { slates: Slate[]; presetSlate: string | null }) {
+export default function NewGameForm({ presetSlate }: { presetSlate: string | null }) {
   const router = useRouter();
   const [homeName, setHomeName] = useState("");
   const [homeLogo, setHomeLogo] = useState("");
@@ -16,8 +14,6 @@ export default function NewGameForm({ slates, presetSlate }: { slates: Slate[]; 
   const [awayLogo, setAwayLogo] = useState("");
   const [when, setWhen] = useState("");
   const [allowDraw, setAllowDraw] = useState(false);
-  const [slateId, setSlateId] = useState(presetSlate ?? "");
-  const [newSlate, setNewSlate] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dupId, setDupId] = useState<string | null>(null);
@@ -32,21 +28,7 @@ export default function NewGameForm({ slates, presetSlate }: { slates: Slate[]; 
     }
     setBusy(true);
     const sb = createClient();
-    let sid: string | null = slateId || null;
-    if (slateId === "__new") {
-      if (newSlate.trim().length < 3) {
-        setBusy(false);
-        setError("Name the weekly slate (at least 3 characters).");
-        return;
-      }
-      const { data, error: sErr } = await sb.rpc("create_pred_slate", { p_title: newSlate, p_week_start: null });
-      if (sErr) {
-        setBusy(false);
-        setError(sErr.message);
-        return;
-      }
-      sid = data as string;
-    }
+    const sid: string | null = presetSlate;
     const { data, error: gErr } = await sb.rpc("create_pred_game", {
       p_home_name: homeName,
       p_home_logo: homeLogo || null,
@@ -105,32 +87,13 @@ export default function NewGameForm({ slates, presetSlate }: { slates: Slate[]; 
 
       <div className="bc-card p-4">
         <label className="block text-xs font-bold">
-          Game start (your local time). Predictions lock at this moment.
+          Game start (your local time). Predictions lock at this moment.{!presetSlate && " A free single game must start within 24 hours."}
           <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} required className={field} style={{ borderColor: "var(--border)" }} />
         </label>
         <label className="mt-3 flex items-center gap-2 text-sm font-semibold">
           <input type="checkbox" checked={allowDraw} onChange={(e) => setAllowDraw(e.target.checked)} className="h-4 w-4" />
           This sport can end in a tie
         </label>
-      </div>
-
-      <div className="bc-card p-4">
-        <label className="block text-xs font-bold">
-          Weekly slate (optional): group games into one weekly pick&apos;em with its own leaderboard
-          <select value={slateId} onChange={(e) => setSlateId(e.target.value)} className={field} style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            <option value="">Single game (no slate)</option>
-            {slates.map((s) => (
-              <option key={s.id} value={s.id}>{s.title}</option>
-            ))}
-            <option value="__new">+ Start a new weekly slate…</option>
-          </select>
-        </label>
-        {slateId === "__new" && (
-          <label className="mt-3 block text-xs font-bold">
-            Slate name
-            <input value={newSlate} onChange={(e) => setNewSlate(e.target.value)} maxLength={80} className={field} style={{ borderColor: "var(--border)" }} placeholder="e.g. Week 7 Friday Night Football" />
-          </label>
-        )}
       </div>
 
       {error && <p role="alert" className="text-sm font-semibold" style={{ color: "var(--red)" }}>{error}</p>}

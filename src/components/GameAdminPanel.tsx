@@ -35,6 +35,8 @@ export default function GameAdminPanel({ game }: { game: PredGame }) {
       </h2>
       {game.status === "cancelled" ? (
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>This game was cancelled.</p>
+      ) : game.round !== null && !started ? (
+        <p className="text-sm" style={{ color: "var(--text-dim)" }}>Bracket games keep the schedule you set. You can enter this score once the game starts and the earlier round is final.</p>
       ) : started ? (
         <>
           <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>

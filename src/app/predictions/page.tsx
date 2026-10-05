@@ -5,6 +5,7 @@ import GameCard from "@/components/GameCard";
 import PredLeaderboardTable from "@/components/PredLeaderboardTable";
 import { GAME_FIELDS, isLocked, type LeaderRow, type PredGame } from "@/lib/predictions/types";
 import { SCORING } from "@/lib/predictions/scoring";
+import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
 
 export const metadata: Metadata = {
   title: "Bout Predictions",
@@ -18,8 +19,8 @@ export default async function PredictionsPage() {
   const user = auth.user;
 
   const [{ data: gameRows }, { data: slateRows }, { data: lb }] = await Promise.all([
-    supabase.from("pred_games").select(GAME_FIELDS).neq("status", "cancelled").order("starts_at", { ascending: false }).limit(60),
-    supabase.from("pred_slates").select("id, title, week_start").order("created_at", { ascending: false }).limit(8),
+    supabase.from("pred_games").select(GAME_FIELDS).neq("status", "cancelled").is("round", null).order("starts_at", { ascending: false }).limit(60),
+    supabase.from("pred_slates").select("id, title, kind, tier, status, created_by").order("created_at", { ascending: false }).limit(12),
     supabase.rpc("pred_leaderboard", { p_scope: "week", p_limit: 5 }),
   ]);
   const games = (gameRows ?? []) as PredGame[];
@@ -43,10 +44,15 @@ export default async function PredictionsPage() {
           Pick the winner and the final score before kickoff. You earn {SCORING.entry} points just for playing, plus bonus points for being right or close.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/predictions/new" className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold">Create a game</Link>
+          <Link href="/predictions/bracket/new" className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold">Create a bracket</Link>
+          <Link href="/predictions/new" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Free single game</Link>
           <Link href="/predictions/leaderboard" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Leaderboard</Link>
         </div>
       </div>
+
+      <p className="bc-card mb-8 p-4 text-sm" style={{ color: "var(--text-dim)" }}>
+        <strong style={{ color: "var(--text)" }}>Players always play free.</strong> Organizers get one free single game a day (open 24 hours). A bracket with many games costs {money(BRACKET_PRICING.weeklyCents)} and stays open 8 days, or {money(BRACKET_PRICING.seasonCents)} to stay open all season.
+      </p>
 
       <Section title="Open for picks" empty="No games are open right now. Create one to get your friends predicting!">
         {open.map((g) => <GameCard key={g.id} game={g} mine={mine[g.id]} />)}
@@ -58,11 +64,16 @@ export default async function PredictionsPage() {
 
       {(slateRows ?? []).length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Weekly slates</h2>
+          <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Brackets</h2>
           <div className="grid gap-2">
             {(slateRows ?? []).map((s) => (
-              <Link key={s.id} href={`/predictions/slate/${s.id}`} className="bc-card flex items-center justify-between p-4 text-sm font-bold">
-                <span className="min-w-0 truncate">{s.title}</span>
+              <Link key={s.id} href={`/predictions/slate/${s.id}`} className="bc-card flex items-center justify-between gap-3 p-4 text-sm font-bold">
+                <span className="min-w-0">
+                  <span className="block truncate">{s.title}</span>
+                  <span className="block text-xs font-semibold" style={{ color: "var(--text-faint)" }}>
+                    {s.kind === "elimination" ? "Elimination bracket" : "Slate of games"} · {s.status === "pending" ? "Not paid yet (only you can see this)" : s.status === "open" ? "Open" : "Closed"}
+                  </span>
+                </span>
                 <span style={{ color: "var(--blue)" }}>View →</span>
               </Link>
             ))}

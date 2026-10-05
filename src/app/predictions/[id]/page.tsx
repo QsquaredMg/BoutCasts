@@ -52,6 +52,13 @@ export default async function GamePage({ params }: Props) {
   }
 
   const locked = isLocked(game);
+  const bracketPick =
+    game.round !== null && user
+      ? ((await supabase.from("pred_bracket_picks").select("team_id, win_score, lose_score, pts_total").eq("game_id", id).eq("user_id", user.id).maybeSingle()).data as { team_id: string; win_score: number; lose_score: number; pts_total: number | null } | null)
+      : null;
+  const bracketPickTeam = bracketPick
+    ? ((await supabase.from("pred_bracket_teams").select("name").eq("id", bracketPick.team_id).maybeSingle()).data?.name ?? "Team")
+    : null;
   const final = game.status === "final";
   const graded = all.filter((p) => p.pts_total != null);
   const winners = graded.slice(0, 3).map((p) => ({
@@ -84,6 +91,11 @@ export default async function GamePage({ params }: Props) {
 
       {game.status === "cancelled" ? (
         <p className="bc-card mb-5 p-5 text-center text-sm">This game was cancelled, so predictions will not be scored.</p>
+      ) : game.round !== null && !locked ? (
+        <div className="bc-card mb-5 p-5 text-center">
+          <p className="mb-3 text-sm font-semibold">This game is part of a bracket. Fill out the whole bracket to predict it.</p>
+          {slate && <Link href={`/predictions/slate/${slate.id}`} className="bc-btn-solid inline-block rounded-full px-5 py-2 text-sm font-bold">Open the bracket</Link>}
+        </div>
       ) : !locked ? (
         <div className="mb-5">
           <PredictionForm game={game} signedIn={!!user} existing={mine ? { pred_home: mine.pred_home, pred_away: mine.pred_away } : null} />
@@ -91,6 +103,12 @@ export default async function GamePage({ params }: Props) {
       ) : (
         <div className="bc-card mb-5 p-5 text-center">
           <p className="text-sm font-bold">{final ? "Final score is in." : "Picks are closed. Waiting for the final score."}</p>
+          {bracketPick && (
+            <p className="mt-2 text-sm" style={{ color: "var(--text-dim)" }}>
+              Your pick: {bracketPickTeam} {bracketPick.win_score}–{bracketPick.lose_score}
+              {bracketPick.pts_total != null && <><br /><strong style={{ color: "var(--blue)" }}>{bracketPick.pts_total} points</strong></>}
+            </p>
+          )}
           {mine && (
             <p className="mt-2 text-sm" style={{ color: "var(--text-dim)" }}>
               Your pick: {mine.pred_home} – {mine.pred_away}
@@ -103,7 +121,7 @@ export default async function GamePage({ params }: Props) {
               )}
             </p>
           )}
-          {!mine && user && <p className="mt-2 text-sm" style={{ color: "var(--text-faint)" }}>You didn&apos;t enter a prediction for this game.</p>}
+          {!mine && !bracketPick && user && <p className="mt-2 text-sm" style={{ color: "var(--text-faint)" }}>You didn&apos;t enter a prediction for this game.</p>}
         </div>
       )}
 

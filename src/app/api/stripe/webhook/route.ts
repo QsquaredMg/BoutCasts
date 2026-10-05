@@ -162,6 +162,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    if (metadata.kind === "pred_bracket" || metadata.kind === "pred_bracket_upgrade") {
+      const admin = createAdminClient();
+      if (!metadata.bracket_id) {
+        console.error("Stripe webhook: pred bracket metadata missing", metadata);
+        return NextResponse.json({ error: "Invalid bracket metadata" }, { status: 400 });
+      }
+      // Both RPCs are idempotent: a repeated delivery changes nothing.
+      const { error } =
+        metadata.kind === "pred_bracket"
+          ? await admin.rpc("activate_pred_bracket", {
+              p_id: metadata.bracket_id,
+              p_session: session.id,
+              p_tier: metadata.tier === "season" ? "season" : "weekly",
+            })
+          : await admin.rpc("upgrade_pred_bracket", { p_id: metadata.bracket_id, p_session: session.id });
+      if (error) {
+        console.error("Stripe webhook: failed to open prediction bracket", error);
+        return NextResponse.json({ error: "Failed to open bracket" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
     if (metadata.kind === "live_vote_pro") {
       const admin = createAdminClient();
       const { error } = await admin
