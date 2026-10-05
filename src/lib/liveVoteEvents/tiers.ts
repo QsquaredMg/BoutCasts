@@ -63,7 +63,7 @@ export function tierPriceLabel(tier: LiveVoteTier): string {
 // Medium events, Pro + white-label on every event. Keep in sync with
 // org_license_active() / organizer_pro_status() in the database.
 export const ORG_LICENSE = {
-  priceCents: 149900,
+  priceCents: 25000,
   seats: 10,
 };
 
