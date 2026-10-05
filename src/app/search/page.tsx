@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Bout } from "@/lib/types";
 import SearchBar from "@/components/SearchBar";
 
-export const metadata: Metadata = { title: "Search" };
+export const metadata: Metadata = { title: "Search", description: "Search BoutCasts matchups, live votes, competitions and creators.", robots: { index: false } };
 
 export default async function SearchPage({
   searchParams,

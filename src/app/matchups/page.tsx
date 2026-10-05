@@ -11,7 +11,10 @@ import StopPropagation from "@/components/StopPropagation";
 import SponsorBadge from "@/components/SponsorBadge";
 import AdBanner from "@/components/AdBanner";
 
-export const metadata: Metadata = { title: "Matchups — vote on today’s bouts" };
+export const metadata: Metadata = {
+  title: "Matchups — vote on today’s bouts",
+  description: "Head-to-head band battles, dance-offs and showdowns live right now. Watch both sides and vote for who won.",
+};
 
 const STATUS_LABEL: Record<Bout["status"], string> = {
   live: "LIVE",

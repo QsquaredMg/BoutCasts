@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Instrumental } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "Beat Library | BoutCasts",
+  title: "Beat Library",
   description: "Free instrumentals for rap, singing and dance battles. Pick a beat, download it, or record over it in the app.",
 };
 

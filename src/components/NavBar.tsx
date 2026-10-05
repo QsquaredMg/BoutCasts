@@ -136,12 +136,12 @@ export default function NavBar() {
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3 px-4 py-3 sm:px-5">
             <Link href="/" className="flex flex-shrink-0 items-center" aria-label="BoutCasts home">
               <Image
-                src="/boutcasts-logo.png"
+                src="/boutcasts-wordmark.png"
                 alt="BoutCasts"
-                width={170}
-                height={93}
+                width={608}
+                height={160}
                 priority
-                className="h-10 w-auto sm:h-12"
+                className="h-8 w-auto sm:h-10"
               />
             </Link>
 

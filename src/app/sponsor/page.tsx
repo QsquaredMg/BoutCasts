@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import SponsorApplyForm from "@/components/SponsorApplyForm";
 
-export const metadata: Metadata = { title: "Sponsor BoutCasts" };
+export const metadata: Metadata = {
+  title: "Sponsor BoutCasts",
+  description: "Put your brand in front of fans at band battles, halftime shows and school events. Sponsor a category or a live vote.",
+};
 
 export default async function SponsorPage({
   searchParams,

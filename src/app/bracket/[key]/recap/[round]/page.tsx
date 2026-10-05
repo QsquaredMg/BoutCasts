@@ -8,7 +8,10 @@ import RecapVideoPlayer from "@/components/RecapVideoPlayer";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string; round: string }> }): Promise<Metadata> {
   const { round } = await params;
-  return { title: `Round ${Number(round) || ""} recap`.replace("  ", " ") };
+  return {
+    title: `Round ${Number(round) || ""} recap`.replace("  ", " "),
+    description: "Who advanced, who went home and the final vote counts from this round of the bracket on BoutCasts.",
+  };
 }
 
 export default async function RoundRecapPage({

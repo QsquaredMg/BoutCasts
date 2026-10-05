@@ -77,6 +77,8 @@ function getOrCreateVoterToken(): string {
 export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   const [supabase] = useState(() => createEventClient(eventId));
   const voterTokenRef = useRef<string | null>(null);
+  // Same token, kept in state for rendering (refs can't be read during render).
+  const [voterToken, setVoterToken] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [seek, setSeek] = useState<{ t: number; n: number } | null>(null);
@@ -137,6 +139,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       if (eventRow.voter_mode === "open_link") {
         token = getOrCreateVoterToken();
         voterTokenRef.current = token;
+        setVoterToken(token);
       }
       if (eventRow.voter_mode === "open_link" || user) {
         const { data: ranking } = await supabase.rpc("get_my_live_vote_ranking", {
@@ -155,6 +158,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       if (eventRow.voter_mode === "open_link") {
         token = getOrCreateVoterToken();
         voterTokenRef.current = token;
+        setVoterToken(token);
       }
       const { data: mine } = await supabase.rpc("get_my_live_vote_ranking", {
         p_event_id: eventId,
@@ -183,9 +187,11 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   }, [supabase, eventId]);
 
   useEffect(() => {
+    // Loading data and reading the ?boost=success return flag both set state once on mount.
+    /* eslint-disable react-hooks/set-state-in-effect */
     load();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (new URLSearchParams(window.location.search).get("boost") === "success") setBoostNotice(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [load]);
 
   useEffect(() => {
@@ -277,6 +283,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     } else {
       token = voterTokenRef.current ?? getOrCreateVoterToken();
       voterTokenRef.current = token;
+      setVoterToken(token);
     }
 
     setSubmittingRanking(true);
@@ -339,6 +346,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     // open_link mode
     const token = voterTokenRef.current ?? getOrCreateVoterToken();
     voterTokenRef.current = token;
+    setVoterToken(token);
     setVoting(optionId);
     const { error: insertError } = await supabase
       .from("live_votes")
@@ -504,7 +512,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       {myVote && !judged && event.collect_demographics && demoDone === false && (
         <DemographicsPrompt
           eventId={eventId}
-          voterToken={event.voter_mode === "open_link" ? voterTokenRef.current : null}
+          voterToken={event.voter_mode === "open_link" ? voterToken : null}
           onDone={() => setDemoDone(true)}
         />
       )}

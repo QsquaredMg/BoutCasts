@@ -5,7 +5,7 @@ import InstrumentalUpload from "@/components/InstrumentalUpload";
 import type { Instrumental } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "Upload an instrumental | BoutCasts",
+  title: "Upload an instrumental",
   description: "Beat producers: submit an instrumental for rap, singing and dance bouts.",
 };
 

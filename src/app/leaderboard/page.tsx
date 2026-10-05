@@ -5,7 +5,7 @@ import type { Badge, UserBadge } from "@/lib/types";
 import ChallengeButton from "@/components/ChallengeButton";
 import { cloutTierFor } from "@/lib/clout";
 
-export const metadata: Metadata = { title: "Leaderboard" };
+export const metadata: Metadata = { title: "Leaderboard", description: "Top creators and fans on BoutCasts — wins, votes and badges." };
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();

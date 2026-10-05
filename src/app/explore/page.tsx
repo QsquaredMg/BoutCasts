@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isPublicBout, PUBLIC_BOUT_FIELDS } from "@/lib/publicBouts";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -97,6 +98,23 @@ function EventCard({ e, now }: { e: ExploreRow; now: number }) {
   );
 }
 
+type LiveBout = {
+  id: string;
+  competitor_a_name: string;
+  competitor_b_name: string;
+  bracket_key: string | null;
+  round_number: number;
+  categories: { name: string } | { name: string }[] | null;
+  bout_mode: "open" | "closed";
+  competitor_a_submission_id: string | null;
+  competitor_b_submission_id: string | null;
+};
+
+function boutCategory(c: LiveBout["categories"]) {
+  if (!c) return null;
+  return Array.isArray(c) ? (c[0]?.name ?? null) : c.name;
+}
+
 export default async function ExplorePage({
   searchParams,
 }: {
@@ -106,6 +124,15 @@ export default async function ExplorePage({
   const supabase = await createClient();
   const { data } = await supabase.rpc("get_explore_live_votes", { p_limit: 60 });
   const rows = (data ?? []) as ExploreRow[];
+
+  // Public head-to-head matchups live right now, so Explore is never empty while bouts are live.
+  const { data: boutRows } = await supabase
+    .from("bouts")
+    .select(`id, competitor_a_name, competitor_b_name, bracket_key, round_number, categories(name), ${PUBLIC_BOUT_FIELDS}`)
+    .eq("status", "live")
+    .order("created_at", { ascending: false })
+    .limit(24);
+  const liveMatchups = ((boutRows ?? []) as unknown as LiveBout[]).filter(isPublicBout).slice(0, 6);
 
   // Public competition hubs with matchups live right now.
   const { data: liveBouts } = await supabase.from("bouts").select("category_id").eq("status", "live").limit(500);
@@ -139,11 +166,11 @@ export default async function ExplorePage({
         Explore
       </p>
       <h1 className="mb-2 text-3xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Live votes happening now
+        Happening now
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
-        Polls, elections, talent shows and battles that organizers have opened to everyone. Tap one
-        to watch the tally and cast your vote.
+        Head-to-head matchups, polls, elections and talent shows open to everyone. Tap one to watch and
+        cast your vote.
       </p>
 
       {catChips.length > 0 && (
@@ -159,18 +186,62 @@ export default async function ExplorePage({
         </div>
       )}
 
+      {liveMatchups.length > 0 && !categoryFilter && (
+        <section className="mb-8">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h2 className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+              Live matchups
+            </h2>
+            <Link href="/matchups" className="text-xs font-bold" style={{ color: "var(--red)" }}>
+              See all →
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {liveMatchups.map((b) => (
+              <Link
+                key={b.id}
+                href={`/bout/${b.id}`}
+                className="flex min-w-0 flex-col gap-2 rounded-xl border p-3.5 hover:border-[var(--red)]"
+                style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+              >
+                <span className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-wide">
+                  <span className="truncate" style={{ color: "var(--text-faint)" }}>
+                    {boutCategory(b.categories) ?? "Matchup"}
+                    {b.bracket_key ? ` · Round ${b.round_number}` : ""}
+                  </span>
+                  <span className="flex flex-shrink-0 items-center gap-1.5" style={{ color: "var(--live, #e5263b)" }}>
+                    <span className="bc-live-dot" /> Live
+                  </span>
+                </span>
+                <span className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                  <span className="line-clamp-2 text-sm font-bold">{b.competitor_a_name}</span>
+                  <span className="text-[11px] font-black" style={{ color: "var(--text-faint)", fontFamily: "var(--font-display)" }}>
+                    VS
+                  </span>
+                  <span className="line-clamp-2 text-right text-sm font-bold">{b.competitor_b_name}</span>
+                </span>
+                <span className="text-xs font-bold" style={{ color: "var(--red)" }}>
+                  Watch &amp; vote →
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
-          Live now {live.length > 0 && `(${live.length})`}
+          Live votes {live.length > 0 && `(${live.length})`}
         </h2>
         {live.length === 0 ? (
           <div
             className="rounded-xl border p-5 text-center"
             style={{ borderColor: "var(--border)", background: "var(--surface)" }}
           >
-            <p className="font-semibold">Nothing live on Explore right now.</p>
+            <p className="font-semibold">No public live votes right now.</p>
             <p className="mt-1 text-sm" style={{ color: "var(--text-faint)" }}>
-              Many events are private to their school or group. Running one of your own?
+              Most elections and polls are private to their school or group{liveMatchups.length > 0 ? " — the matchups above are open to everyone" : ""}. Running
+              one of your own?
             </p>
             <Link href="/live-vote/new" className="bc-btn-solid mt-3 inline-block rounded-full px-5 py-2.5 text-sm font-bold">
               Start a Live Vote

@@ -8,7 +8,7 @@ import BracketTree from "@/components/BracketTree";
 // mirrors the concept mockup's default view:
 // a featured live duel up top, its tournament bracket underneath, with a
 // way to jump into the full flat feed of every other matchup.
-export const metadata = { title: "BoutCard" };
+export const metadata = { title: "BoutCard", description: "Today’s BoutCard: the featured matchups on BoutCasts. Watch, vote and share your pick." };
 
 export default async function BoutCardPage() {
   const supabase = await createClient();

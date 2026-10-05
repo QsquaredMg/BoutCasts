@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CLOUT_TIERS } from "@/lib/clout";
 
-export const metadata: Metadata = { title: "How it works" };
+export const metadata: Metadata = {
+  title: "How it works",
+  description: "How BoutCasts works: watch head-to-head clips, vote for the winner, climb brackets, or host your own live vote.",
+};
 
 const STEPS = [
   {
