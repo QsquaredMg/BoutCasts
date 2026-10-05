@@ -244,6 +244,7 @@ export default function NavBar() {
                 <MenuLink href="/host" strong>
                   🎤 Host a vote — for schools, leagues &amp; events
                 </MenuLink>
+                <MenuLink href="/schools">🎓 For schools, colleges &amp; universities</MenuLink>
                 <MenuLink href="/join">🔒 Have an event code? Join</MenuLink>
                 <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
                 <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>

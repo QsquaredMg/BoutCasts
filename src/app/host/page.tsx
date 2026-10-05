@@ -247,6 +247,7 @@ export default async function HostPage() {
             title="School & class elections"
             body="Student council, class officers, homecoming court. One student, one vote — and a count everyone can see."
             footer="High schools · Colleges · Student government"
+            link={{ href: "/schools", label: "See the schools page →" }}
           />
           <UseCase
             icon={<ScreenIcon />}
