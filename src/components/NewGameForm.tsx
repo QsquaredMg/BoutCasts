@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
+import TeamPicker from "@/components/TeamPicker";
 
 export default function NewGameForm({ presetSlate }: { presetSlate: string | null }) {
   const router = useRouter();
@@ -69,6 +70,7 @@ export default function NewGameForm({ presetSlate }: { presetSlate: string | nul
 
       <fieldset className="bc-card p-4">
         <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Home team</legend>
+        <TeamPicker onPick={(t) => { setHomeName(t.name); setHomeLogo(t.logo); }} />
         <label className="block text-xs font-bold">
           Name
           <input value={homeName} onChange={(e) => setHomeName(e.target.value)} required maxLength={40} className={field} style={{ borderColor: "var(--border)" }} placeholder="e.g. Eastside Eagles" />
@@ -78,6 +80,7 @@ export default function NewGameForm({ presetSlate }: { presetSlate: string | nul
 
       <fieldset className="bc-card p-4">
         <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Away team</legend>
+        <TeamPicker onPick={(t) => { setAwayName(t.name); setAwayLogo(t.logo); }} />
         <label className="block text-xs font-bold">
           Name
           <input value={awayName} onChange={(e) => setAwayName(e.target.value)} required maxLength={40} className={field} style={{ borderColor: "var(--border)" }} placeholder="e.g. Westview Wolves" />

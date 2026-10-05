@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import FileUploadPicker from "@/components/FileUploadPicker";
 import LogoUploadField from "@/components/LogoUploadField";
+import TeamPicker from "@/components/TeamPicker";
 import { normalizeEmbedInput } from "@/lib/clipSource";
 import { parseClock, type ShowcaseKind } from "@/lib/showcases";
 
@@ -199,6 +200,7 @@ export default function NewShowcasePage() {
                   </button>
                 )}
               </div>
+              <TeamPicker label="Pick a team or school" nameMode="full" onPick={(p) => update(i, { team_name: p.name, image_url: p.logo, name: c.name || p.name })} />
               <div className="grid gap-2 sm:grid-cols-2">
                 <input value={c.name} onChange={(e) => update(i, { name: e.target.value })} maxLength={80} placeholder={kind === "debate" ? "Debater name" : "Group / performer name"} className={input} style={inputStyle} />
                 <input value={c.team_name} onChange={(e) => update(i, { team_name: e.target.value })} maxLength={80} placeholder={kind === "debate" ? "School / team (optional)" : "Team / school (optional)"} className={input} style={inputStyle} />

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
+import TeamPicker from "@/components/TeamPicker";
 import { BRACKET_PRICING, money, roundLabel } from "@/lib/predictions/pricing";
 
 type Team = { name: string; logo: string };
@@ -128,6 +129,7 @@ export default function PredBracketBuilder() {
             <div className="grid gap-3">
               {teams.map((t, i) => (
                 <div key={i} className="rounded-xl border p-3" style={border}>
+                  <TeamPicker label="Pick a team" onPick={(p) => setTeam(i, { name: p.name, logo: p.logo })} />
                   <label className="block text-xs font-bold">
                     Team {i + 1}
                     <input value={t.name} onChange={(e) => setTeam(i, { name: e.target.value })} required maxLength={40} className={field} style={border} />
@@ -163,8 +165,10 @@ export default function PredBracketBuilder() {
                   )}
                 </div>
                 <div className="grid gap-2">
+                  <TeamPicker label="Pick home team" onPick={(p) => setGame(i, { home_name: p.name, home_logo: p.logo })} />
                   <input aria-label={`Game ${i + 1} home team`} placeholder="Home team" value={g.home_name} onChange={(e) => setGame(i, { home_name: e.target.value })} required maxLength={40} className={field} style={border} />
                   <LogoUploadField value={g.home_logo} onChange={(url) => setGame(i, { home_logo: url })} folder="teams" compact />
+                  <TeamPicker label="Pick away team" onPick={(p) => setGame(i, { away_name: p.name, away_logo: p.logo })} />
                   <input aria-label={`Game ${i + 1} away team`} placeholder="Away team" value={g.away_name} onChange={(e) => setGame(i, { away_name: e.target.value })} required maxLength={40} className={field} style={border} />
                   <LogoUploadField value={g.away_logo} onChange={(url) => setGame(i, { away_logo: url })} folder="teams" compact />
                   <label className="block text-xs font-bold">
