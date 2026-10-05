@@ -149,7 +149,7 @@ export default function JudgePanelManager({
               >
                 {copiedId === j.id ? "Copied!" : "Copy link"}
               </button>
-              <JudgeInviteButton judgeName={j.name} link={linkFor(j.token)} title={eventTitle} kind="competition" deadline={closesAt} />
+              <JudgeInviteButton judgeName={j.name} judgeId={j.id} judgeKind="live_vote" link={linkFor(j.token)} title={eventTitle} kind="competition" deadline={closesAt} />
               {canEditJudges && (
                 <button
                   type="button"

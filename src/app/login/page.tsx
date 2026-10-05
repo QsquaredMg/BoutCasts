@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
+import ConfirmCodeForm from "@/components/ConfirmCodeForm";
+import { isSchoolEmail, SCHOOL_EMAIL_TIP } from "@/lib/schoolEmail";
 import { classifyAuthError, friendlyAuthError, LOGIN_NOTICES, type AuthProblem } from "@/lib/authMessages";
 
 export default function LoginPage() {
@@ -144,6 +146,11 @@ function LoginForm() {
                     : "Resend confirmation email"}
               </button>
             )}
+            {problem === "unconfirmed" && isSchoolEmail(email) && (
+              <p className="mt-2 text-xs" style={{ color: "var(--text-dim)" }}>
+                🏫 {SCHOOL_EMAIL_TIP}
+              </p>
+            )}
             {problem === "bad_credentials" && (
               <Link href="/forgot-password" className="mt-2 block font-semibold underline" style={{ color: "var(--red)" }}>
                 Reset my password
@@ -155,6 +162,15 @@ function LoginForm() {
           {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>
+      {problem === "unconfirmed" && email && (
+        <ConfirmCodeForm
+          email={email}
+          onConfirmed={() => {
+            router.push(next);
+            router.refresh();
+          }}
+        />
+      )}
       <p className="mt-3 text-sm">
         <Link href="/forgot-password" className="font-semibold underline" style={{ color: "var(--text-dim)" }}>
           Forgot password?

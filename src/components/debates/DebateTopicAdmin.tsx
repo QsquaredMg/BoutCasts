@@ -77,6 +77,8 @@ export default function DebateTopicAdmin({
                   </button>
                   <JudgeInviteButton
                     judgeName={j.name}
+                    judgeId={j.id}
+                    judgeKind="debate"
                     link={`/debates/judge/${j.token}`}
                     title={title}
                     kind="debate"

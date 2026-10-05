@@ -323,6 +323,8 @@ export default function ShowcaseView({
                     </button>
                     <JudgeInviteButton
                       judgeName={j.name}
+                      judgeId={j.id}
+                      judgeKind="showcase"
                       link={`/showcase/judge/${j.token}`}
                       title={showcase.title}
                       kind="showcase"

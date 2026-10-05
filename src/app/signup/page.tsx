@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
+import ConfirmCodeForm from "@/components/ConfirmCodeForm";
+import { isSchoolEmail, SCHOOL_EMAIL_TIP } from "@/lib/schoolEmail";
 import { useRouter } from "next/navigation";
 import { friendlyAuthError } from "@/lib/authMessages";
 
@@ -136,9 +138,17 @@ export default function SignupPage() {
         </p>
         <ul className="mt-4 list-disc space-y-1 pl-5 text-sm" style={{ color: "var(--text-faint)" }}>
           <li>Not there after a minute? Check your spam or promotions folder.</li>
+          {isSchoolEmail(email) && <li><strong>School email:</strong> {SCHOOL_EMAIL_TIP}</li>}
           <li>The link works once and expires after 24 hours.</li>
           <li>You can&apos;t sign in until your email is confirmed.</li>
         </ul>
+        <ConfirmCodeForm
+          email={email}
+          onConfirmed={() => {
+            router.push(nextPath());
+            router.refresh();
+          }}
+        />
         <button
           type="button"
           onClick={resend}
@@ -193,6 +203,11 @@ export default function SignupPage() {
           className={inputClass}
           style={inputStyle}
         />
+        {isSchoolEmail(email) && (
+          <p className="-mt-2 rounded-lg p-2.5 text-xs" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+            🏫 {SCHOOL_EMAIL_TIP}
+          </p>
+        )}
         <input
           type="password"
           required

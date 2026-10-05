@@ -8,6 +8,8 @@ import { useState } from "react";
 // be edited first or copied into any app.
 
 export type JudgeInviteKind = "bout" | "competition" | "debate" | "showcase";
+/** Which judge table the judge lives in (used to send the email from BoutCasts). */
+export type JudgeRecordKind = "showcase" | "debate" | "live_vote";
 
 function letter(o: { judgeName: string; title: string; kind: JudgeInviteKind; link: string; criteria?: string[]; deadline?: string | null; from?: string }) {
   const what =
@@ -44,6 +46,8 @@ export default function JudgeInviteButton({
   kind,
   criteria,
   deadline,
+  judgeId,
+  judgeKind,
 }: {
   judgeName: string;
   /** Judging URL or path, e.g. /showcase/judge/abc */
@@ -52,17 +56,25 @@ export default function JudgeInviteButton({
   kind: JudgeInviteKind;
   criteria?: string[];
   deadline?: string | null;
+  judgeId: string;
+  judgeKind: JudgeRecordKind;
 }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [from, setFrom] = useState("");
   const [draft, setDraft] = useState<{ subject: string; body: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sendState, setSendState] = useState<"idle" | "sending" | "sent">("idle");
+  const [sendError, setSendError] = useState<string | null>(null);
+  // Becomes true once we learn BoutCasts can't send (no email service set up).
+  const [appOnly, setAppOnly] = useState(false);
 
   function start() {
     // Relative paths are resolved here (in the browser) so the button can render on the server.
     const full = /^https?:\/\//.test(link) ? link : new URL(link, window.location.origin).toString();
     setDraft(letter({ judgeName, title, kind, link: full, criteria, deadline }));
+    setSendState("idle");
+    setSendError(null);
     setOpen(true);
   }
 
@@ -70,6 +82,31 @@ export default function JudgeInviteButton({
     if (!draft) return draft;
     if (!from.trim()) return draft;
     return { ...draft, body: draft.body.replace("Sent with BoutCasts", `${from.trim()}\nSent with BoutCasts`) };
+  }
+
+  async function sendFromBoutCasts() {
+    const d = withSignature();
+    if (!d) return;
+    setSendState("sending");
+    setSendError(null);
+    try {
+      const res = await fetch("/api/judge-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: judgeKind, judgeId, to: email.trim(), subject: d.subject, text: d.body }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; fallback?: boolean };
+      if (res.ok && j.ok) return setSendState("sent");
+      setSendState("idle");
+      if (res.status === 501) {
+        setAppOnly(true);
+        return setSendError("BoutCasts email isn't switched on yet, so use your email app below.");
+      }
+      setSendError(j.error ?? "The email couldn't be sent. Try your email app instead.");
+    } catch {
+      setSendState("idle");
+      setSendError("No connection. Try again, or use your email app.");
+    }
   }
 
   function send() {
@@ -162,22 +199,51 @@ export default function JudgeInviteButton({
               className="mb-3 w-full rounded-[10px] border px-3 py-2 text-sm leading-relaxed"
               style={box}
             />
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={send}
-                disabled={!validEmail}
-                className="bc-btn-solid rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-50"
-              >
-                Open in my email app
-              </button>
-              <button type="button" onClick={copyLetter} className="rounded-full border px-4 py-2.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>
-                {copied ? "Copied!" : "Copy letter"}
-              </button>
-            </div>
-            <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
-              The email is sent from your own email account, so replies come straight to you.
-            </p>
+            {sendState === "sent" ? (
+              <div className="rounded-xl p-3 text-center text-sm font-semibold" style={{ background: "var(--surface-2)" }} role="status">
+                ✅ Invite sent to {email.trim()}. Replies go to your email.
+                <button type="button" onClick={() => setOpen(false)} className="mt-2 block w-full text-xs underline" style={{ color: "var(--text-dim)" }}>
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                {!appOnly && (
+                  <button
+                    type="button"
+                    onClick={sendFromBoutCasts}
+                    disabled={!validEmail || sendState === "sending"}
+                    className="bc-btn-solid mb-2 w-full rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-50"
+                  >
+                    {sendState === "sending" ? "Sending…" : "Send invite"}
+                  </button>
+                )}
+                {sendError && (
+                  <p className="mb-2 text-xs" style={{ color: "var(--danger)" }} role="alert">
+                    {sendError}
+                  </p>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={send}
+                    disabled={!validEmail}
+                    className={`${appOnly ? "bc-btn-solid" : "border"} rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-50`}
+                    style={appOnly ? undefined : { borderColor: "var(--border)" }}
+                  >
+                    Open in my email app
+                  </button>
+                  <button type="button" onClick={copyLetter} className="rounded-full border px-4 py-2.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>
+                    {copied ? "Copied!" : "Copy letter"}
+                  </button>
+                </div>
+                <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
+                  {appOnly
+                    ? "The email is sent from your own email account, so replies come straight to you."
+                    : "“Send invite” emails it from BoutCasts with replies going to you. Or send it from your own email app."}
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
