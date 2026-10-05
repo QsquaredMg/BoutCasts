@@ -33,7 +33,8 @@ export default async function AdminTrashPage() {
       </h1>
       <p className="mb-5 text-sm" style={{ color: "var(--text-dim)" }}>
         Deleted bouts land here instead of disappearing. They&apos;re hidden from the site but keep their clips, votes and
-        comments. Restore puts a bout back exactly as it was.
+        comments. Restore puts a bout back exactly as it was. Bouts are emptied from the trash automatically after 30 days, or
+        right away with &ldquo;Delete forever&rdquo;.
       </p>
       {error && (
         <p className="mb-4 text-sm" style={{ color: "var(--danger)" }}>

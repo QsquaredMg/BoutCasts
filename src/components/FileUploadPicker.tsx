@@ -3,13 +3,21 @@
 import { startTransition, useId, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { prepareImage, isPhotoFile, UnsupportedPhotoError } from "@/lib/prepareImage";
+import { fileDuration, formatDuration } from "@/lib/mediaDuration";
 
 type Props = {
-  onUploaded: (url: string | null) => void;
+  onUploaded: (url: string | null, durationSeconds?: number | null) => void;
+  /** Hard cap for video/audio length. Longer files are refused before upload. */
+  maxSeconds?: number;
+  /** Only accept video and audio (no photos). */
+  mediaOnly?: boolean;
+  /** Upload into this storage folder without needing a signed-in user (candidate links). */
+  uploadPrefix?: string;
 };
 
 const ACCEPT =
   "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm,image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.svg";
+const MEDIA_ACCEPT = "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm";
 const MAX_BYTES = 777 * 1024 * 1024; // 777MB, matches the storage bucket's limit
 
 function formatBytes(bytes: number) {
@@ -17,7 +25,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function FileUploadPicker({ onUploaded }: Props) {
+export default function FileUploadPicker({ onUploaded, maxSeconds, mediaOnly, uploadPrefix }: Props) {
   const supabase = createClient();
   const inputRef = useRef<HTMLInputElement>(null);
   // Each picker needs its own input id: the Live Vote form shows several at
@@ -30,6 +38,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
   const [status, setStatus] = useState<"idle" | "optimizing" | "picked" | "uploading" | "uploaded" | "error">("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [duration, setDuration] = useState<number | null>(null);
 
   async function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0];
@@ -39,6 +48,26 @@ export default function FileUploadPicker({ onUploaded }: Props) {
       setError(`That file is ${formatBytes(picked.size)} — the limit is 777 MB.`);
       return;
     }
+
+    const isMedia = picked.type.startsWith("video/") || picked.type.startsWith("audio/") || /\.(mp4|mov|webm|m4a|mp3|wav)$/i.test(picked.name);
+    if (mediaOnly && !isMedia) {
+      setError("Choose a video or audio file.");
+      return;
+    }
+    let secs: number | null = null;
+    if (isMedia && maxSeconds) {
+      secs = await fileDuration(picked);
+      if (secs == null) {
+        setError("We couldn't read how long that video is. Try an MP4 or MOV file.");
+        return;
+      }
+      if (secs > maxSeconds + 0.5) {
+        setError(`That video is ${formatDuration(secs)} — the limit is ${formatDuration(maxSeconds)}. Trim it and try again.`);
+        if (inputRef.current) inputRef.current.value = "";
+        return;
+      }
+    }
+    setDuration(secs);
 
     setError(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -70,6 +99,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
     setStatus("idle");
     setProgress(0);
     setError(null);
+    setDuration(null);
     onUploaded(null);
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -80,12 +110,15 @@ export default function FileUploadPicker({ onUploaded }: Props) {
     setError(null);
     setProgress(0);
 
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
-    if (!user) {
-      setError("Sign in to upload a file.");
-      setStatus("picked");
-      return;
+    let folder = uploadPrefix;
+    if (!folder) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setError("Sign in to upload a file.");
+        setStatus("picked");
+        return;
+      }
+      folder = userData.user.id;
     }
 
     const ext = file.type.startsWith("image/")
@@ -93,7 +126,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
       : file.name.includes(".")
         ? file.name.split(".").pop()
         : "bin";
-    const path = `${user.id}/${Date.now()}.${ext}`;
+    const path = `${folder}/${Date.now()}.${ext}`;
 
     // The Supabase JS client doesn't expose upload progress for a plain
     // `upload()` call, so we show an indeterminate state while it runs.
@@ -110,7 +143,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
     setProgress(100);
     const { data: urlData } = supabase.storage.from("submission-clips").getPublicUrl(path);
     setStatus("uploaded");
-    onUploaded(urlData.publicUrl);
+    onUploaded(urlData.publicUrl, duration == null ? null : Math.round(duration));
   }
 
   const isVideo = file?.type.startsWith("video/");
@@ -122,7 +155,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
+        accept={mediaOnly ? MEDIA_ACCEPT : ACCEPT}
         onChange={handlePick}
         className="hidden"
         id={inputId}
@@ -136,9 +169,12 @@ export default function FileUploadPicker({ onUploaded }: Props) {
         >
           <span className="text-2xl">📁</span>
           <span className="text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
-            Tap to choose a video, audio, or image file
+            {mediaOnly ? "Tap to choose a video or audio file" : "Tap to choose a video, audio, or image file"}
           </span>
-          <span className="text-xs">Video, audio or any photo (JPG, PNG, HEIC, WebP, GIF…) — up to 777 MB</span>
+          <span className="text-xs">
+            {mediaOnly ? "MP4, MOV, WebM or audio" : "Video, audio or any photo (JPG, PNG, HEIC, WebP, GIF…)"}
+            {maxSeconds ? ` — ${formatDuration(maxSeconds)} max` : " — up to 777 MB"}
+          </span>
         </label>
       )}
 
@@ -161,6 +197,7 @@ export default function FileUploadPicker({ onUploaded }: Props) {
       {file && (
         <p className="mb-2 truncate text-xs" style={{ color: "var(--text-faint)" }}>
           {file.name} &middot; {formatBytes(file.size)}
+          {duration != null && <> &middot; {formatDuration(duration)}</>}
         </p>
       )}
 

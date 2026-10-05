@@ -10,6 +10,8 @@ import ImageField from "@/components/ImageField";
 import { LIVE_VOTE_TIERS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import { contrastRatio } from "@/lib/liveVoteEvents/roomTheme";
 import { parseClock } from "@/lib/showcases";
+import { SPEECH_MAX_SECONDS } from "@/lib/mediaDuration";
+import OptionAvatar from "@/components/OptionAvatar";
 
 type OptionDraft = {
   key: string;
@@ -140,6 +142,10 @@ export default function NewLiveVoteEventPage() {
         setError(`Add the video for "${o.name || "an option"}" — upload, record, or paste a link — or turn video off.`);
         return;
       }
+      if (!sharedVideo && o.showVideo && o.clip.tooLong) {
+        setError(`The video for "${o.name}" is over 3 minutes. Use a shorter clip.`);
+        return;
+      }
       if (Number.isNaN(parseClock(o.start))) {
         setError(`"${o.name}": the start time should look like 4:15 or 1:02:30.`);
         return;
@@ -202,6 +208,10 @@ export default function NewLiveVoteEventPage() {
         source_type: sharedVideo || !o.showVideo || !o.clip.sourceUrl?.trim() ? null : o.clip.sourceType,
         source_url: sharedVideo || !o.showVideo || !o.clip.sourceUrl?.trim() ? null : o.clip.sourceUrl.trim(),
         image_url: o.showPhoto ? o.imageUrl : null,
+        media_seconds:
+          sharedVideo || !o.showVideo || !o.clip.sourceUrl?.trim() || o.clip.seconds == null
+            ? null
+            : Math.min(o.clip.seconds, SPEECH_MAX_SECONDS),
         sort_order: idx,
         description: o.description.trim() || null,
         thumbnail_url: o.thumbnailUrl,
@@ -830,7 +840,7 @@ Included with every paid event.
                   {(
                     [
                       ["showPhoto", "📷 Photo"],
-                      ...(sharedVideo ? [] : ([["showVideo", "🎬 Video"]] as const)),
+                      ...(sharedVideo ? [] : ([["showVideo", "🎬 Speech / video"]] as const)),
                     ] as const
                   ).map(([key, label]) => {
                     const on = option[key];
@@ -864,9 +874,10 @@ Included with every paid event.
                 {!sharedVideo && option.showVideo && (
                   <div className="mt-2.5">
                     <p className="mb-1 text-xs" style={{ color: "var(--text-faint)" }}>
-                      Upload a video, record one, or paste a YouTube / TikTok / Instagram link.
+                      A speech or video voters can watch — 3 minutes max. Upload, record, or paste a YouTube / TikTok / Instagram link.
                     </p>
                     <ClipSourcePicker
+                      maxSeconds={SPEECH_MAX_SECONDS}
                       value={option.clip}
                       onChange={(clip) => updateOption(option.key, { clip })}
                       inputClass={inputClass}
@@ -897,31 +908,28 @@ Included with every paid event.
 
                 <div className="mt-3">
                   <label className="mb-1 block text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-                    Small logo or headshot (optional, shown next to the name)
+                    Profile photo (optional — shown in a circle next to the name; initials if blank)
                   </label>
-                  {option.thumbnailUrl ? (
-                    <div className="flex items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={option.thumbnailUrl}
-                        alt={`${option.name || "Option"} thumbnail`}
-                        className="h-14 w-14 rounded-lg border object-cover"
-                        style={{ borderColor: "var(--border)" }}
+                  <div className="flex items-center gap-3">
+                    <OptionAvatar name={option.name || "?"} url={option.thumbnailUrl} size={48} />
+                    <div className="min-w-0 flex-1">
+                      <ImageField
+                        value={null}
+                        onChange={(url) => updateOption(option.key, { thumbnailUrl: url })}
+                        label={option.thumbnailUrl ? "new photo" : "profile photo"}
                       />
-                      <button
-                        type="button"
-                        onClick={() => updateOption(option.key, { thumbnailUrl: null })}
-                        className="text-xs font-semibold"
-                        style={{ color: "var(--text-faint)" }}
-                      >
-                        Remove
-                      </button>
+                      {option.thumbnailUrl && (
+                        <button
+                          type="button"
+                          onClick={() => updateOption(option.key, { thumbnailUrl: null })}
+                          className="mt-1 text-xs font-semibold"
+                          style={{ color: "var(--text-faint)" }}
+                        >
+                          Remove photo
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <FileUploadPicker
-                      onUploaded={(url) => updateOption(option.key, { thumbnailUrl: url })}
-                    />
-                  )}
+                  </div>
                 </div>
               </div>
             ))}

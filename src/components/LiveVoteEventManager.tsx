@@ -10,6 +10,7 @@ import SuperVotesManager from "@/components/SuperVotesManager";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import EventBrandingEditor from "@/components/EventBrandingEditor";
+import LiveVoteOptionMediaManager from "@/components/LiveVoteOptionMediaManager";
 import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type EventStatus = "draft" | "live" | "closed";
@@ -452,6 +453,8 @@ export default function LiveVoteEventManager({
       )}
 
       <EventBrandingEditor eventId={event.id} isFree={isFree} isPrivate={event.is_private} editable={event.status !== "closed"} />
+
+      <LiveVoteOptionMediaManager eventId={event.id} status={event.status} onChanged={load} />
 
       {isFree ? (
         <div className="mb-4 rounded-xl border p-3.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>

@@ -1,5 +1,7 @@
 "use client";
 
+import OptionAvatar from "@/components/OptionAvatar";
+import { formatDuration } from "@/lib/mediaDuration";
 import { useEffect, useState, useCallback, useRef } from "react";
 import SharedVideoPlayer from "@/components/showcases/SharedVideoPlayer";
 import { formatClock } from "@/lib/showcases";
@@ -52,6 +54,7 @@ type OptionRow = {
   image_url: string | null;
   team_name: string | null;
   start_seconds: number | null;
+  media_seconds: number | null;
 };
 
 const VOTER_TOKEN_KEY = "bc_live_vote_voter_token";
@@ -117,7 +120,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: optionRows } = await supabase
       .from("live_vote_options")
-      .select("id, name, source_type, source_url, sort_order, description, thumbnail_url, image_url, team_name, start_seconds")
+      .select("id, name, source_type, source_url, sort_order, description, thumbnail_url, image_url, team_name, start_seconds, media_seconds")
       .eq("event_id", eventId)
       .order("sort_order");
     setOptions(optionRows ?? []);
@@ -591,15 +594,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
             >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-3">
-                  {option.thumbnail_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={option.thumbnail_url}
-                      alt=""
-                      className="h-12 w-12 flex-shrink-0 rounded-lg border object-cover"
-                      style={{ borderColor: "var(--border)" }}
-                    />
-                  )}
+                  <OptionAvatar name={option.name} url={option.thumbnail_url} />
                   <div className="min-w-0">
                     <p className="font-semibold">
                       {option.name}
@@ -642,6 +637,11 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                   className="mb-2 max-h-[420px] w-full rounded-lg object-cover"
                   style={{ background: "var(--surface-2)" }}
                 />
+              )}
+              {clip && (
+                <p className="mb-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+                  🎬 Speech / video{option.media_seconds ? ` · ${formatDuration(option.media_seconds)}` : ""}
+                </p>
               )}
               {clip?.kind === "hosted" && <ClipPlayer src={clip.url} isAudio={clip.isAudio} label={option.name} />}
               {clip?.kind === "embed" && <EmbeddedClipPlayer sourceUrl={clip.url} label={option.name} />}

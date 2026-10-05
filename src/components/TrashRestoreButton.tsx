@@ -18,10 +18,23 @@ export default function TrashRestoreButton({ boutId }: { boutId: string }) {
     router.refresh();
   }
 
+  async function purge() {
+    if (!confirm("Delete this bout forever? Its votes and comments are erased too. This can't be undone.")) return;
+    setBusy(true);
+    setError(null);
+    const { error: e } = await createClient().rpc("admin_purge_bout", { p_bout_id: boutId });
+    setBusy(false);
+    if (e) return setError(e.message);
+    router.refresh();
+  }
+
   return (
     <span className="flex flex-col items-end gap-1">
       <button type="button" onClick={restore} disabled={busy} className="bc-btn-solid rounded-full px-4 py-1.5 text-xs font-bold disabled:opacity-60">
-        {busy ? "Restoring…" : "↩︎ Restore"}
+        {busy ? "Working…" : "↩︎ Restore"}
+      </button>
+      <button type="button" onClick={purge} disabled={busy} className="text-[11px] font-semibold disabled:opacity-60" style={{ color: "var(--danger)" }}>
+        Delete forever
       </button>
       {error && (
         <span className="text-[11px]" style={{ color: "var(--danger)" }}>

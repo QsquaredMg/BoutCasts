@@ -12,6 +12,7 @@ export default function ImageField({
   onChange,
   label = "photo",
   wide = false,
+  uploadPrefix,
 }: {
   value: string | null;
   onChange: (url: string | null) => void;
@@ -19,6 +20,8 @@ export default function ImageField({
   label?: string;
   /** Show a wide (16:9) preview instead of a square thumbnail. */
   wide?: boolean;
+  /** Upload into this storage folder without needing a signed-in user (candidate links). */
+  uploadPrefix?: string;
 }) {
   const inputId = `img-${useId().replace(/:/g, "")}`;
   const [busy, setBusy] = useState(false);
@@ -33,10 +36,14 @@ export default function ImageField({
     setBusy(true);
     setError(null);
     const supabase = createClient();
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) {
-      setBusy(false);
-      return setError("Sign in to upload.");
+    let folder = uploadPrefix;
+    if (!folder) {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) {
+        setBusy(false);
+        return setError("Sign in to upload.");
+      }
+      folder = u.user.id;
     }
     let file: File;
     try {
@@ -46,7 +53,7 @@ export default function ImageField({
       return setError(err instanceof UnsupportedPhotoError ? err.message : "We couldn't read that photo.");
     }
     const ext = (file.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
-    const path = `${u.user.id}/img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+    const path = `${folder}/img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
     const { error: upErr } = await supabase.storage.from("submission-clips").upload(path, file, { contentType: file.type });
     setBusy(false);
     if (upErr) return setError(upErr.message);

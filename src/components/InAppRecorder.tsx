@@ -9,6 +9,8 @@ type Props = {
   maxSeconds?: number;
   /** Optional beat to perform over. Played through the speakers/headphones and mixed into the saved clip. */
   instrumentalUrl?: string | null;
+  /** Upload into this storage folder without needing a signed-in user (candidate links). */
+  uploadPrefix?: string;
 };
 
 // Pick a recording format this browser supports. MP4 first: Safari/iPhone
@@ -33,7 +35,7 @@ function baseType(mime: string) {
   return (mime.split(";")[0] || "video/webm").trim();
 }
 
-export default function InAppRecorder({ onRecorded, maxSeconds, instrumentalUrl }: Props) {
+export default function InAppRecorder({ onRecorded, maxSeconds, instrumentalUrl, uploadPrefix }: Props) {
   const supabase = createClient();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -176,18 +178,21 @@ export default function InAppRecorder({ onRecorded, maxSeconds, instrumentalUrl 
     setStatus("uploading");
     setError(null);
 
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
-    if (!user) {
-      setError("Sign in to upload your recording.");
-      setStatus("recorded");
-      return;
+    let folder = uploadPrefix;
+    if (!folder) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setError("Sign in to upload your recording.");
+        setStatus("recorded");
+        return;
+      }
+      folder = userData.user.id;
     }
 
     const type = mimeRef.current;
     const blob = new Blob(chunksRef.current, { type });
     const ext = type === "video/mp4" ? "mp4" : "webm";
-    const path = `${user.id}/${Date.now()}.${ext}`;
+    const path = `${folder}/${Date.now()}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("submission-clips")
