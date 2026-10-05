@@ -133,6 +133,12 @@ export default async function Home() {
               Join a private event
             </Link>
           </p>
+          <p className="mt-2 text-sm" style={{ color: "#9aa3b8" }}>
+            Running a school or campus vote?{" "}
+            <Link href="/schools" className="font-bold underline" style={{ color: "#fff" }}>
+              See BoutCasts for schools
+            </Link>
+          </p>
           {!signedIn && (
             <p className="mt-2 text-sm" style={{ color: "#9aa3b8" }}>
               Already on BoutCasts?{" "}
@@ -252,6 +258,9 @@ export default async function Home() {
               </Link>
               <Link href="/host" className="rounded-full border-2 px-5 py-2.5 text-sm font-bold" style={{ borderColor: "rgba(255,255,255,0.5)" }}>
                 See how it works
+              </Link>
+              <Link href="/schools" className="rounded-full border-2 px-5 py-2.5 text-sm font-bold" style={{ borderColor: "rgba(255,255,255,0.5)" }}>
+                For schools
               </Link>
             </div>
           </div>
