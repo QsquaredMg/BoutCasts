@@ -169,7 +169,7 @@ export default async function DebateTopicPage({ params }: { params: Promise<{ id
         </section>
       )}
 
-      {isAdmin && <DebateTopicAdmin topicId={topic.id} status={topic.status} scoringMode={topic.scoring_mode} judges={judges} />}
+      {isAdmin && <DebateTopicAdmin topicId={topic.id} status={topic.status} scoringMode={topic.scoring_mode} judges={judges} title={topic.statement} />}
     </div>
   );
 }

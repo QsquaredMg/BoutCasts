@@ -318,9 +318,10 @@ export default function BoutCurator({
   }
 
   async function deleteBout(id: string) {
+    if (!confirm("Move this bout to the trash? It disappears from the site, but you can restore it (votes and comments included) from Admin → Trash.")) return;
     setError(null);
     setBusyId(id);
-    const { error } = await supabase.from("bouts").delete().eq("id", id);
+    const { error } = await supabase.rpc("admin_trash_bout", { p_bout_id: id });
     setBusyId(null);
     if (error) {
       setError(error.message);
@@ -636,7 +637,7 @@ export default function BoutCurator({
                           disabled={busyId === b.id}
                           className="rounded border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                         >
-                          Delete
+                          🗑 Move to trash
                         </button>
                       </div>
                     </div>

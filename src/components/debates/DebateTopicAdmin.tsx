@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import JudgeInviteButton from "@/components/JudgeInviteButton";
 
 type Judge = { id: string; name: string; token: string };
 
@@ -12,8 +13,10 @@ export default function DebateTopicAdmin({
   status,
   scoringMode,
   judges,
+  title,
 }: {
   topicId: string;
+  title: string;
   status: "open" | "running" | "closed";
   scoringMode: "crowd" | "judges" | "both";
   judges: Judge[];
@@ -72,6 +75,13 @@ export default function DebateTopicAdmin({
                   <button type="button" onClick={() => copy(j.token)} className="text-xs font-bold" style={{ color: "var(--red)" }}>
                     {copied === j.token ? "Copied!" : "Copy link"}
                   </button>
+                  <JudgeInviteButton
+                    judgeName={j.name}
+                    link={`/debates/judge/${j.token}`}
+                    title={title}
+                    kind="debate"
+                    criteria={["Argument", "Evidence", "Rebuttal", "Delivery"]}
+                  />
                   <button type="button" onClick={() => removeJudge(j.id)} className="text-xs" style={{ color: "var(--text-faint)" }}>
                     Remove
                   </button>

@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import AfterVote from "@/components/AfterVote";
+import ShareButton from "@/components/ShareButton";
+import JudgeInviteButton from "@/components/JudgeInviteButton";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import SharedVideoPlayer from "@/components/showcases/SharedVideoPlayer";
-import { formatClock, KIND_LABEL, type Showcase, type ShowcaseChoice } from "@/lib/showcases";
+import { CRITERIA, formatClock, KIND_LABEL, type Showcase, type ShowcaseChoice } from "@/lib/showcases";
 import { timeLeft } from "@/lib/debates";
 
 const GUEST_TOKEN_KEY = "bc_guest_vote_token";
@@ -135,9 +137,16 @@ export default function ShowcaseView({
         {live ? "● Live" : closed ? "Final" : "Closed"} · {labels.noun} · {choices.length} {labels.choice}s
         {showcase.scoring_mode === "judges" ? " · Judges decide" : showcase.scoring_mode === "both" ? ` · Crowd ${showcase.crowd_weight}% / Judges ${100 - showcase.crowd_weight}%` : ""}
       </p>
-      <h1 className="mb-2 text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-        {showcase.title}
-      </h1>
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <h1 className="text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
+          {showcase.title}
+        </h1>
+        <ShareButton
+          title={showcase.title}
+          text={`${showcase.title} — watch and vote for your favorite on BoutCasts!`}
+          track={{ type: "showcase", id: showcase.id }}
+        />
+      </div>
       {showcase.description && (
         <p className="mb-4 whitespace-pre-line text-sm" style={{ color: "var(--text-dim)" }}>
           {showcase.description}
@@ -312,6 +321,14 @@ export default function ShowcaseView({
                     >
                       {copied === j.id ? "Copied!" : "Copy link"}
                     </button>
+                    <JudgeInviteButton
+                      judgeName={j.name}
+                      link={`/showcase/judge/${j.token}`}
+                      title={showcase.title}
+                      kind="showcase"
+                      criteria={[...CRITERIA[showcase.kind]]}
+                      deadline={showcase.closes_at}
+                    />
                     <button type="button" onClick={() => removeJudge(j.id)} className="text-xs" style={{ color: "var(--text-faint)" }}>
                       Remove
                     </button>

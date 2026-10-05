@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import JudgeInviteButton from "@/components/JudgeInviteButton";
 import { createClient } from "@/lib/supabase/client";
 import JudgedResults from "@/components/JudgedResults";
 import { formatClipTime, type JudgeNote } from "@/components/JudgeOptionNotes";
@@ -17,12 +18,16 @@ export default function JudgePanelManager({
   resultsReleased,
   onChanged,
   optionNames,
+  eventTitle,
+  closesAt,
 }: {
   eventId: string;
   status: "draft" | "live" | "closed";
   resultsReleased: boolean;
   onChanged: () => void;
   optionNames: Record<string, string>;
+  eventTitle: string;
+  closesAt?: string | null;
 }) {
   const supabase = createClient();
   const [judges, setJudges] = useState<JudgeRow[]>([]);
@@ -144,6 +149,7 @@ export default function JudgePanelManager({
               >
                 {copiedId === j.id ? "Copied!" : "Copy link"}
               </button>
+              <JudgeInviteButton judgeName={j.name} link={linkFor(j.token)} title={eventTitle} kind="competition" deadline={closesAt} />
               {canEditJudges && (
                 <button
                   type="button"
