@@ -16,7 +16,7 @@ export const LIVE_VOTE_TIERS: Record<
     label: "Free",
     priceCents: 0,
     durationMs: 24 * 60 * 60 * 1000,
-    voteCap: 50,
+    voteCap: 25,
   },
   small: {
     label: "Small",

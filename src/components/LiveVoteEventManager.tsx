@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import RankedResults from "@/components/RankedResults";
 import JudgePanelManager from "@/components/JudgePanelManager";
 import ShareEventModal from "@/components/ShareEventModal";
+import type { QrBrand } from "@/lib/brandedQr";
 import LiveVoteAnalyticsPanel from "@/components/LiveVoteAnalyticsPanel";
 import EventSponsorManager from "@/components/EventSponsorManager";
 import SuperVotesManager from "@/components/SuperVotesManager";
@@ -75,12 +76,42 @@ export default function LiveVoteEventManager({
   const [togglingDemo, setTogglingDemo] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareBrand, setShareBrand] = useState<QrBrand | undefined>(undefined);
+  const [shareWhiteLabel, setShareWhiteLabel] = useState(false);
+  const [shareJustLive, setShareJustLive] = useState(false);
+  // The share window opens by itself once, the moment the event goes live.
+  const autoShared = useRef(false);
   const [listing, setListing] = useState(false);
   const [activating, setActivating] = useState(false);
   // Admin-only: go live with no end time / edit the end time of a live event.
   const [openEnded, setOpenEnded] = useState(false);
   const [endInput, setEndInput] = useState("");
   const [savingEnd, setSavingEnd] = useState(false);
+
+  // Opens the share window with the event's current colors and logo (paid events
+  // only: free events use the plain BoutCasts look).
+  const openShare = useCallback(
+    async (tier: LiveVoteTier, justLive: boolean) => {
+      let brand: QrBrand | undefined;
+      let whiteLabel = false;
+      if (tier !== "free") {
+        const { data } = await supabase
+          .from("live_vote_events")
+          .select("brand_name, brand_logo_url, brand_color, white_label")
+          .eq("id", eventId)
+          .maybeSingle();
+        if (data) {
+          brand = { color: data.brand_color, logoUrl: data.brand_logo_url, name: data.brand_name };
+          whiteLabel = Boolean(data.white_label);
+        }
+      }
+      setShareBrand(brand);
+      setShareWhiteLabel(whiteLabel);
+      setShareJustLive(justLive);
+      setShareOpen(true);
+    },
+    [supabase, eventId]
+  );
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -103,6 +134,10 @@ export default function LiveVoteEventManager({
     }
 
     setEvent(eventRow);
+    if (checkoutStatus === "success" && eventRow.status === "live" && !autoShared.current) {
+      autoShared.current = true;
+      openShare(eventRow.tier, true);
+    }
 
     const { data: profileRow } = await supabase
       .from("profiles")
@@ -122,7 +157,7 @@ export default function LiveVoteEventManager({
     const { data: planData } = await supabase.rpc("organizer_pro_status", {});
     setPlan((planData as PlanStatus | null) ?? null);
     setLoading(false);
-  }, [supabase, eventId, router]);
+  }, [supabase, eventId, router, checkoutStatus, openShare]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -158,6 +193,8 @@ export default function LiveVoteEventManager({
       setError(rpcError.message);
       return;
     }
+    autoShared.current = true;
+    openShare("free", true);
     load();
   }
 
@@ -186,6 +223,8 @@ export default function LiveVoteEventManager({
       setError(rpcError.message);
       return;
     }
+    autoShared.current = true;
+    openShare(event?.tier ?? "small", true);
     load();
   }
 
@@ -225,6 +264,8 @@ export default function LiveVoteEventManager({
       setError(rpcError.message);
       return;
     }
+    autoShared.current = true;
+    openShare(event?.tier ?? "small", true);
     load();
   }
 
@@ -320,6 +361,9 @@ export default function LiveVoteEventManager({
           url={shareUrl}
           title={event.title}
           code={event.is_private ? event.access_code : null}
+          brand={shareBrand}
+          whiteLabel={shareWhiteLabel}
+          heading={shareJustLive ? "You're live! Share your vote" : "Share your Live Vote"}
           onClose={() => setShareOpen(false)}
         />
       )}
@@ -612,7 +656,7 @@ export default function LiveVoteEventManager({
             style={{ borderColor: "var(--border)", background: "var(--surface)" }}
           >
             <p className="mb-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
-              Share this link with your voters
+              Your voting link: voters can vote and watch live results
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 truncate text-sm" style={{ color: "var(--text)" }}>
@@ -636,10 +680,10 @@ export default function LiveVoteEventManager({
               </p>
             )}
             <button
-              onClick={() => setShareOpen(true)}
+              onClick={() => openShare(event.tier, false)}
               className="bc-btn-solid mt-2.5 w-full rounded-full px-4 py-2.5 text-sm font-bold"
             >
-              QR code &amp; share options
+              Branded QR code, poster &amp; share options
             </button>
           </div>
           <p className="text-xs" style={{ color: "var(--text-faint)" }}>

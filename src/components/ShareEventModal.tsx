@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
+import { qrInk, readableOn, renderBrandedQr, renderQrPoster, type QrBrand } from "@/lib/brandedQr";
 
-// Share popup for a Live Vote: QR code (with a full-screen mode for the
-// projector / jumbotron), copy link, PNG download for flyers, and the
-// phone's native share sheet when available.
+// Share popup for a Live Vote: a QR code in the event's own colors and logo
+// (with a full-screen mode for the projector / jumbotron), copy link, PNG
+// download, a print-ready poster, and the phone's native share sheet when available.
 
 export default function ShareEventModal({
   url,
   title,
   onClose,
   heading = "Share your Live Vote",
-  callToAction = "Scan to vote",
+  callToAction = "Scan to vote and see live results",
   code,
+  brand,
+  whiteLabel = false,
 }: {
   url: string;
   title: string;
@@ -22,28 +24,32 @@ export default function ShareEventModal({
   callToAction?: string;
   /** Private-event access code, shown next to the QR code. */
   code?: string | null;
+  /** Event colors and logo for the QR code and poster. Leave out for the plain BoutCasts look. */
+  brand?: QrBrand;
+  /** White-label events leave the BoutCasts credit off the poster. */
+  whiteLabel?: boolean;
 }) {
   const [qr, setQr] = useState<string | null>(null);
+  const [posterBusy, setPosterBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [canShare, setCanShare] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(url, {
-      width: 1024,
-      margin: 2,
-      errorCorrectionLevel: "M",
-      color: { dark: "#0A0E1A", light: "#FFFFFF" },
-    }).then((data) => {
-      if (!cancelled) setQr(data);
-    });
+    renderBrandedQr(url, brand)
+      .then((data) => {
+        if (!cancelled) setQr(data);
+      })
+      .catch(() => {
+        // canvas unavailable: leave the placeholder
+      });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, brand]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -71,19 +77,34 @@ export default function ShareEventModal({
     }
   }
 
+  async function downloadPoster() {
+    setPosterBusy(true);
+    try {
+      const data = await renderQrPoster({ url, title, brand, callToAction, code, whiteLabel });
+      const a = document.createElement("a");
+      a.href = data;
+      a.download = fileName.replace(/-qr\.png$/, "-poster.png");
+      a.click();
+    } finally {
+      setPosterBusy(false);
+    }
+  }
+
   const shortUrl = url.replace(/^https?:\/\//, "");
   const fileName = `${title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "live-vote"}-qr.png`;
 
   if (fullscreen) {
+    const screenBg = brand?.color ? qrInk(brand.color) : "#0A0E1A";
+    const screenFg = readableOn(screenBg);
     return (
       <div
         className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 p-6"
-        style={{ background: "#0A0E1A", color: "#fff" }}
+        style={{ background: screenBg, color: screenFg }}
         role="dialog"
         aria-modal="true"
         aria-label={`QR code for ${title}`}
       >
-        <p className="text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: "#9FB8FF" }}>
+        <p className="text-center text-base font-bold sm:text-xl" style={{ opacity: 0.85 }}>
           {callToAction}
         </p>
         <h2
@@ -104,7 +125,7 @@ export default function ShareEventModal({
         {code ? (
           <p className="text-center text-xl font-bold sm:text-2xl">
             or go to boutcasts.com/join and enter{" "}
-            <span className="rounded-lg px-3 py-1 tracking-[0.25em]" style={{ background: "#1b4fe4" }}>
+            <span className="rounded-lg px-3 py-1 tracking-[0.25em]" style={{ background: screenFg, color: screenBg }}>
               {code}
             </span>
           </p>
@@ -202,6 +223,15 @@ export default function ShareEventModal({
               Download QR
             </a>
           )}
+          <button
+            type="button"
+            onClick={downloadPoster}
+            disabled={!qr || posterBusy}
+            className="rounded-full border px-4 py-2 text-sm font-semibold disabled:opacity-60"
+            style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
+          >
+            {posterBusy ? "Making poster…" : "Download poster"}
+          </button>
           {canShare ? (
             <button
               type="button"
