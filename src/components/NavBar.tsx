@@ -18,6 +18,8 @@ const DISCOVER_PREFIXES = [
   "/showcase/", "/competitions", "/search", "/boutcard", "/how-it-works",
 ];
 
+const PREDICTION_PREFIXES = ["/predictions"];
+
 function tabs(profileHref: string): Tab[] {
   return [
     { key: "home", label: "Home", href: "/", icon: (a) => <HomeIcon filled={a} />, match: (p) => p === "/" },
@@ -27,6 +29,13 @@ function tabs(profileHref: string): Tab[] {
       href: "/discover",
       icon: (a) => <CompassIcon filled={a} />,
       match: (p) => DISCOVER_PREFIXES.some((x) => p === x || p.startsWith(x.endsWith("/") ? x : `${x}/`)),
+    },
+    {
+      key: "predictions",
+      label: "Predict",
+      href: "/predictions",
+      icon: (a) => <TargetIcon filled={a} />,
+      match: (p) => PREDICTION_PREFIXES.some((x) => p === x || p.startsWith(`${x}/`)),
     },
     {
       key: "create",
@@ -246,6 +255,7 @@ export default function NavBar() {
                 </MenuLink>
                 <MenuLink href="/schools">🎓 For schools, colleges &amp; universities</MenuLink>
                 <MenuLink href="/join">🔒 Have an event code? Join</MenuLink>
+                <MenuLink href="/predictions">🎯 Bout Predictions</MenuLink>
                 <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
                 <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>
                 {user && (
@@ -290,7 +300,7 @@ export default function NavBar() {
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div className="mx-auto grid max-w-md grid-cols-5">
+        <div className="mx-auto grid max-w-md grid-cols-6">
           {TABS.map((t) => {
             const active = t.match(pathname);
             if (t.key === "create") {
@@ -367,6 +377,16 @@ function CompassIcon({ filled }: { filled: boolean }) {
     <>
       <circle cx="12" cy="12" r="9" strokeWidth={filled ? 2.4 : 2} />
       <path d="m15.5 8.5-2 5-5 2 2-5z" fill={filled ? "currentColor" : "none"} />
+    </>
+  );
+}
+function TargetIcon({ filled }: { filled: boolean }) {
+  return svg(
+    false,
+    <>
+      <circle cx="12" cy="12" r="9" strokeWidth={filled ? 2.4 : 2} />
+      <circle cx="12" cy="12" r="4.5" strokeWidth={filled ? 2.4 : 2} />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
     </>
   );
 }

@@ -1,0 +1,145 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import PredTeam from "@/components/PredTeam";
+import LocalTime from "@/components/LocalTime";
+import PredictionForm from "@/components/PredictionForm";
+import GameAdminPanel from "@/components/GameAdminPanel";
+import WinnersGraphic from "@/components/WinnersGraphic";
+import ShareButton from "@/components/ShareButton";
+import { GAME_FIELDS, isLocked, type PredGame, type PredPrediction } from "@/lib/predictions/types";
+
+type Props = { params: Promise<{ id: string }> };
+const UUID = /^[0-9a-f-]{36}$/i;
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  if (!UUID.test(id)) return { title: "Game not found" };
+  const supabase = await createClient();
+  const { data } = await supabase.from("pred_games").select("home_name, away_name").eq("id", id).maybeSingle();
+  if (!data) return { title: "Game not found" };
+  return {
+    title: `${data.home_name} vs ${data.away_name} prediction`,
+    description: `Predict the winner and final score of ${data.home_name} vs ${data.away_name} before the game starts and earn points on BoutCasts.`,
+  };
+}
+
+export default async function GamePage({ params }: Props) {
+  const { id } = await params;
+  if (!UUID.test(id)) notFound();
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+  const { data: row } = await supabase.from("pred_games").select(GAME_FIELDS).eq("id", id).maybeSingle();
+  if (!row) notFound();
+  const game = row as PredGame;
+
+  const [{ data: picks }, { data: me }, { data: slate }] = await Promise.all([
+    supabase.from("pred_predictions").select("id, game_id, user_id, pick, pred_home, pred_away, pts_entry, pts_winner, pts_exact, pts_close, pts_total, graded_at").eq("game_id", id).order("pts_total", { ascending: false, nullsFirst: false }).limit(200),
+    user ? supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    game.slate_id ? supabase.from("pred_slates").select("id, title").eq("id", game.slate_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const all = (picks ?? []) as PredPrediction[];
+  const mine = all.find((p) => p.user_id === user?.id) ?? null;
+  const canManage = !!user && (game.created_by === user.id || !!me?.is_admin);
+
+  const ids = [...new Set(all.map((p) => p.user_id))];
+  const names: Record<string, string> = {};
+  if (ids.length) {
+    const { data: profs } = await supabase.from("profiles").select("id, username").in("id", ids);
+    for (const p of profs ?? []) names[p.id] = p.username ?? "Player";
+  }
+
+  const locked = isLocked(game);
+  const final = game.status === "final";
+  const graded = all.filter((p) => p.pts_total != null);
+  const winners = graded.slice(0, 3).map((p) => ({
+    name: names[p.user_id] ?? "Player",
+    points: p.pts_total as number,
+    detail: `Picked ${p.pred_home}–${p.pred_away}`,
+  }));
+
+  return (
+    <div className="mx-auto max-w-xl px-5 py-8">
+      <Link href={slate ? `/predictions/slate/${slate.id}` : "/predictions"} className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
+        &larr; {slate ? slate.title : "Bout Predictions"}
+      </Link>
+
+      <div className="bc-card mb-5 p-5">
+        <p className="mb-3 text-center text-xs font-bold" style={{ color: "var(--text-faint)" }}>
+          {game.status === "cancelled" ? "Cancelled" : final ? "Final" : locked ? "In progress" : "Starts"} · <LocalTime iso={game.starts_at} />
+        </p>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+          <PredTeam name={game.home_name} logo={game.home_logo} size={72} />
+          <div className="text-center text-3xl font-black tabular-nums" style={{ fontFamily: "var(--font-display)" }}>
+            {final ? `${game.home_score} – ${game.away_score}` : "vs"}
+          </div>
+          <PredTeam name={game.away_name} logo={game.away_logo} size={72} />
+        </div>
+        <div className="mt-4 flex justify-center">
+          <ShareButton title={`${game.home_name} vs ${game.away_name}`} text={`${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
+        </div>
+      </div>
+
+      {game.status === "cancelled" ? (
+        <p className="bc-card mb-5 p-5 text-center text-sm">This game was cancelled, so predictions will not be scored.</p>
+      ) : !locked ? (
+        <div className="mb-5">
+          <PredictionForm game={game} signedIn={!!user} existing={mine ? { pred_home: mine.pred_home, pred_away: mine.pred_away } : null} />
+        </div>
+      ) : (
+        <div className="bc-card mb-5 p-5 text-center">
+          <p className="text-sm font-bold">{final ? "Final score is in." : "Picks are closed. Waiting for the final score."}</p>
+          {mine && (
+            <p className="mt-2 text-sm" style={{ color: "var(--text-dim)" }}>
+              Your pick: {mine.pred_home} – {mine.pred_away}
+              {mine.pts_total != null && (
+                <>
+                  <br />
+                  <strong style={{ color: "var(--blue)" }}>{mine.pts_total} points</strong>
+                  {" "}({mine.pts_entry} entry + {mine.pts_winner} winner + {mine.pts_exact} exact score + {mine.pts_close} close)
+                </>
+              )}
+            </p>
+          )}
+          {!mine && user && <p className="mt-2 text-sm" style={{ color: "var(--text-faint)" }}>You didn&apos;t enter a prediction for this game.</p>}
+        </div>
+      )}
+
+      {canManage && <div className="mb-5"><GameAdminPanel game={game} /></div>}
+
+      {final && graded.length > 0 && (
+        <div className="mb-5">
+          <WinnersGraphic
+            title={`${game.home_name} ${game.home_score} – ${game.away_score} ${game.away_name}`}
+            subtitle="Top predictors"
+            winners={winners}
+            homeLogo={game.home_logo}
+            awayLogo={game.away_logo}
+            fileName={`winners-${game.home_name}-vs-${game.away_name}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+          />
+        </div>
+      )}
+
+      {locked && all.length > 0 && (
+        <section className="mb-5">
+          <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Everyone&apos;s picks ({all.length})</h2>
+          <ul className="bc-card divide-y overflow-hidden">
+            {all.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderColor: "var(--border)" }}>
+                <span className="min-w-0 truncate font-bold">{names[p.user_id] ?? "Player"}</span>
+                <span className="tabular-nums" style={{ color: "var(--text-dim)" }}>{p.pred_home} – {p.pred_away}</span>
+                <span className="w-14 text-right font-black tabular-nums">{p.pts_total != null ? `${p.pts_total} pts` : ""}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <p className="text-center text-xs" style={{ color: "var(--text-faint)" }}>
+        Scoring: 2 for entering · 3 correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5.
+      </p>
+    </div>
+  );
+}
