@@ -12,6 +12,8 @@ const ADMIN_LINKS = [
   { href: "/admin/teams", label: "Teams" },
   { href: "/admin/instrumentals", label: "Instrumentals" },
   { href: "/admin/ads", label: "Ads" },
+  { href: "/admin/paid-bouts", label: "Paid Bouts" },
+  { href: "/admin/event-sponsorships", label: "Event Sponsors" },
   { href: "/admin/live-vote", label: "Live Vote" },
   { href: "/admin/notifications", label: "Notifications" },
   { href: "/debates", label: "Debates" },

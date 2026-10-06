@@ -8,7 +8,8 @@ import type Stripe from "stripe";
 // Billing periods live on the subscription item in this Stripe API version.
 async function syncOrganizerSubscription(sub: Stripe.Subscription, fallbackUserId?: string | null) {
   const userId = sub.metadata?.user_id || fallbackUserId;
-  if (!userId || (sub.metadata?.kind && sub.metadata.kind !== "organizer_pro")) return;
+  const kind = sub.metadata?.kind;
+  if (!userId || (kind && kind !== "organizer_pro" && kind !== "organizer_gold")) return;
   const item = sub.items?.data?.[0];
   const admin = createAdminClient();
   const { error } = await admin.from("organizer_subscriptions").upsert(
@@ -17,6 +18,7 @@ async function syncOrganizerSubscription(sub: Stripe.Subscription, fallbackUserI
       stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
       stripe_subscription_id: sub.id,
       status: sub.status,
+      plan: kind === "organizer_gold" ? "gold" : "pro",
       current_period_start: item?.current_period_start ? new Date(item.current_period_start * 1000).toISOString() : null,
       current_period_end: item?.current_period_end ? new Date(item.current_period_end * 1000).toISOString() : null,
       cancel_at_period_end: sub.cancel_at_period_end ?? false,
@@ -184,6 +186,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    if (metadata.kind === "paid_bout_entry") {
+      const admin = createAdminClient();
+      const entryId = metadata.entry_id;
+      const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : null;
+      if (!entryId || !paymentIntent) {
+        console.error("Stripe webhook: paid bout entry metadata missing", metadata);
+        return NextResponse.json({ error: "Invalid entry metadata" }, { status: 400 });
+      }
+      // Idempotent: a repeated delivery of an already-confirmed entry returns 'paid'.
+      const { data: result, error } = await admin.rpc("paid_bout_confirm_entry", {
+        p_entry: entryId,
+        p_payment_intent: paymentIntent,
+      });
+      if (error) {
+        console.error("Stripe webhook: failed to confirm paid bout entry", error);
+        return NextResponse.json({ error: "Failed to confirm entry" }, { status: 500 });
+      }
+      if (result === "full" || result === "closed") {
+        // The bout filled up or closed while they were paying: refund in full.
+        await getStripe().refunds.create({ payment_intent: paymentIntent }, { idempotencyKey: `paid-bout-late-${entryId}` });
+        await admin
+          .from("paid_bout_entries")
+          .update({ status: "refunded", refunded_at: new Date().toISOString() })
+          .eq("id", entryId);
+      }
+      return NextResponse.json({ received: true });
+    }
+
     if (metadata.kind === "live_vote_pro") {
       const admin = createAdminClient();
       const { error } = await admin
@@ -248,7 +278,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    if (metadata.kind === "organizer_pro" && typeof session.subscription === "string") {
+    if (metadata.kind === "event_sponsorship") {
+      const admin = createAdminClient();
+      const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : null;
+      if (!metadata.package_id || !paymentIntent) {
+        console.error("Stripe webhook: event sponsorship metadata missing", metadata);
+        return NextResponse.json({ error: "Invalid sponsorship metadata" }, { status: 400 });
+      }
+      // Idempotent on the checkout session; locks the package so the last slot can't be sold twice.
+      const { data: result, error } = await admin.rpc("record_event_sponsorship", {
+        p_package: metadata.package_id,
+        p_company: metadata.company_name ?? "Sponsor",
+        p_email: session.customer_details?.email ?? metadata.contact_email ?? "",
+        p_logo: metadata.logo_url ?? "",
+        p_link: metadata.link_url ?? "",
+        p_session: session.id,
+        p_payment_intent: paymentIntent,
+      });
+      if (error) {
+        console.error("Stripe webhook: failed to record event sponsorship", error);
+        return NextResponse.json({ error: "Failed to record sponsorship" }, { status: 500 });
+      }
+      if (result === "full" || result === "closed") {
+        await getStripe().refunds.create({ payment_intent: paymentIntent }, { idempotencyKey: `event-sponsor-late-${session.id}` });
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    if ((metadata.kind === "organizer_pro" || metadata.kind === "organizer_gold") && typeof session.subscription === "string") {
       try {
         const sub = await stripe.subscriptions.retrieve(session.subscription);
         await syncOrganizerSubscription(sub, metadata.user_id ?? session.client_reference_id);
@@ -274,7 +331,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to sync license" }, { status: 500 });
       }
     }
-    if (sub.metadata?.kind === "organizer_pro") {
+    if (sub.metadata?.kind === "organizer_pro" || sub.metadata?.kind === "organizer_gold") {
       try {
         await syncOrganizerSubscription(sub);
       } catch (err) {
