@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { deviceFromUa, isBot, pathFromReferer, sidFromCookieHeader } from "@/lib/analytics/ua";
 
 // Serves one active ad creative for the requested placement, weighted-random
 // among everything currently in flight, and logs an impression for it.
@@ -43,11 +44,20 @@ export async function GET(req: NextRequest) {
   }
 
   const { data: userData } = await supabase.auth.getUser();
-  await supabase.from("ad_events").insert({
-    ad_id: chosen.id,
-    event_type: "impression",
-    user_id: userData.user?.id ?? null,
-  });
+  // Crawlers still get an ad (so pages render the same) but are not counted,
+  // which keeps impression numbers honest for advertisers.
+  const ua = req.headers.get("user-agent");
+  if (!isBot(ua)) {
+    await supabase.from("ad_events").insert({
+      ad_id: chosen.id,
+      event_type: "impression",
+      user_id: userData.user?.id ?? null,
+      session_id: sidFromCookieHeader(req.headers.get("cookie")),
+      path: pathFromReferer(req.headers.get("referer")),
+      device: deviceFromUa(ua),
+      country: req.headers.get("x-vercel-ip-country"),
+    });
+  }
 
   const sponsorName = Array.isArray(chosen.sponsors)
     ? chosen.sponsors[0]?.name

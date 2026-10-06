@@ -12,6 +12,7 @@ const ADMIN_LINKS = [
   { href: "/admin/teams", label: "Teams" },
   { href: "/admin/instrumentals", label: "Instrumentals" },
   { href: "/admin/ads", label: "Ads" },
+  { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/live-vote", label: "Live Vote" },
   { href: "/admin/notifications", label: "Notifications" },
   { href: "/debates", label: "Debates" },
@@ -28,7 +29,7 @@ export default function AdminNav() {
   return (
     <div className="mb-6 flex flex-wrap items-center gap-1 border-b pb-3" style={{ borderColor: "var(--border)" }}>
       {ADMIN_LINKS.map((link) => {
-        const active = pathname === link.href;
+        const active = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(`${link.href}/`));
         return (
           <Link
             key={link.href}
