@@ -23,7 +23,7 @@ type Creative = {
 
 type Stat = { ad_id: string; impressions: number; clicks: number };
 
-const MAX_BYTES = 75 * 1024 * 1024; // matches the ad-creatives bucket limit
+const MAX_BYTES = 105 * 1024 * 1024; // matches the ad-creatives bucket limit
 
 const PLACEMENTS: { key: Placement; label: string; hint: string }[] = [
   { key: "banner", label: "Banner", hint: "Inline on matchup and bout pages. Image, about 1200 x 300." },
@@ -112,7 +112,7 @@ export default function SponsorCreatives() {
       }
     }
     if (file.size > MAX_BYTES) {
-      setError("That file is too large. The limit is 75 MB.");
+      setError("That file is too large. The limit is 105 MB.");
       return;
     }
     setError(null);

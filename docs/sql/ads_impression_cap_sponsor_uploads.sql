@@ -138,3 +138,6 @@ as $$
 $$;
 revoke all on function public.my_ad_stats() from public;
 grant execute on function public.my_ad_stats() to authenticated;
+
+-- 7. Ad uploads may be up to 105 MB (110100480 bytes) ---------------------------
+update storage.buckets set file_size_limit = 110100480 where id = 'ad-creatives';

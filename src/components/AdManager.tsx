@@ -41,7 +41,7 @@ const EMPTY_FORM = {
   ends_at: "",
 };
 
-const MAX_BYTES = 75 * 1024 * 1024; // matches the ad-creatives bucket limit
+const MAX_BYTES = 105 * 1024 * 1024; // matches the ad-creatives bucket limit
 
 export default function AdManager({
   sponsors,
@@ -81,7 +81,7 @@ export default function AdManager({
       }
     }
     if (file.size > MAX_BYTES) {
-      setError(`That file is too large — the limit is 75 MB.`);
+      setError(`That file is too large — the limit is 105 MB.`);
       return;
     }
     setError(null);
