@@ -46,3 +46,4 @@
 .pg-rule{height:4px;background:var(--pg-gold)}
 @media (prefers-reduced-motion:reduce){.pg a.bc-card,.pg a.rounded-xl{transition:none}}
 .pg-main .pg-mark i{margin-left:-.26em}
+.pg-main .pg-mark i.sp{margin-left:0}
