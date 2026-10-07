@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    payment_method_types: ["card"],
+    // Card also covers Apple Pay and Link; Cash App Pay is one-time payments in USD.
+    payment_method_types: ["card", "cashapp"],
     customer_email: userData.user.email ?? undefined,
     line_items: [
       {

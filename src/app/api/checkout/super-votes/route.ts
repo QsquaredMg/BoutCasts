@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
   try {
   session = await getStripe().checkout.sessions.create({
     mode: "payment",
-    payment_method_types: ["card"],
+    // Card also covers Apple Pay and Link; Cash App Pay is one-time payments in USD.
+    payment_method_types: ["card", "cashapp"],
     line_items: [
       {
         price_data: {
