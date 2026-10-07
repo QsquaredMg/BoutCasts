@@ -8,11 +8,13 @@ import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
 import type { PredSlate } from "@/lib/predictions/types";
 
 // Owner controls for a bracket: pay, upgrade, set a close time, close now.
-export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: { slate: PredSlate; justPaid: boolean; isAdmin?: boolean }) {
+export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, gameCount = 1 }: { slate: PredSlate; justPaid: boolean; isAdmin?: boolean; gameCount?: number }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [when, setWhen] = useState("");
+  const isPrivate = slate.tier === "private";
+  const privateCents = BRACKET_PRICING.privateGameCents * Math.max(gameCount, 1);
 
   // After checkout the Stripe webhook opens the bracket a moment later.
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: 
 
   return (
     <div className="bc-card mb-6 p-5">
-      <h2 className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Bracket settings</h2>
+      <h2 className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{isPrivate ? "Private game settings" : "Bracket settings"}</h2>
 
       {slate.status === "pending" && (
         <>
@@ -64,7 +66,14 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: 
             <p className="text-sm font-semibold" style={{ color: "var(--blue)" }}>Payment received. Opening your bracket…</p>
           ) : (
             <>
-              <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>This bracket is saved but not open yet. Players can&apos;t see it until you check out.</p>
+              <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>
+                {isPrivate ? "This private game is saved but not open yet. Check out to get your invite code and link. Your invitees play free." : "This bracket is saved but not open yet. Players can't see it until you check out."}
+              </p>
+              {isPrivate ? (
+                <button type="button" disabled={busy} onClick={() => pay("activate")} className="bc-btn-solid w-full rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-60">
+                  {money(privateCents)} · {gameCount} {gameCount === 1 ? "game" : "games"} × {money(BRACKET_PRICING.privateGameCents)}
+                </button>
+              ) : (
               <div className="grid gap-2 sm:grid-cols-2">
                 <button type="button" disabled={busy} onClick={() => pay("activate", "weekly")} className="bc-btn-solid rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-60">
                   {money(BRACKET_PRICING.weeklyCents)} · open 8 days
@@ -73,8 +82,9 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: 
                   {money(BRACKET_PRICING.seasonCents)} · whole season
                 </button>
               </div>
+              )}
               {isAdmin && (
-                <button type="button" disabled={busy} onClick={() => rpc("admin_open_pred_bracket", { p_id: slate.id, p_tier: "season" }, "Bracket opened (free).")} className={`${btn} mt-2 w-full`} style={border}>
+                <button type="button" disabled={busy} onClick={() => rpc("admin_open_pred_bracket", { p_id: slate.id, p_tier: isPrivate ? "private" : "season" }, "Bracket opened (free).")} className={`${btn} mt-2 w-full`} style={border}>
                   Admin: open for free
                 </button>
               )}
@@ -85,8 +95,11 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: 
 
       {slate.status === "open" && (
         <>
+          {isPrivate && slate.invite_code && <InviteBox slateId={slate.id} code={slate.invite_code} />}
           <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>
-            {slate.tier === "weekly" ? (
+            {isPrivate ? (
+              <>Private game. Only people with your link or code can find it, and it stays out of public lists and leaderboards.</>
+            ) : slate.tier === "weekly" ? (
               <>8-day bracket. It closes automatically {slate.closes_at ? <LocalTime iso={slate.closes_at} /> : "after 8 days"}.</>
             ) : slate.closes_at ? (
               <>Season bracket. It closes automatically <LocalTime iso={slate.closes_at} />.</>
@@ -94,7 +107,7 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: 
               <>Season bracket. It stays open until you close it or set a close time.</>
             )}
           </p>
-          {slate.tier === "weekly" ? (
+          {isPrivate ? null : slate.tier === "weekly" ? (
             <button type="button" disabled={busy} onClick={() => pay("upgrade")} className="bc-btn-solid mb-2 w-full rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-60">
               Upgrade to season bracket · {money(BRACKET_PRICING.upgradeCents)}
             </button>
@@ -142,6 +155,31 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false }: 
         </>
       )}
       {msg && <p role="status" className="mt-3 text-sm font-semibold" style={{ color: "var(--text-dim)" }}>{msg}</p>}
+    </div>
+  );
+}
+
+function InviteBox({ slateId, code }: { slateId: string; code: string }) {
+  const [copied, setCopied] = useState<"link" | "code" | null>(null);
+  async function copy(kind: "link" | "code") {
+    const text = kind === "code" ? code : `${window.location.origin}/predictions/slate/${slateId}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      // clipboard blocked: the code is visible on screen anyway
+    }
+  }
+  return (
+    <div className="mb-4 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Invite code</p>
+      <p className="my-1 text-3xl font-black tracking-[0.3em]" style={{ fontFamily: "var(--font-display)" }}>{code}</p>
+      <p className="mb-3 text-xs" style={{ color: "var(--text-dim)" }}>Friends can enter this code at boutcasts.com/predictions/join, or just open your private link.</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => copy("link")} className="bc-btn-solid rounded-full px-4 py-2 text-xs font-bold">{copied === "link" ? "Link copied!" : "Copy private link"}</button>
+        <button type="button" onClick={() => copy("code")} className="rounded-full border px-4 py-2 text-xs font-bold" style={{ borderColor: "var(--border)" }}>{copied === "code" ? "Code copied!" : "Copy code"}</button>
+      </div>
     </div>
   );
 }

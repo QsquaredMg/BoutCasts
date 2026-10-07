@@ -21,10 +21,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   if (!UUID.test(id)) return { title: "Bracket not found" };
   const supabase = await createClient();
-  const { data } = await supabase.from("pred_slates").select("title, kind").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("pred_slates").select("title, kind, visibility").eq("id", id).maybeSingle();
   if (!data) return { title: "Bracket not found" };
   return {
     title: data.title,
+    ...(data.visibility === "private" ? { robots: { index: false, follow: false } } : {}),
     description: `${data.kind === "elimination" ? "Fill out the bracket" : "Weekly pick'em"}: predict every winner and score in ${data.title} for free and compete on the leaderboard.`,
   };
 }
@@ -79,7 +80,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
     <div className="mx-auto max-w-2xl px-5 py-8">
       <Link href="/predictions" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>&larr; Bout Predictions</Link>
       <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--blue)" }}>
-        {isElim ? `${slate.bracket_size}-team bracket` : "Weekly slate"} · {statusText}
+        {slate.visibility === "private" ? "🔒 Private game" : isElim ? `${slate.bracket_size}-team bracket` : "Weekly slate"} · {statusText}
       </p>
       {(slate.brand_name || slate.brand_logo_url) && (
         <div className="mb-3 flex items-center gap-3" style={slate.brand_color ? { borderLeft: `4px solid ${slate.brand_color}`, paddingLeft: 12 } : undefined}>
@@ -100,12 +101,12 @@ export default async function SlatePage({ params, searchParams }: Props) {
         {isOwner && !isElim && open && (
           <Link href={`/predictions/new?slate=${slate.id}`} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold">Add a game</Link>
         )}
-        {slate.status !== "pending" && <ShareButton title={slate.title} text={`${slate.title}: make your picks on BoutCasts!`} />}
+        {slate.status !== "pending" && <ShareButton title={slate.title} text={`${slate.title}: make your picks on BoutCasts!`} imageUrl={`/predictions/slate/${slate.id}/vs`} />}
       </div>
 
       {slate.status !== "pending" && <PredSponsorStrip bracketId={slate.id} />}
 
-      {isOwner && <BracketOwnerPanel slate={slate} justPaid={checkout === "success"} isAdmin={!!me?.is_admin} />}
+      {isOwner && <BracketOwnerPanel slate={slate} justPaid={checkout === "success"} isAdmin={!!me?.is_admin} gameCount={games.length} />}
 
       {isOwner && slate.status !== "pending" && (
         <div className="mb-6 grid gap-3">
@@ -131,7 +132,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
         <WinnersGraphic
           title={slate.title}
           subtitle={allFinal ? "Final winners" : `Leaders after ${finals} of ${games.length} games`}
-          winners={rows.slice(0, 3).map((r) => ({ name: r.username ?? "Player", points: Number(r.points), detail: `${r.games} games · ${r.perfect} perfect` }))}
+          winners={rows.slice(0, 10).map((r) => ({ name: r.username ?? "Player", points: Number(r.points), detail: `${r.games} games · ${r.perfect} perfect` }))}
           brand={{ name: slate.brand_name, logo: slate.brand_logo_url, whiteLabel }}
           presenter={presenter}
           fileName={`winners-${slate.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}

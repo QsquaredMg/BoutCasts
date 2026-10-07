@@ -21,6 +21,7 @@ export type PredGame = {
   winner_team_id: string | null;
   feeds_game_id: string | null;
   feeds_side: "home" | "away" | null;
+  is_private: boolean;
 };
 
 export type PredSlate = {
@@ -28,7 +29,7 @@ export type PredSlate = {
   title: string;
   created_by: string;
   kind: "slate" | "elimination";
-  tier: "weekly" | "season";
+  tier: "weekly" | "season" | "private";
   status: "pending" | "open" | "closed";
   closes_at: string | null;
   locks_at: string | null;
@@ -37,11 +38,13 @@ export type PredSlate = {
   brand_logo_url: string | null;
   brand_color: string | null;
   white_label: boolean;
+  visibility: "public" | "private";
+  invite_code: string | null;
 };
 
 export type BracketTeam = { id: string; seed: number; name: string; logo: string | null };
 
-export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label";
+export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label, visibility, invite_code";
 
 export type PredPrediction = {
   id: string;
@@ -69,7 +72,7 @@ export type LeaderRow = {
 };
 
 export const GAME_FIELDS =
-  "id, slate_id, created_by, home_name, home_logo, away_name, away_logo, starts_at, allow_draw, status, scoring_version, crowd_state, home_score, away_score, finalized_at, round, slot, home_team_id, away_team_id, winner_team_id, feeds_game_id, feeds_side";
+  "id, slate_id, created_by, home_name, home_logo, away_name, away_logo, starts_at, allow_draw, status, scoring_version, crowd_state, home_score, away_score, finalized_at, round, slot, home_team_id, away_team_id, winner_team_id, feeds_game_id, feeds_side, is_private";
 
 /** locked = started, closed or cancelled. */
 export function isLocked(g: Pick<PredGame, "starts_at" | "status">, now = Date.now()) {
