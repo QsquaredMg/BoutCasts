@@ -64,7 +64,7 @@ export default function AdminPredictionsManager({ rows }: { rows: AdminPredRow[]
             <div className="flex flex-wrap gap-2">
               <Link href={href} className={btn} style={border}>Manage / enter score</Link>
               {r.kind === "game" && r.status === "scheduled" && future && (
-                <button type="button" disabled={busy === k} className={btn} style={border} onClick={() => run(k, "admin_start_pred_game", { p_game: r.id }, "Game started. Predictions are closed.")}>Start now</button>
+                <button type="button" disabled={busy === k} className={btn} style={border} onClick={() => run(k, "admin_start_pred_game", { p_game: r.id }, "Game started. Predictions stay open for 15 more minutes.")}>Start now</button>
               )}
               {r.kind === "game" && r.status === "scheduled" && (
                 <button type="button" disabled={busy === k} className={btn} style={{ ...border, color: "var(--red)" }} onClick={() => { if (window.confirm("Cancel this game?")) run(k, "cancel_pred_game", { p_game: r.id }, "Game cancelled."); }}>Cancel</button>
