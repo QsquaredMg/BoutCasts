@@ -69,6 +69,12 @@ export default function AdminPredictionsManager({ rows }: { rows: AdminPredRow[]
               {r.kind === "game" && r.status === "scheduled" && (
                 <button type="button" disabled={busy === k} className={btn} style={{ ...border, color: "var(--red)" }} onClick={() => { if (window.confirm("Cancel this game?")) run(k, "cancel_pred_game", { p_game: r.id }, "Game cancelled."); }}>Cancel</button>
               )}
+              {(r.kind === "bracket" ? ["closed", "pending"].includes(r.status) : ["final", "cancelled"].includes(r.status)) && (
+                <button type="button" disabled={busy === k} className={btn} style={border} onClick={() => { if (window.confirm("Archive this? It leaves the site and goes to Admin → Archives for the next downloadable dump. You can restore it until it is purged.")) run(k, "admin_archive_item", { p_type: r.kind === "bracket" ? "pred_slate" : "pred_game", p_id: r.id }, "Archived."); }}>📦 Archive</button>
+              )}
+              {(r.kind === "bracket" ? r.status !== "open" : r.status !== "scheduled") && (
+                <button type="button" disabled={busy === k} className={btn} style={{ ...border, color: "var(--red)" }} onClick={() => { if (window.confirm("Permanently delete this and all its predictions? This cannot be undone. Use Archive instead if you want a downloadable copy.")) run(k, "admin_delete_pred", { p_kind: r.kind, p_id: r.id }, "Deleted."); }}>Delete</button>
+              )}
               {r.kind === "bracket" && r.status === "pending" && (
                 <button type="button" disabled={busy === k} className={btn} style={border} onClick={() => run(k, "admin_open_pred_bracket", { p_id: r.id, p_tier: "season" }, "Bracket opened (free).")}>Open free</button>
               )}

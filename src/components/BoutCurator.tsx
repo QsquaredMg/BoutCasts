@@ -330,6 +330,19 @@ export default function BoutCurator({
     setBouts((prev) => prev.filter((b) => b.id !== id));
   }
 
+  async function archiveBout(id: string) {
+    if (!confirm("Archive this bout? It disappears from the site and goes to Admin → Archives, where it is included in the next downloadable dump. You can restore it until it is purged.")) return;
+    setError(null);
+    setBusyId(id);
+    const { error } = await supabase.rpc("admin_archive_item", { p_type: "bout", p_id: id });
+    setBusyId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setBouts((prev) => prev.filter((b) => b.id !== id));
+  }
+
   async function markPrizeFulfilled(id: string) {
     setError(null);
     setBusyId(id);
@@ -630,6 +643,15 @@ export default function BoutCurator({
                             className="rounded border border-green-300 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50"
                           >
                             Mark prize fulfilled
+                          </button>
+                        )}
+                        {b.status === "final" && (
+                          <button
+                            onClick={() => archiveBout(b.id)}
+                            disabled={busyId === b.id}
+                            className="rounded border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                          >
+                            📦 Archive
                           </button>
                         )}
                         <button

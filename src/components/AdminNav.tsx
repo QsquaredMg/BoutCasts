@@ -22,6 +22,7 @@ const ADMIN_LINKS = [
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/trash", label: "Trash" },
+  { href: "/admin/archives", label: "Archives" },
   { href: "/admin/errors", label: "Errors" },
 ];
 
