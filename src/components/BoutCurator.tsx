@@ -645,15 +645,13 @@ export default function BoutCurator({
                             Mark prize fulfilled
                           </button>
                         )}
-                        {b.status === "final" && (
-                          <button
-                            onClick={() => archiveBout(b.id)}
-                            disabled={busyId === b.id}
-                            className="rounded border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
-                          >
-                            📦 Archive
-                          </button>
-                        )}
+                        <button
+                          onClick={() => archiveBout(b.id)}
+                          disabled={busyId === b.id}
+                          className="rounded border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                        >
+                          📦 Archive
+                        </button>
                         <button
                           onClick={() => deleteBout(b.id)}
                           disabled={busyId === b.id}
@@ -812,15 +810,14 @@ export default function BoutCurator({
                         >
                           <option value="upcoming">Upcoming</option>
                           <option value="live">Live</option>
-                          {editForm.status === "final" && <option value="final">Final</option>}
+                          <option value="final">Final</option>
                         </select>
                         <input
                           type="datetime-local"
                           value={editForm.closes_at}
                           onChange={(e) => setEditForm((f) => ({ ...f, closes_at: e.target.value }))}
-                          max={maxClosesAtLocal(new Date(b.created_at))}
                           className="rounded border border-neutral-300 px-3 py-2 text-sm"
-                          title="Voting closes at (max 42h from when the bout was created)"
+                          title="Voting closes at (admins can set any time)"
                         />
                         <input
                           type="text"

@@ -51,6 +51,13 @@ export default function DebateTopicAdmin({
     router.refresh();
   }
 
+  async function deleteTopic() {
+    if (!confirm("Permanently delete this debate topic with all its matches, posts and votes? This cannot be undone.")) return;
+    const { error: e } = await supabase.rpc("admin_delete_debate_topic", { p_topic_id: topicId });
+    if (e) return setError(e.message);
+    router.push("/debates");
+  }
+
   function copy(token: string) {
     navigator.clipboard?.writeText(`${window.location.origin}/debates/judge/${token}`);
     setCopied(token);
@@ -110,6 +117,9 @@ export default function DebateTopicAdmin({
           Close sign-ups
         </button>
       )}
+      <button type="button" onClick={deleteTopic} className="ml-2 rounded-full border px-4 py-2 text-xs font-bold" style={{ borderColor: "var(--border)", color: "var(--danger)" }}>
+        Delete topic
+      </button>
       {error && (
         <p className="mt-2 text-sm" style={{ color: "var(--danger)" }}>
           {error}
