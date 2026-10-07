@@ -53,6 +53,8 @@ export default function ShowcaseView({
   const [msg, setMsg] = useState<string | null>(null);
   const [judgeName, setJudgeName] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [ef, setEf] = useState({ title: "", description: "", status: "live", closes: "" });
   const labels = KIND_LABEL[showcase.kind];
   const [now] = useState(() => Date.now());
   const live = showcase.status === "live" && (!showcase.closes_at || new Date(showcase.closes_at).getTime() > now);
@@ -105,6 +107,26 @@ export default function ShowcaseView({
     const { error } = await supabase.rpc("admin_delete_showcase", { p_showcase_id: showcase.id });
     if (error) return setMsg(error.message);
     router.push(showcase.kind === "debate" ? "/debates" : "/matchups");
+  }
+  function startEdit() {
+    let closes = "";
+    if (showcase.closes_at) {
+      const d = new Date(showcase.closes_at);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      closes = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    setEf({ title: showcase.title, description: showcase.description ?? "", status: showcase.status, closes });
+    setEditing(true);
+  }
+  async function saveEdit() {
+    const iso = ef.closes ? new Date(ef.closes).toISOString() : null;
+    const { error } = await supabase.rpc("admin_update_showcase", {
+      p_id: showcase.id, p_title: ef.title, p_description: ef.description, p_status: ef.status,
+      p_closes_at: iso, p_clear_close: !iso,
+    });
+    if (error) return setMsg(error.message);
+    setEditing(false);
+    router.refresh();
   }
   async function addJudge() {
     if (!judgeName.trim()) return;
@@ -345,7 +367,26 @@ export default function ShowcaseView({
               </div>
             </div>
           )}
+          {editing && (
+            <div className="mb-4 flex flex-col gap-2 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
+              <input value={ef.title} onChange={(e) => setEf({ ...ef, title: e.target.value })} placeholder="Title" className="rounded-[10px] border px-3 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+              <textarea value={ef.description} onChange={(e) => setEf({ ...ef, description: e.target.value })} placeholder="Description" rows={2} className="rounded-[10px] border px-3 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+              <div className="flex flex-wrap items-center gap-2">
+                <select value={ef.status} onChange={(e) => setEf({ ...ef, status: e.target.value })} className="rounded-[10px] border px-2 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <option value="draft">Draft</option>
+                  <option value="live">Live (reopens and clears the winner)</option>
+                  <option value="closed">Closed</option>
+                </select>
+                <input type="datetime-local" value={ef.closes} onChange={(e) => setEf({ ...ef, closes: e.target.value })} className="rounded-[10px] border px-2 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                <button type="button" onClick={saveEdit} className="bc-btn-solid rounded-full px-4 py-2 text-xs font-bold">Save</button>
+                <button type="button" onClick={() => setEditing(false)} className="text-xs" style={{ color: "var(--text-faint)" }}>Cancel</button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={startEdit} className="rounded-full border px-4 py-2 text-xs font-bold" style={{ borderColor: "var(--border)" }}>
+              ✏️ Edit
+            </button>
             {showcase.status === "live" && (
               <button type="button" onClick={adminClose} className="bc-btn-solid rounded-full px-4 py-2 text-xs font-bold">
                 Close voting & announce winner

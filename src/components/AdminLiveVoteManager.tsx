@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 type EventRow = {
   id: string;
   title: string;
+  description: string | null;
   status: "draft" | "live" | "closed";
   tier: string;
   price_cents: number;
@@ -35,6 +36,41 @@ export default function AdminLiveVoteManager({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [editingEndId, setEditingEndId] = useState<string | null>(null);
   const [endInput, setEndInput] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ title: "", description: "", status: "live" as EventRow["status"], closes_at: "" });
+
+  function toLocalInput(iso: string | null) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function startEdit(ev: EventRow) {
+    setEditId(ev.id);
+    setForm({ title: ev.title, description: ev.description ?? "", status: ev.status, closes_at: toLocalInput(ev.closes_at) });
+  }
+
+  async function saveEdit(ev: EventRow) {
+    setError(null);
+    setSavingId(ev.id);
+    const closesIso = form.closes_at ? new Date(form.closes_at).toISOString() : null;
+    const { error } = await supabase.rpc("admin_update_live_vote", {
+      p_id: ev.id,
+      p_title: form.title,
+      p_description: form.description,
+      p_status: form.status,
+      p_closes_at: closesIso,
+      p_clear_close: !closesIso,
+    });
+    setSavingId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEvents((prev) => prev.map((e) => (e.id === ev.id ? { ...e, title: form.title.trim() || e.title, description: form.description, status: form.status, closes_at: closesIso } : e)));
+    setEditId(null);
+  }
 
   async function closeNow(ev: EventRow) {
     if (!confirm(`Close voting on "${ev.title}" now? Nobody will be able to vote after this.`)) return;
@@ -68,7 +104,15 @@ export default function AdminLiveVoteManager({
     if (!confirm(`Permanently delete "${ev.title}" and all its votes? This cannot be undone. Use Archive instead if you want a downloadable copy.`)) return;
     setError(null);
     setSavingId(ev.id);
-    const { error } = await supabase.rpc("admin_delete_live_vote", { p_id: ev.id });
+    let { error } = await supabase.rpc("admin_delete_live_vote", { p_id: ev.id, p_force: false });
+    if (error?.message.startsWith("MONEY:")) {
+      if (confirm(`"${ev.title}" has payment records (sponsorships or a Stripe checkout). Deleting removes them from the site database; Stripe keeps its own record. Delete anyway?`)) {
+        ({ error } = await supabase.rpc("admin_delete_live_vote", { p_id: ev.id, p_force: true }));
+      } else {
+        setSavingId(null);
+        return;
+      }
+    }
     setSavingId(null);
     if (error) {
       setError(error.message);
@@ -211,8 +255,28 @@ export default function AdminLiveVoteManager({
                 )}
               </div>
 
-              {e.status !== "live" && (
+              {editId === e.id && (
+                <div className="flex w-full flex-col gap-2 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
+                  <input value={form.title} onChange={(ev) => setForm((f) => ({ ...f, title: ev.target.value }))} placeholder="Title" className="rounded border px-3 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                  <textarea value={form.description} onChange={(ev) => setForm((f) => ({ ...f, description: ev.target.value }))} placeholder="Description" rows={2} className="rounded border px-3 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={form.status} onChange={(ev) => setForm((f) => ({ ...f, status: ev.target.value as EventRow["status"] }))} className="rounded border px-2 py-1.5 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                      <option value="draft">Draft</option>
+                      <option value="live">Live</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                    <input type="datetime-local" value={form.closes_at} onChange={(ev) => setForm((f) => ({ ...f, closes_at: ev.target.value }))} className="rounded border px-2 py-1.5 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }} title="Closing time (blank = none)" />
+                    <button onClick={() => saveEdit(e)} disabled={savingId === e.id} className="rounded-full px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50" style={{ background: "var(--red)" }}>Save</button>
+                    <button onClick={() => setEditId(null)} className="px-2 py-1 text-xs" style={{ color: "var(--text-faint)" }}>Cancel</button>
+                  </div>
+                  <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>Admins can change status and end time at any stage, including reopening a closed vote.</p>
+                </div>
+              )}
+              {
                 <div className="flex gap-1.5">
+                  <button onClick={() => startEdit(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+                    ✏️ Edit
+                  </button>
                   <button onClick={() => archiveEvent(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
                     📦 Archive
                   </button>
@@ -220,7 +284,7 @@ export default function AdminLiveVoteManager({
                     Delete
                   </button>
                 </div>
-              )}
+              }
               <label className="flex items-center gap-2 text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
                 <span>Show ads</span>
                 <input
