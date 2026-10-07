@@ -142,6 +142,7 @@ export default function ShowcaseView({
           {showcase.title}
         </h1>
         <ShareButton
+          imageUrl={`/api/share-card/showcase/${showcase.id}`}
           title={showcase.title}
           text={`${showcase.title} — watch and vote for your favorite on BoutCasts!`}
           track={{ type: "showcase", id: showcase.id }}

@@ -1,3 +1,4 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -25,16 +26,7 @@ export async function generateMetadata({
     competitor_b_name: string;
     categories?: { name: string } | { name: string }[] | null;
   };
-  const title = `${boutRow.competitor_a_name} vs ${boutRow.competitor_b_name}`;
-  const categoryName = Array.isArray(boutRow.categories) ? boutRow.categories[0]?.name : boutRow.categories?.name;
-  const description = `Cast your vote${categoryName ? ` in ${categoryName}` : ""} — or start your own Bout — on BoutCasts.`;
-
-  return {
-    title,
-    description,
-    openGraph: { title, description },
-    twitter: { title, description },
-  };
+  return cardMetadata("bout", id, `${boutRow.competitor_a_name} vs ${boutRow.competitor_b_name}`);
 }
 
 export default async function BoutPage({

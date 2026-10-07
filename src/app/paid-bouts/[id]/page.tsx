@@ -1,3 +1,5 @@
+import ShareButton from "@/components/ShareButton";
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,7 +9,11 @@ import PaidBoutEnter from "@/components/PaidBoutEnter";
 import PaidBoutManager, { type ManagerEntry, type ManagerInvite, type ManagerPayout, type ManagerPrize } from "@/components/PaidBoutManager";
 import { money, STATUS_LABEL, type PaidBoutStatus } from "@/lib/paidBouts";
 
-export const metadata: Metadata = { title: "Paid bout" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const { data } = await (await createClient()).from("paid_bouts").select("title").eq("id", id).maybeSingle();
+  return cardMetadata("paidbout", id, data?.title ?? "Paid bout");
+}
 
 export default async function PaidBoutPage({
   params,
@@ -103,6 +109,9 @@ export default async function PaidBoutPage({
         </Link>
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{bout.title}</h1>
+          {bout.status !== "draft" && !bout.invite_only && (
+            <ShareButton imageUrl={`/api/share-card/paidbout/${id}`} title={bout.title} text={`${bout.title} — enter the Paid Bout on BoutCasts!`} />
+          )}
           <span className="rounded px-2 py-0.5 text-xs font-bold uppercase" style={{ background: "var(--surface-2)" }}>{STATUS_LABEL[status]}</span>
         </div>
         <p className="text-sm" style={{ color: "var(--text-faint)" }}>

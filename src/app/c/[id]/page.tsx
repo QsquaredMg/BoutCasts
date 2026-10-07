@@ -1,3 +1,4 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import { isPublicBout } from "@/lib/publicBouts";
 import type { Metadata } from "next";
 import ShowcaseCards from "@/components/showcases/ShowcaseCards";
@@ -54,9 +55,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const hub = await loadHub(id);
   if (!hub) return { title: "Competition" };
-  const title = hubTitle(hub);
-  const description = hub.description ?? "Watch the matchups, vote each round, and enter the competition on BoutCasts.";
-  return { title, description, openGraph: { title, description, images: hub.hub_banner_url ? [hub.hub_banner_url] : undefined } };
+  return cardMetadata("competition", id, hubTitle(hub));
 }
 
 export default async function HubPage({ params }: { params: Promise<{ id: string }> }) {
@@ -114,7 +113,7 @@ export default async function HubPage({ params }: { params: Promise<{ id: string
             <span
               style={{ "--text-dim": "#ffffff", "--text": "#ffffff", "--border": "rgba(255,255,255,0.6)" } as React.CSSProperties}
             >
-              <ShareButton title={title} text={`${title} — watch the matchups and vote on BoutCasts`} />
+              <ShareButton imageUrl={`/api/share-card/competition/${id}`} title={title} text={`${title} — watch the matchups and vote on BoutCasts`} />
             </span>
           </div>
         </div>

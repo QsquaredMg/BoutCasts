@@ -1,3 +1,4 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,11 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createClient();
   const { data } = await supabase.from("pred_slates").select("title, kind, visibility").eq("id", id).maybeSingle();
   if (!data) return { title: "Bracket not found" };
-  return {
-    title: data.title,
-    ...(data.visibility === "private" ? { robots: { index: false, follow: false } } : {}),
-    description: `${data.kind === "elimination" ? "Fill out the bracket" : "Weekly pick'em"}: predict every winner and score in ${data.title} for free and compete on the leaderboard.`,
-  };
+  return cardMetadata("predictions-slate", id, data.title, data.visibility === "private" ? { robots: { index: false, follow: false } } : {});
 }
 
 export default async function SlatePage({ params, searchParams }: Props) {

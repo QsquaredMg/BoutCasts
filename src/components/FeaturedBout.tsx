@@ -360,6 +360,7 @@ export default async function FeaturedBout({
           </a>
           <ShareButton
             track={{ type: "bout", id: bout.id }}
+            imageUrl={`/api/bouts/${bout.id}/vote-card`}
             title={bout.title}
             text={`${bout.competitor_a_name} vs ${bout.competitor_b_name} — cast your vote, or start your own Bout, on BoutCasts!`}
           />

@@ -1,3 +1,4 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,14 +24,7 @@ export async function generateMetadata({
   const first = bouts?.[0] as { title?: string | null; categories?: { name: string } | { name: string }[] | null } | undefined;
   const categoryName = Array.isArray(first?.categories) ? first?.categories[0]?.name : first?.categories?.name;
   const title = first?.title?.trim() ? `${first.title.trim()} — Bracket` : categoryName ? `${categoryName} Bracket` : "Bracket";
-  const description = "Vote through the bracket as it fills in — or start your own Bout — on BoutCasts.";
-
-  return {
-    title,
-    description,
-    openGraph: { title, description },
-    twitter: { title, description },
-  };
+  return cardMetadata("bracket", key, title);
 }
 
 export default async function BracketPage({
@@ -62,6 +56,7 @@ export default async function BracketPage({
           &larr; Back to matchups
         </Link>
         <ShareButton
+          imageUrl={`/api/share-card/bracket/${key}`}
           title={`${categoryName} Bracket`}
           text={`${categoryName} Bracket — vote now, or start your own Bout, on BoutCasts!`}
         />

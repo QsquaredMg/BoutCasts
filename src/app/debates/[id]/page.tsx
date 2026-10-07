@@ -1,7 +1,9 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import ShareButton from "@/components/ShareButton";
 import DebateJoin from "@/components/debates/DebateJoin";
 import DebateTopicAdmin from "@/components/debates/DebateTopicAdmin";
 import { bracketRoundLabel, scoringLabel, SIDE_LABEL, type DebateMatch, type DebateTopic } from "@/lib/debates";
@@ -10,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const supabase = await createClient();
   const { data } = await supabase.from("debate_topics").select("statement").eq("id", id).maybeSingle();
-  return { title: data ? `Debate: ${data.statement}` : "Debate" };
+  return cardMetadata("debate", id, data ? data.statement : "Debate");
 }
 
 const STATUS_TEXT: Record<DebateMatch["status"], string> = {
@@ -96,9 +98,16 @@ export default async function DebateTopicPage({ params }: { params: Promise<{ id
         {topic.format === "bracket" ? `${topic.bracket_size}-person bracket` : "Open debate"} · {topic.rounds} round
         {topic.rounds === 1 ? "" : "s"} · {scoringLabel(topic)}
       </p>
-      <h1 className="mb-2 text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-        &ldquo;{topic.statement}&rdquo;
-      </h1>
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <h1 className="text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
+          &ldquo;{topic.statement}&rdquo;
+        </h1>
+        <ShareButton
+          imageUrl={`/api/share-card/debate/${id}`}
+          title={topic.statement}
+          text={`Debate: ${topic.statement} — join or vote on BoutCasts!`}
+        />
+      </div>
       {topic.description && (
         <p className="mb-4 whitespace-pre-line text-sm" style={{ color: "var(--text-dim)" }}>
           {topic.description}

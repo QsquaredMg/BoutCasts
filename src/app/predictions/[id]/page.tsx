@@ -1,3 +1,4 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,11 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createClient();
   const { data } = await supabase.from("pred_games").select("home_name, away_name, is_private").eq("id", id).maybeSingle();
   if (!data) return { title: "Game not found" };
-  return {
-    ...(data.is_private ? { robots: { index: false, follow: false } } : {}),
-    title: `${data.home_name} vs ${data.away_name} prediction`,
-    description: `Predict the winner and final score of ${data.home_name} vs ${data.away_name} before picks close and earn points on BoutCasts.`,
-  };
+  return cardMetadata("predictions", id, `${data.home_name} vs ${data.away_name}`, data.is_private ? { robots: { index: false, follow: false } } : {});
 }
 
 export default async function GamePage({ params }: Props) {

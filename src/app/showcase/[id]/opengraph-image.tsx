@@ -5,5 +5,5 @@ export const contentType = "image/png";
 
 export default async function OGImage({ params }: { params: Promise<{ id: string }> }) {
   const { id: id } = await params;
-  return ogResponse("livevote", id);
+  return ogResponse("showcase", id);
 }
