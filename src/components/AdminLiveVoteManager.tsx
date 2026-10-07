@@ -51,6 +51,32 @@ export default function AdminLiveVoteManager({
     );
   }
 
+  async function archiveEvent(ev: EventRow) {
+    if (!confirm(`Archive "${ev.title}"? It disappears from the site and goes to Admin → Archives for the next downloadable dump. You can restore it until it is purged.`)) return;
+    setError(null);
+    setSavingId(ev.id);
+    const { error } = await supabase.rpc("admin_archive_item", { p_type: "live_vote", p_id: ev.id });
+    setSavingId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEvents((prev) => prev.filter((e) => e.id !== ev.id));
+  }
+
+  async function deleteEvent(ev: EventRow) {
+    if (!confirm(`Permanently delete "${ev.title}" and all its votes? This cannot be undone. Use Archive instead if you want a downloadable copy.`)) return;
+    setError(null);
+    setSavingId(ev.id);
+    const { error } = await supabase.rpc("admin_delete_live_vote", { p_id: ev.id });
+    setSavingId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEvents((prev) => prev.filter((e) => e.id !== ev.id));
+  }
+
   async function setEnd(eventId: string, closesAt: string | null) {
     setError(null);
     setSavingId(eventId);
@@ -185,6 +211,16 @@ export default function AdminLiveVoteManager({
                 )}
               </div>
 
+              {e.status !== "live" && (
+                <div className="flex gap-1.5">
+                  <button onClick={() => archiveEvent(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+                    📦 Archive
+                  </button>
+                  <button onClick={() => deleteEvent(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)", color: "var(--danger)" }}>
+                    Delete
+                  </button>
+                </div>
+              )}
               <label className="flex items-center gap-2 text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
                 <span>Show ads</span>
                 <input
