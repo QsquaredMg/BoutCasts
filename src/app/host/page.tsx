@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { LIVE_VOTE_TIERS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 // "Host a vote" landing page for organizers (schools, leagues, event hosts).
 // Fans land on the home page (/); this page sells Live Vote and funnels to
@@ -457,6 +457,68 @@ export default async function HostPage() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* ================= ORGANIZER PRO ================= */}
+      <section id="organizer-pro" style={{ background: "var(--lp-ink)", color: "#fff" }}>
+        <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-12 lg:py-24">
+          <div className="flex flex-col gap-5">
+            <div className="lp-eyebrow" style={{ color: "var(--lp-blue-light)" }}>
+              Organizer Pro
+            </div>
+            <h2 className="lp-display text-[40px] sm:text-[52px] lg:text-[64px]">
+              Running votes
+              <br />
+              every month?
+            </h2>
+            <p className="max-w-[560px] text-[17px] leading-relaxed lg:text-[19px]" style={{ color: "var(--lp-body-dark)" }}>
+              Three events a month would cost {money(LIVE_VOTE_TIERS.medium.priceCents * ORGANIZER_PRO.includedEventsPerPeriod)} at Medium
+              prices. With Organizer Pro they&apos;re included for {money(ORGANIZER_PRO.priceCents)} a month, with Pro analytics on every
+              event.
+            </p>
+            <p className="text-[15px]" style={{ color: "var(--lp-muted-dark)" }}>
+              Whole school or district? See the{" "}
+              <Link href="/org" className="font-semibold underline" style={{ color: "#fff" }}>
+                School &amp; League License
+              </Link>
+              .
+            </p>
+          </div>
+          <div className="rounded-3xl p-7 lg:p-10" style={{ background: "#fff", color: "var(--lp-ink)" }}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-lg font-bold">Organizer Pro</span>
+              <span className="rounded-full px-3 py-1 text-[13px] font-bold" style={{ background: "var(--lp-blue)", color: "#fff" }}>
+                Cancel anytime
+              </span>
+            </div>
+            <div className="lp-display mt-3 text-[64px] lg:text-[76px]" style={{ lineHeight: 1 }}>
+              {money(ORGANIZER_PRO.priceCents)}
+              <span className="text-[22px]" style={{ color: "var(--lp-muted)" }}>
+                {" "}
+                / month
+              </span>
+            </div>
+            <ul className="mt-5 flex flex-col gap-3 text-[16px] leading-snug">
+              <li>
+                ✓ <strong>{ORGANIZER_PRO.includedEventsPerPeriod} Small or Medium events</strong> included every month
+              </li>
+              <li>
+                ✓ Pro analytics on every event: turnout, demographics and CSV export (normally {money(PRO_ADDON_CENTS)} each)
+              </li>
+              <li>✓ Need more or bigger? Extra and Large events at regular per-event prices</li>
+            </ul>
+            <Link
+              href="/live-vote#organizer-pro"
+              className="lp-btn mt-7 w-full py-4 text-[17px]"
+              style={{ background: "var(--lp-blue)", color: "#fff", borderRadius: 12 }}
+            >
+              Get Organizer Pro
+            </Link>
+            <p className="mt-3 text-center text-[13px]" style={{ color: "var(--lp-muted)" }}>
+              Sign in to subscribe. Billed monthly.
+            </p>
+          </div>
         </div>
       </section>
 

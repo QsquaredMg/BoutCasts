@@ -101,7 +101,7 @@
 .tkHot .price{color:var(--gold)}
 .tkSub{margin:0 0 8px;font-size:.92rem;color:#6b738a;font-weight:600}
 .tkHot .tkSub{color:var(--soft)}
-.perks{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:9px;flex:1}
+.perks{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:9px;flex:1;align-content:start}
 .perks li{display:flex;gap:10px;line-height:1.45;font-size:.97rem}
 .perks li::before{content:"✓";font-weight:900;color:var(--accentDark);flex:none}
 .tkHot .perks li::before{color:var(--gold)}

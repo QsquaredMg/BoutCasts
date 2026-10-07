@@ -32,7 +32,7 @@ export default function CompetitionsFunnel() {
       lede="Run your own dance-off, band battle, rap cypher or talent show. Share one entry link, pick who makes the bracket, and the crowd votes every round until one act is left standing."
       primary={{ label: "Start a competition", href: "/competitions" }}
       secondary={{ label: "See live matchups", href: "/matchups" }}
-      fine="Set up takes a few minutes. Keep it link-only for a school or private group, or list it publicly."
+      fine="Free to create and run. Set up takes a few minutes. Keep it link-only for a school or private group, or list it publicly."
       visual={<BracketVisual />}
       ticker={["Dance battles", "Band battles", "Rap cyphers", "Talent shows", "Step shows", "Cheer-offs", "Halftime showdowns", "Open mics"]}
       stepsTitle="Four steps. One champion."
@@ -61,11 +61,45 @@ export default function CompetitionsFunnel() {
         { emoji: "🎪", title: "Festivals and events", body: "Turn a stage event into a tournament that people follow for weeks." },
         { emoji: "🏘️", title: "Community and church", body: "Youth talent nights and fundraisers with a fair, visible vote." },
       ]}
+      tiers={{
+        eyebrow: "Price",
+        title: "Free to run",
+        lede: "Creating and running a bracket competition doesn't cost you a thing. Charge an entry fee only if you want to.",
+        cards: [
+          {
+            label: "Bracket competition",
+            price: "$0",
+            sub: "Create and run it",
+            perks: [
+              "Up to 10 competitions at a time",
+              "Entry link and entry approval",
+              "Bracket with crowd voting every round",
+              "Public or link-only",
+            ],
+            cta: { label: "Start a competition", href: "/competitions" },
+            hot: true,
+            tag: "Free",
+          },
+          {
+            label: "Add an entry fee",
+            price: "20%",
+            sub: "Of entry fees, only if you charge",
+            perks: [
+              "Rules and prizes posted before anyone pays",
+              "Refund if the minimum isn't met",
+              "Opened by our team after review",
+            ],
+            cta: { label: "See Paid Bouts", href: "/paid-bouts/play" },
+          },
+        ],
+        note: "Want a quick poll or class vote instead? Live Vote has a free tier with paid sizes for bigger crowds. See the school voting page.",
+      }}
       faq={[
         { q: "Who decides who competes?", a: "You do. Every entry waits for your approval before it can appear in the bracket." },
         { q: "How do winners advance?", a: "The crowd votes each matchup. When the round ends, the winner moves to the next one automatically." },
         { q: "Can I keep it private?", a: "Yes. Leave the public listing off and only people with your entry link can enter." },
         { q: "What if I want a simple poll instead of a bracket?", a: "Use Live Vote. It's built for class elections, pageants and quick polls with a live tally. See the school voting page." },
+        { q: "What does it cost?", a: "Nothing to create or run a bracket competition. You can have up to 10 at a time. Entry fees and payouts only come into play if you choose to run a Paid Bout." },
         { q: "Can I add prizes?", a: "You can describe prizes and rules in your competition details. If you want an entry fee and published payouts, ask us about Paid Bouts." },
       ]}
       closing={{
