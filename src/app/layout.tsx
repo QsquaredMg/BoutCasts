@@ -4,6 +4,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import AdInterstitial from "@/components/AdInterstitial";
 import SplashGate from "@/components/SplashGate";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 import { ToastProvider } from "@/components/Toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -84,6 +85,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col antialiased">
         <SplashGate />
+        <AnalyticsTracker />
         <ToastProvider>
           <NavBar />
           <main className="flex-1">{children}</main>

@@ -141,3 +141,29 @@ grant execute on function public.my_ad_stats() to authenticated;
 
 -- 7. Ad uploads may be up to 105 MB (110100480 bytes) ---------------------------
 update storage.buckets set file_size_limit = 110100480 where id = 'ad-creatives';
+
+-- 8. Claim one impression against the cap (counter only) -----------------------
+-- The serve route logs the analytics row itself (session, path, device,
+-- country) and skips crawlers, so this only enforces the cap atomically.
+create or replace function public.claim_ad_impression(p_ad_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  granted boolean;
+begin
+  update public.ad_creatives
+  set impressions_served = impressions_served + 1
+  where id = p_ad_id
+    and status = 'active'
+    and (starts_at is null or starts_at <= now())
+    and (ends_at is null or ends_at >= now())
+    and (max_impressions is null or impressions_served < max_impressions)
+  returning true into granted;
+  return coalesce(granted, false);
+end;
+$$;
+revoke all on function public.claim_ad_impression(uuid) from public;
+grant execute on function public.claim_ad_impression(uuid) to anon, authenticated;
