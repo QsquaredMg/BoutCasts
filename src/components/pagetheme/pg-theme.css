@@ -1,0 +1,46 @@
+/* Product page theme: gives the working pages (competitions, showcases, paid bouts, sponsors,
+   debates) the same look as their funnels. Scoped to .pg; per-product palettes below. */
+.pg{
+  --pg-deep:#0b1030; --pg-deep2:#171f57; --pg-accent:#ff5a36; --pg-ink:#d23a17; --pg-gold:#ffc531; --pg-bg:#f4f6fb;
+  --font-display:var(--cond);
+  --red:var(--pg-ink); --blue:var(--pg-ink); --red-soft:color-mix(in srgb,var(--pg-ink) 9%,transparent); --blue-soft:var(--red-soft);
+  --bg:var(--pg-bg); background:var(--pg-bg); color:var(--text); min-height:60vh;
+}
+.pg-comp{--pg-deep:#0b1030;--pg-deep2:#171f57;--pg-accent:#ff5a36;--pg-ink:#d23a17;--pg-bg:#f4f6fb}
+.pg-show{--pg-deep:#170a35;--pg-deep2:#2b1366;--pg-accent:#8b5cf6;--pg-ink:#6636dc;--pg-bg:#f6f4fb}
+.pg-paid{--pg-deep:#06241b;--pg-deep2:#0b3b2c;--pg-accent:#18c08a;--pg-ink:#0b8a62;--pg-bg:#f3f7f5}
+.pg-spons{--pg-deep:#0b0b12;--pg-deep2:#1c1c2b;--pg-accent:#ffc531;--pg-ink:#1c1c2b;--pg-bg:#f7f6f2}
+.pg-spons{--red-soft:rgba(255,197,49,.24);--blue-soft:rgba(255,197,49,.24)}
+.pg-deb{--pg-deep:#0a1030;--pg-deep2:#12206b;--pg-accent:#4f8bff;--pg-ink:#1d4ed8;--pg-bg:#f4f6fb}
+
+.pg h1,.pg h2,.pg h3{font-family:var(--cond),"Arial Narrow",sans-serif;font-stretch:normal;text-transform:uppercase;letter-spacing:.012em;font-weight:800;color:var(--pg-deep)}
+.pg h1{font-weight:900;line-height:.95;font-size:clamp(2.3rem,7vw,3.3rem)}
+.pg h3{letter-spacing:.01em}
+.pg .bc-card{border-radius:22px}
+.pg a.bc-card,.pg a.rounded-xl{transition:transform .15s,box-shadow .15s}
+.pg a.bc-card:hover,.pg a.rounded-xl:hover{transform:translateY(-2px);box-shadow:0 14px 28px -16px rgba(10,14,26,.4)}
+.pg .bc-btn-solid{background:var(--pg-ink);border-color:var(--pg-ink);color:#fff;box-shadow:0 12px 24px -14px var(--pg-ink)}
+.pg-spons .bc-btn-solid{background:var(--pg-gold);border-color:var(--pg-gold);color:#0b0b12;box-shadow:0 12px 24px -12px rgba(255,197,49,.8)}
+.pg input:focus-visible,.pg select:focus-visible,.pg textarea:focus-visible,.pg button:focus-visible,.pg a:focus-visible{outline:3px solid var(--pg-accent);outline-offset:2px}
+
+.pg-band{position:relative;isolation:isolate;overflow:hidden;color:#fff;
+  background:
+   radial-gradient(60% 120% at 90% 0%,color-mix(in srgb,var(--pg-accent) 45%,transparent),transparent 70%),
+   repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 2px,transparent 2px 96px),
+   var(--pg-deep)}
+.pg-band::before{content:"";position:absolute;right:-40px;top:-60px;width:300px;height:340px;background:var(--pg-accent);opacity:.9;transform:rotate(14deg);z-index:-1}
+.pg-band::after{content:"";position:absolute;right:262px;top:-60px;width:12px;height:340px;background:#fff;opacity:.9;transform:rotate(14deg);z-index:-1}
+@media(max-width:700px){.pg-band::before{right:-250px}.pg-band::after{right:44px}}
+.pg-band-in{max-width:42rem;margin:0 auto;padding:22px 20px 0}
+.pg-band-in.wide{max-width:48rem}
+.pg-brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.pg-mark{font-family:var(--cond),"Arial Narrow",sans-serif;font-weight:900;text-transform:uppercase;font-size:2.1rem;line-height:1;letter-spacing:.02em}
+.pg-mark i{font-style:normal;color:var(--pg-accent)}
+.pg-tag{font-size:.84rem;font-weight:700;color:rgba(255,255,255,.78)}
+.pg-tabs{display:flex;gap:6px;margin-top:16px;overflow-x:auto;scrollbar-width:none}
+.pg-tabs::-webkit-scrollbar{display:none}
+.pg-tab{white-space:nowrap;padding:10px 16px;border-radius:12px 12px 0 0;font-weight:800;font-size:.9rem;color:rgba(255,255,255,.82);background:rgba(255,255,255,.09)}
+.pg-tab:hover{background:rgba(255,255,255,.18);color:#fff}
+.pg-tab[aria-current="page"]{background:var(--pg-bg);color:var(--pg-deep)}
+.pg-rule{height:4px;background:var(--pg-gold)}
+@media (prefers-reduced-motion:reduce){.pg a.bc-card,.pg a.rounded-xl{transition:none}}
