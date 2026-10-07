@@ -6,6 +6,7 @@
   --red:var(--pg-ink); --blue:var(--pg-ink); --red-soft:color-mix(in srgb,var(--pg-ink) 9%,transparent); --blue-soft:var(--red-soft);
   --bg:var(--pg-bg); background:var(--pg-bg); color:var(--text); min-height:60vh;
 }
+.pg-main{--pg-deep:#0a0e1a;--pg-deep2:#151b2e;--pg-accent:#e5263b;--pg-ink:#1b4fe4;--pg-bg:#f4f6fb}
 .pg-comp{--pg-deep:#0b1030;--pg-deep2:#171f57;--pg-accent:#ff5a36;--pg-ink:#d23a17;--pg-bg:#f4f6fb}
 .pg-show{--pg-deep:#170a35;--pg-deep2:#2b1366;--pg-accent:#8b5cf6;--pg-ink:#6636dc;--pg-bg:#f6f4fb}
 .pg-paid{--pg-deep:#06241b;--pg-deep2:#0b3b2c;--pg-accent:#18c08a;--pg-ink:#0b8a62;--pg-bg:#f3f7f5}
@@ -44,3 +45,4 @@
 .pg-tab[aria-current="page"]{background:var(--pg-bg);color:var(--pg-deep)}
 .pg-rule{height:4px;background:var(--pg-gold)}
 @media (prefers-reduced-motion:reduce){.pg a.bc-card,.pg a.rounded-xl{transition:none}}
+.pg-main .pg-mark i{margin-left:-.26em}

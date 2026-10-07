@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cond } from "@/app/predictions/font";
 import "./pg-theme.css";
 
-export type PageTheme = "comp" | "show" | "paid" | "spons" | "deb";
+export type PageTheme = "main" | "comp" | "show" | "paid" | "spons" | "deb";
 
 export type ShellTab = {
   href: string;
@@ -24,6 +24,7 @@ export default function PageShell({
   tagline,
   tabs,
   wide,
+  bandWidth,
   children,
 }: {
   theme: PageTheme;
@@ -32,6 +33,8 @@ export default function PageShell({
   tagline: string;
   tabs: ShellTab[];
   wide?: boolean;
+  /** CSS max-width for the header band, to line up with a wider page below. */
+  bandWidth?: string;
   children: React.ReactNode;
 }) {
   const path = usePathname() ?? "";
@@ -43,7 +46,7 @@ export default function PageShell({
   return (
     <div className={`pg pg-${theme} ${cond.variable}`}>
       <header className="pg-band">
-        <div className={`pg-band-in${wide ? " wide" : ""}`}>
+        <div className={`pg-band-in${wide ? " wide" : ""}`} style={bandWidth ? { maxWidth: bandWidth } : undefined}>
           <div className="pg-brand">
             <span className="pg-mark">
               {name} <i>{accent}</i>

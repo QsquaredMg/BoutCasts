@@ -53,6 +53,8 @@ export type FunnelProps = {
   faq: { q: string; a: string }[];
   closing: { headline: string; body: string; primary: Cta; secondary?: Cta };
   crossLinks?: { label: string; href: string }[];
+  /** Live content shown right under the ticker (the home page puts what's on now here). */
+  midSlot?: ReactNode;
 };
 
 function renderTitle(line: string) {
@@ -128,22 +130,11 @@ export default function Funnel(p: FunnelProps) {
         </div>
       </div>
 
-      <section className={`${s.sec} ${s.paper}`}>
-        <div className={s.wrap}>
-          <p className={s.eyebrow}>How it works</p>
-          <h2 className={s.secTitle}>{p.stepsTitle}</h2>
-          <p className={s.secLede}>{p.stepsLede}</p>
-          <ol className={s.steps}>
-            {p.steps.map((st, i) => (
-              <li key={st.title} className={s.step}>
-                <div className={s.stepN}>{i + 1}</div>
-                <h3>{st.title}</h3>
-                <p>{st.body}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      {p.midSlot && (
+        <section className={`${s.sec} ${s.paper}`}>
+          <div className={s.wrap}>{p.midSlot}</div>
+        </section>
+      )}
 
       <section className={`${s.sec} ${s.night}`}>
         <div className={s.wrap}>

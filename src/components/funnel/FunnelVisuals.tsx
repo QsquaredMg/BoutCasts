@@ -232,3 +232,40 @@ export function DebateVisual() {
     </div>
   );
 }
+
+export function VoteVisual() {
+  return (
+    <div className={s.vCard} style={tilt(-2)}>
+      <div className={s.vBar}>
+        <span>Sample matchup</span>
+        <span className={s.vLive}>
+          <span className={s.dot} /> Voting live
+        </span>
+      </div>
+      <div className={s.vBody}>
+        <div className={s.brkCol}>
+          <div className={`${s.slot} ${s.slotWin}`}>
+            Team Red<small>58%</small>
+            <div className={s.vbar}><i style={{ width: "58%" }} /></div>
+          </div>
+          <div className={s.slot}>
+            Team Blue<small>42%</small>
+            <div className={s.vbar}><i style={{ width: "42%", opacity: 0.4 }} /></div>
+          </div>
+        </div>
+      </div>
+      <div className={s.vStamp}>
+        <small>One fair vote</small>
+        Per person
+      </div>
+      <div className={`${s.vChip} ${s.vChipA}`}>
+        <em>Share link</em>
+        boutcasts.com/bout/…
+      </div>
+      <div className={`${s.vChip} ${s.vChipB}`}>
+        <em>Votes so far</em>
+        1,204
+      </div>
+    </div>
+  );
+}
