@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import SponsorApplyForm from "@/components/SponsorApplyForm";
 
 export const metadata: Metadata = {
@@ -40,6 +41,14 @@ export default async function SponsorPage({
           Checkout was cancelled — no charge was made. Feel free to try again below.
         </p>
       )}
+
+      <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
+        Already a sponsor?{" "}
+        <Link href="/sponsor/creatives" className="font-semibold underline">
+          Upload and track your ads
+        </Link>
+        .
+      </p>
 
       <SponsorApplyForm />
     </div>

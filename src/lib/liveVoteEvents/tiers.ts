@@ -54,6 +54,15 @@ export const ORGANIZER_PRO = {
   includedTiers: ["small", "medium"] as LiveVoteTier[],
 };
 
+// Organizer Gold: Pro benefits plus the right to sell sponsor packages for
+// your own events. Sponsors pay BoutCasts; BoutCasts keeps platformFeePct of
+// each sponsorship and owes the organizer the rest after the event closes.
+// Keep platformFeePct in sync with record_event_sponsorship() in the database.
+export const ORGANIZER_GOLD = {
+  priceCents: 19900, // placeholder: confirm before launch
+  platformFeePct: 30,
+};
+
 export function tierPriceLabel(tier: LiveVoteTier): string {
   const cents = LIVE_VOTE_TIERS[tier].priceCents;
   return cents === 0 ? "Free" : `$${(cents / 100).toFixed(0)}`;

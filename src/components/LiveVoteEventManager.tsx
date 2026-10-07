@@ -7,6 +7,7 @@ import ShareEventModal from "@/components/ShareEventModal";
 import type { QrBrand } from "@/lib/brandedQr";
 import LiveVoteAnalyticsPanel from "@/components/LiveVoteAnalyticsPanel";
 import EventSponsorManager from "@/components/EventSponsorManager";
+import EventSponsorSales from "@/components/EventSponsorSales";
 import SuperVotesManager from "@/components/SuperVotesManager";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -509,7 +510,10 @@ export default function LiveVoteEventManager({
           </p>
         </div>
       ) : (
-        <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />
+        <>
+          <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />
+          <EventSponsorSales eventId={event.id} editable={event.status !== "closed"} />
+        </>
       )}
 
       <SuperVotesManager

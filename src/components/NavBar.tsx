@@ -256,6 +256,7 @@ export default function NavBar() {
                 <MenuLink href="/schools">🎓 For schools, colleges &amp; universities</MenuLink>
                 <MenuLink href="/join">🔒 Have an event code? Join</MenuLink>
                 <MenuLink href="/predictions">🎯 Bout Predictions</MenuLink>
+                <MenuLink href="/paid-bouts">💵 Paid Bouts</MenuLink>
                 <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
                 <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>
                 {user && (
