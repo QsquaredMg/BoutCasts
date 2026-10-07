@@ -52,6 +52,7 @@ export default async function PredictionsPage() {
           <Link href="/predictions/private/new" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>🔒 Private game · {money(BRACKET_PRICING.privateGameCents)}</Link>
           <Link href="/predictions/join" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Have a code?</Link>
           <Link href="/predictions/leaderboard" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Leaderboard</Link>
+          <Link href="/predictions/play" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>How it works</Link>
         </div>
       </div>
 

@@ -20,6 +20,7 @@ const STATIC_ROUTES = [
   "/live-vote",
   "/leaderboard",
   "/predictions",
+  "/predictions/play",
   "/predictions/leaderboard",
   "/sponsor",
   "/how-it-works",
