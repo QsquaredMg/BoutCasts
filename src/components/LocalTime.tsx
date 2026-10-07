@@ -1,22 +1,10 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useZone } from "@/lib/time/pref";
+import { formatWhen } from "@/lib/time/zones";
 
-const subscribe = () => () => {};
-
-// Shows a timestamp in the viewer's own time zone (server renders a stable UTC fallback).
-export default function LocalTime({ iso, withDate = true }: { iso: string; withDate?: boolean }) {
-  const text = useSyncExternalStore(
-    subscribe,
-    () =>
-      new Date(iso).toLocaleString(undefined, {
-        weekday: "short",
-        month: withDate ? "short" : undefined,
-        day: withDate ? "numeric" : undefined,
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-    () => new Date(iso).toUTCString().slice(0, 22) + " UTC",
-  );
-  return <time dateTime={iso} suppressHydrationWarning>{text}</time>;
+// A moment shown in the viewer's chosen time zone, always with the zone name (for example "7:00 PM CT").
+export default function LocalTime({ iso, withDate = true, withYear = false }: { iso: string; withDate?: boolean; withYear?: boolean }) {
+  const zone = useZone();
+  return <time dateTime={iso} suppressHydrationWarning>{formatWhen(iso, zone, { withDate, withYear })}</time>;
 }

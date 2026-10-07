@@ -12,6 +12,9 @@ import {
   validateCreate,
 } from "@/lib/paidBouts";
 import PaidBoutTerms from "@/components/PaidBoutTerms";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 const toCents = (v: string) => Math.round(Number(v) * 100);
 
@@ -47,7 +50,7 @@ export default function PaidBoutForm({ isAdmin }: { isAdmin: boolean }) {
     entryFeeCents: feeCents,
     minEntries: Number(minEntries),
     maxEntries: maxEntries ? Number(maxEntries) : null,
-    entryDeadline: deadline ? new Date(deadline).toISOString() : "",
+    entryDeadline: deadline ? wallToIso(deadline, getZone()) : "",
     inviteOnly,
     prizes: prizeCents.map((amountCents, i) => ({ place: i + 1, amountCents })),
   };
@@ -116,7 +119,7 @@ export default function PaidBoutForm({ isAdmin }: { isAdmin: boolean }) {
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold">
           Entries close
-          <input type="datetime-local" className={field} style={border} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          <ZonedDateTimeInput className={field} style={border} value={deadline} onChange={setDeadline} />
         </label>
       </div>
 

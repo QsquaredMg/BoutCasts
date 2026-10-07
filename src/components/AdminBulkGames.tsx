@@ -7,6 +7,9 @@ import { TEAM_FIELDS, LEAGUE_LABEL, type DirectoryTeam } from "@/lib/teams/direc
 import { matchTeams, teamDisplayName, teamLogo } from "@/lib/teams/match";
 import { BULK_MAX, CSV_TEMPLATE, parsePaste, rowsFromCsv, type BulkRow } from "@/lib/predictions/bulk";
 import { useNow } from "@/lib/predictions/useNow";
+import { useZone } from "@/lib/time/pref";
+import { isoToWall, wallToIso } from "@/lib/time/zones";
+import TimeZoneSelect from "@/components/TimeZoneSelect";
 
 type Row = BulkRow & {
   homeLogo: string; awayLogo: string;
@@ -33,7 +36,10 @@ const todayLocal = (ms: number) => {
 };
 
 export default function AdminBulkGames() {
-  const now = useNow();
+  const zone = useZone();
+  const realNow = useNow();
+  // Read "now" on the wall clock of the chosen zone so words like "Sat 7pm" and "today" mean that zone.
+  const now = realNow ? new Date(isoToWall(new Date(realNow).toISOString(), zone)).getTime() : 0;
   const [teams, setTeams] = useState<DirectoryTeam[]>(teamCache ?? []);
   const [slates, setSlates] = useState<{ id: string; title: string }[]>([]);
   const [slateId, setSlateId] = useState("");
@@ -117,7 +123,7 @@ export default function AdminBulkGames() {
       p_games: batch.map((r) => ({
         home_name: r.home.trim(), away_name: r.away.trim(),
         home_logo: r.homeLogo || null, away_logo: r.awayLogo || null,
-        starts_at: new Date(r.when).toISOString(), allow_draw: r.tie,
+        starts_at: wallToIso(r.when, zone), allow_draw: r.tie,
       })),
       p_slate_id: slateId || null,
     });
@@ -159,7 +165,11 @@ export default function AdminBulkGames() {
           className="w-full rounded-xl border bg-transparent p-3 font-mono text-xs"
           style={border}
         />
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block text-xs font-bold">
+            Times are in
+            <span className="mt-1 block"><TimeZoneSelect className="h-11 w-full rounded-xl border bg-transparent px-3 text-sm" style={border} /></span>
+          </label>
           <label className="block text-xs font-bold">
             Date for lines with only a time
             <input type="date" value={dd} onChange={(e) => setDefaultDate(e.target.value)} className={field} style={border} />

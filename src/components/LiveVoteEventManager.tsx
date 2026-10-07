@@ -14,6 +14,9 @@ import { createClient } from "@/lib/supabase/client";
 import EventBrandingEditor from "@/components/EventBrandingEditor";
 import LiveVoteOptionMediaManager from "@/components/LiveVoteOptionMediaManager";
 import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { formatWhen, wallToIso } from "@/lib/time/zones";
 
 type EventStatus = "draft" | "live" | "closed";
 
@@ -692,7 +695,7 @@ export default function LiveVoteEventManager({
           </div>
           <p className="text-xs" style={{ color: "var(--text-faint)" }}>
             {event.closes_at
-              ? `Voting closes ${new Date(event.closes_at).toLocaleString()}`
+              ? `Voting closes ${formatWhen(event.closes_at, getZone(), { withYear: true })}`
               : "No end time — voting stays open until you close it."}
           </p>
           {isAdmin && (
@@ -700,15 +703,14 @@ export default function LiveVoteEventManager({
               <span className="w-full text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
                 End time (admin)
               </span>
-              <input
-                type="datetime-local"
+              <ZonedDateTimeInput
                 value={endInput}
-                onChange={(e) => setEndInput(e.target.value)}
+                onChange={setEndInput}
                 className="rounded-[10px] border px-3 py-2 text-sm"
                 style={{ borderColor: "var(--border)", background: "var(--surface)" }}
               />
               <button
-                onClick={() => endInput && saveEndTime(new Date(endInput).toISOString())}
+                onClick={() => endInput && saveEndTime(wallToIso(endInput, getZone()))}
                 disabled={savingEnd || !endInput}
                 className="rounded-full border px-4 py-2 text-xs font-bold disabled:opacity-50"
                 style={{ borderColor: "var(--border)" }}

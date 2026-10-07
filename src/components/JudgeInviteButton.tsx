@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { getZone } from "@/lib/time/pref";
+import { formatWhen } from "@/lib/time/zones";
 
 // "Email invite" next to a judge: a prewritten letter telling them they've been
 // chosen as a judge, with their private link. Opens the organizer's own email
@@ -18,7 +20,7 @@ function letter(o: { judgeName: string; title: string; kind: JudgeInviteKind; li
     ? `As a judge, you'll watch each entry and score it from 1 to 10 on ${o.criteria.slice(0, -1).join(", ")}${o.criteria.length > 1 ? " and " : ""}${o.criteria[o.criteria.length - 1]}.`
     : "As a judge, you'll watch each entry and enter your scores.";
   const deadline = o.deadline
-    ? `\nPlease submit your scores by ${new Date(o.deadline).toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" })}.\n`
+    ? `\nPlease submit your scores by ${formatWhen(o.deadline, getZone(), { withYear: true })}.\n`
     : "";
   return {
     subject: `You've been selected as a judge: ${o.title}`,

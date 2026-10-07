@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
 import TeamPicker from "@/components/TeamPicker";
 import { BRACKET_PRICING, money, roundLabel } from "@/lib/predictions/pricing";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 type Team = { name: string; logo: string };
 type Game = { home_name: string; home_logo: string; away_name: string; away_logo: string; starts_at: string; allow_draw: boolean };
@@ -41,7 +44,7 @@ export default function PredBracketBuilder() {
     setBusy(true);
     try {
       const sb = createClient();
-      const iso = (v: string) => (v ? new Date(v).toISOString() : null);
+      const iso = (v: string) => (v ? wallToIso(v, getZone()) : null);
       const { data, error: rpcErr } = await sb.rpc("create_pred_bracket", {
         p_title: title,
         p_kind: kind,
@@ -147,7 +150,7 @@ export default function PredBracketBuilder() {
             {starts.map((s, i) => (
               <label key={i} className="mb-2 block text-xs font-bold">
                 {roundLabel(i + 1, k)}
-                <input type="datetime-local" value={s} onChange={(e) => setStarts((a) => a.map((x, j) => (j === i ? e.target.value : x)))} required className={field} style={border} />
+                <ZonedDateTimeInput value={s} onChange={(v) => setStarts((a) => a.map((x, j) => (j === i ? v : x)))} required className={field} style={border} />
               </label>
             ))}
           </fieldset>
@@ -173,7 +176,7 @@ export default function PredBracketBuilder() {
                   <LogoUploadField value={g.away_logo} onChange={(url) => setGame(i, { away_logo: url })} folder="teams" compact />
                   <label className="block text-xs font-bold">
                     Starts
-                    <input type="datetime-local" value={g.starts_at} onChange={(e) => setGame(i, { starts_at: e.target.value })} required className={field} style={border} />
+                    <ZonedDateTimeInput value={g.starts_at} onChange={(v) => setGame(i, { starts_at: v })} required className={field} style={border} />
                   </label>
                   <label className="flex items-center gap-2 text-xs font-semibold">
                     <input type="checkbox" checked={g.allow_draw} onChange={(e) => setGame(i, { allow_draw: e.target.checked })} className="h-4 w-4" /> Can end in a tie

@@ -5,6 +5,9 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useNow } from "@/lib/predictions/useNow";
 import type { PredGame } from "@/lib/predictions/types";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 // Organizer tools: enter the final score, move the start time, or cancel.
 export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGame; isAdmin?: boolean }) {
@@ -74,7 +77,7 @@ export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGa
           <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>The final score can be entered once the game starts. Until then you can reschedule or cancel.</p>
           <label className="mb-2 block text-xs font-bold">
             New start time
-            <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 h-11 w-full rounded-xl border bg-transparent px-3" style={{ borderColor: "var(--border)" }} />
+            <ZonedDateTimeInput value={when} onChange={setWhen} className="mt-1 h-11 w-full rounded-xl border bg-transparent px-3" style={{ borderColor: "var(--border)" }} />
           </label>
           {isAdmin && (
             <button type="button" disabled={busy} onClick={() => run(() => sb.rpc("admin_start_pred_game", { p_game: game.id }), "Game started. Predictions are closed.")} className="mb-2 w-full rounded-full border px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
@@ -85,7 +88,7 @@ export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGa
             <button
               type="button"
               disabled={busy || !when}
-              onClick={() => run(() => sb.rpc("reschedule_pred_game", { p_game: game.id, p_starts_at: new Date(when).toISOString() }), "Start time updated.")}
+              onClick={() => run(() => sb.rpc("reschedule_pred_game", { p_game: game.id, p_starts_at: wallToIso(when, getZone()) }), "Start time updated.")}
               className="rounded-full border px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
               style={{ borderColor: "var(--border)" }}
             >

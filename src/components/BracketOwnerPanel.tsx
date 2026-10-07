@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import LocalTime from "@/components/LocalTime";
 import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
 import type { PredSlate } from "@/lib/predictions/types";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 // Owner controls for a bracket: pay, upgrade, set a close time, close now.
 export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, gameCount = 1 }: { slate: PredSlate; justPaid: boolean; isAdmin?: boolean; gameCount?: number }) {
@@ -115,9 +118,9 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
             <div className="mb-2 flex flex-wrap items-end gap-2">
               <label className="min-w-0 flex-1 text-xs font-bold">
                 Close automatically at
-                <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 h-11 w-full rounded-xl border bg-transparent px-3 text-sm" style={border} />
+                <ZonedDateTimeInput value={when} onChange={setWhen} className="mt-1 h-11 w-full rounded-xl border bg-transparent px-3 text-sm" style={border} />
               </label>
-              <button type="button" disabled={busy || !when} onClick={() => rpc("set_pred_bracket_close_time", { p_id: slate.id, p_closes_at: new Date(when).toISOString() }, "Close time saved.")} className={btn} style={border}>Save</button>
+              <button type="button" disabled={busy || !when} onClick={() => rpc("set_pred_bracket_close_time", { p_id: slate.id, p_closes_at: wallToIso(when, getZone()) }, "Close time saved.")} className={btn} style={border}>Save</button>
               {slate.closes_at && (
                 <button type="button" disabled={busy} onClick={() => rpc("set_pred_bracket_close_time", { p_id: slate.id, p_closes_at: null }, "Close time removed.")} className={btn} style={border}>Clear</button>
               )}

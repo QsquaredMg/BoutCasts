@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
 import TeamPicker from "@/components/TeamPicker";
 import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 type Game = { home_name: string; home_logo: string; away_name: string; away_logo: string; starts_at: string; allow_draw: boolean };
 const blankGame = (): Game => ({ home_name: "", home_logo: "", away_name: "", away_logo: "", starts_at: "", allow_draw: false });
@@ -25,7 +28,7 @@ export default function PrivateGameBuilder() {
     setError(null);
     setBusy(true);
     try {
-      const iso = (v: string) => (v ? new Date(v).toISOString() : null);
+      const iso = (v: string) => (v ? wallToIso(v, getZone()) : null);
       const { data, error: rpcErr } = await createClient().rpc("create_pred_private", {
         p_title: title,
         p_games: games.map((g) => ({ ...g, home_logo: g.home_logo || null, away_logo: g.away_logo || null, starts_at: iso(g.starts_at) })),
@@ -85,7 +88,7 @@ export default function PrivateGameBuilder() {
                 <LogoUploadField value={g.away_logo} onChange={(url) => setGame(i, { away_logo: url })} folder="teams" compact />
                 <label className="block text-xs font-bold">
                   Starts (your local time). Picks stay open for 15 minutes after this time.
-                  <input type="datetime-local" value={g.starts_at} onChange={(e) => setGame(i, { starts_at: e.target.value })} required className={field} style={border} />
+                  <ZonedDateTimeInput value={g.starts_at} onChange={(v) => setGame(i, { starts_at: v })} required className={field} style={border} />
                 </label>
                 <label className="flex items-center gap-2 text-xs font-semibold">
                   <input type="checkbox" checked={g.allow_draw} onChange={(e) => setGame(i, { allow_draw: e.target.checked })} className="h-4 w-4" /> Can end in a tie

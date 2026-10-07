@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import type { Bout, Category, Subcategory } from "@/lib/types";
 import InstrumentalPicker from "@/components/InstrumentalPicker";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { isoToWall, wallToIso } from "@/lib/time/zones";
 
 type SubmissionRow = {
   id: string;
@@ -84,9 +87,7 @@ export default function BoutCurator({
   // bouts.closes_at); this just reflects that cap in the datetime picker
   // so the admin isn't surprised by a rejected save.
   function maxClosesAtLocal(from: Date): string {
-    const max = new Date(from.getTime() + 42 * 60 * 60 * 1000);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${max.getFullYear()}-${pad(max.getMonth() + 1)}-${pad(max.getDate())}T${pad(max.getHours())}:${pad(max.getMinutes())}`;
+    return isoToWall(new Date(from.getTime() + 42 * 60 * 60 * 1000).toISOString(), getZone());
   }
 
   // Creates a new `submissions` row for a clip the admin just uploaded
@@ -188,7 +189,7 @@ export default function BoutCurator({
         competitor_b_name: form.competitor_b_name.trim(),
         competitor_b_submission_id: bSubmissionId,
         status: form.status,
-        closes_at: form.closes_at ? new Date(form.closes_at).toISOString() : null,
+        closes_at: form.closes_at ? wallToIso(form.closes_at, getZone()) : null,
         round_theme_name: form.round_theme_name.trim() || null,
         round_theme_rules: form.round_theme_rules.trim() || null,
         ...(form.instrumental_id ? { instrumental_id: form.instrumental_id } : {}),
@@ -221,7 +222,7 @@ export default function BoutCurator({
       competitor_b_submission_id: b.competitor_b_submission_id ?? "",
       competitor_b_clip: { sourceType: "upload", sourceUrl: null } as ClipSourceValue,
       status: b.status,
-      closes_at: b.closes_at ? b.closes_at.slice(0, 16) : "",
+      closes_at: b.closes_at ? isoToWall(b.closes_at, getZone()) : "",
       round_theme_name: b.round_theme_name ?? "",
       round_theme_rules: b.round_theme_rules ?? "",
       instrumental_id: b.instrumental_id ?? "",
@@ -277,7 +278,7 @@ export default function BoutCurator({
         competitor_b_name: editForm.competitor_b_name.trim(),
         competitor_b_submission_id: bSubmissionId,
         status: editForm.status,
-        closes_at: editForm.closes_at ? new Date(editForm.closes_at).toISOString() : null,
+        closes_at: editForm.closes_at ? wallToIso(editForm.closes_at, getZone()) : null,
         round_theme_name: editForm.round_theme_name.trim() || null,
         round_theme_rules: editForm.round_theme_rules.trim() || null,
         ...(editForm.instrumental_id || (bouts.find((x) => x.id === id)?.instrumental_id ?? null)
@@ -520,10 +521,9 @@ export default function BoutCurator({
               <option value="upcoming">Upcoming</option>
               <option value="live">Live</option>
             </select>
-            <input
-              type="datetime-local"
+            <ZonedDateTimeInput
               value={form.closes_at}
-              onChange={(e) => setForm((f) => ({ ...f, closes_at: e.target.value }))}
+              onChange={(v) => setForm((f) => ({ ...f, closes_at: v }))}
               max={maxClosesAtLocal(new Date())}
               className="rounded border border-neutral-300 px-3 py-2 text-sm"
               title="Voting closes at (max 42h from now)"
@@ -814,10 +814,9 @@ export default function BoutCurator({
                           <option value="live">Live</option>
                           {editForm.status === "final" && <option value="final">Final</option>}
                         </select>
-                        <input
-                          type="datetime-local"
+                        <ZonedDateTimeInput
                           value={editForm.closes_at}
-                          onChange={(e) => setEditForm((f) => ({ ...f, closes_at: e.target.value }))}
+                          onChange={(v) => setEditForm((f) => ({ ...f, closes_at: v }))}
                           max={maxClosesAtLocal(new Date(b.created_at))}
                           className="rounded border border-neutral-300 px-3 py-2 text-sm"
                           title="Voting closes at (max 42h from when the bout was created)"

@@ -17,6 +17,7 @@ import DemographicsPrompt from "@/components/DemographicsPrompt";
 import EventSponsorStrip from "@/components/EventSponsorStrip";
 import SuperVoteBoost from "@/components/SuperVoteBoost";
 import { displayClip } from "@/lib/liveVoteEvents/displayClip";
+import LocalTime from "@/components/LocalTime";
 
 type EventStatus = "draft" | "live" | "closed";
 
@@ -490,7 +491,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
       {event.status === "live" && event.closes_at && (
         <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
-          {judged ? "Judging" : "Voting"} closes {new Date(event.closes_at).toLocaleString()}
+          {judged ? "Judging" : "Voting"} closes <LocalTime iso={event.closes_at} withYear />
         </p>
       )}
 

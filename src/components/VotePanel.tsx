@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AfterVote from "@/components/AfterVote";
+import { getZone } from "@/lib/time/pref";
+import { formatWhen } from "@/lib/time/zones";
 
 // Guests (no account) get one free bout vote per day, tracked by a random
 // token kept on this device. The database also caps free votes per network.
@@ -26,9 +28,10 @@ function getGuestToken(): string {
 
 function resetTime(iso: string | null): string {
   if (!iso) return "tomorrow";
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) === "12:00 AM"
+  const zone = getZone();
+  return formatWhen(iso, zone, { withDate: false, weekday: false }).startsWith("12:00 AM")
     ? "midnight"
-    : new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    : formatWhen(iso, zone, { withDate: false });
 }
 
 type Props = {

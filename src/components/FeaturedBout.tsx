@@ -14,6 +14,7 @@ import InstrumentalPlayer from "@/components/InstrumentalPlayer";
 import type { Instrumental } from "@/lib/types";
 import AdBanner from "@/components/AdBanner";
 import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
+import LocalTime from "@/components/LocalTime";
 
 // The full "duel" card — vote bars, sponsor banner, prize pool, comments —
 // shared between the standalone /bout/[id] page and the BoutCard homepage,
@@ -233,7 +234,7 @@ export default async function FeaturedBout({
 
       {votingOpen && bout.closes_at && (
         <p className="mb-4 text-center text-xs" style={{ color: "var(--text-faint)" }}>
-          Voting closes {new Date(bout.closes_at).toLocaleString()}
+          Voting closes <LocalTime iso={bout.closes_at} withYear />
         </p>
       )}
 
