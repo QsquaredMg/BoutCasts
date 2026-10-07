@@ -79,7 +79,10 @@ export default function CompetitionsPage() {
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
         Create a competition, share the entry link, approve the entries you want, and build a
-        bracket — the crowd votes each round and winners advance automatically.
+        bracket — the crowd votes each round and winners advance automatically.{" "}
+        <Link href="/competitions/play" className="font-semibold underline" style={{ color: "var(--red)" }}>
+          See how it works
+        </Link>
       </p>
 
       <form onSubmit={create} className="mb-8 flex flex-col gap-3 rounded-xl border p-4" style={box}>
