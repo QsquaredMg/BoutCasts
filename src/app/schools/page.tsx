@@ -244,7 +244,7 @@ export default async function SchoolsPage() {
                 ballot is real, so you can vote on it yourself.
               </p>
               {real && (
-                <Link href={`/live-vote/${real.id}`} className="lp-btn self-start px-7 py-4 text-[17px]" style={{ background: "#fff", color: DEEP }}>
+                <Link href={`/vote/${real.id}`} className="lp-btn self-start px-7 py-4 text-[17px]" style={{ background: "#fff", color: DEEP }}>
                   Vote on the JC High ballot
                 </Link>
               )}

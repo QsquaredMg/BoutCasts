@@ -186,11 +186,11 @@ export default async function HostPage() {
                 <SampleOption label="Candidate C" pct={18} />
               </div>
               <Link
-                href="/live-vote"
+                href="/schools"
                 className="lp-btn mt-5 w-full rounded-2xl py-4 text-[17px]"
                 style={{ background: "var(--lp-blue)", color: "#fff", borderRadius: 14 }}
               >
-                See Live Vote
+                See a sample ballot
               </Link>
               <div className="mt-4 flex items-center gap-2 text-[13px]" style={{ color: "#5a6275" }}>
                 <LockIcon size={16} /> One vote per account — or per device on an open link
