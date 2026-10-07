@@ -1,0 +1,30 @@
+/* Live Vote ("school vote") look: matches the /schools funnel. Deep maroon header with a gold-edged
+   banner, cream page, maroon actions, big uppercase headlines. Scoped to .lv. */
+.lv{
+  --lv-deep:#3b0d1f; --lv-maroon:#7a1f3d; --lv-gold:#e0a93b; --lv-cream:#fbf6ea;
+  --red:#7a1f3d; --blue:#7a1f3d; --red-soft:rgba(122,31,61,.08); --blue-soft:rgba(122,31,61,.08);
+  --bg:#fbf6ea; --bg-2:#f3ead4; --surface:#ffffff; --surface-2:#f6eedb; --border:#e8dcc3; --line:#d9c9a5;
+  --text:#24101a; --text-dim:#5b4650; --text-faint:#8a7480; --gold:#9a6b0c; --gold-soft:rgba(224,169,59,.2);
+  background:var(--lv-cream);color:var(--text);min-height:60vh;
+}
+.lv h1{font-family:var(--font-hero),"Arial Narrow",sans-serif;font-stretch:112%;font-weight:900;text-transform:uppercase;letter-spacing:-.015em;line-height:.95;font-size:clamp(2rem,6.2vw,2.7rem);color:var(--lv-deep)}
+.lv h2{font-family:var(--font-hero),"Arial Narrow",sans-serif;font-stretch:106%;font-weight:800;color:var(--lv-deep)}
+.lv .bc-card{border-radius:20px;border-color:var(--border)}
+.lv .bc-btn-solid{background:var(--lv-maroon);border-color:var(--lv-maroon);color:#fff;box-shadow:0 12px 24px -12px rgba(122,31,61,.8)}
+.lv input:focus-visible,.lv select:focus-visible,.lv textarea:focus-visible,.lv button:focus-visible,.lv a:focus-visible{outline:3px solid var(--lv-gold);outline-offset:2px}
+
+.lv-band{position:relative;isolation:isolate;overflow:hidden;background:var(--lv-deep);color:#fff}
+.lv-band::before{content:"";position:absolute;right:-40px;top:-60px;width:340px;height:340px;background:var(--lv-maroon);transform:rotate(14deg);z-index:-1}
+.lv-band::after{content:"";position:absolute;right:292px;top:-60px;width:12px;height:340px;background:var(--lv-gold);transform:rotate(14deg);z-index:-1}
+@media(max-width:700px){.lv-band::before{right:-160px}.lv-band::after{right:152px}}
+.lv-band-in{max-width:48rem;margin:0 auto;padding:22px 20px 0}
+.lv-brand{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lv-mark{font-family:var(--font-hero),sans-serif;font-stretch:112%;font-weight:900;text-transform:uppercase;font-size:1.7rem;line-height:1;letter-spacing:-.015em}
+.lv-mark i{font-style:normal;color:var(--lv-gold)}
+.lv-tag{font-size:.82rem;font-weight:700;color:#ecd5de}
+.lv-tabs{display:flex;gap:6px;margin-top:16px;overflow-x:auto;scrollbar-width:none}
+.lv-tabs::-webkit-scrollbar{display:none}
+.lv-tab{white-space:nowrap;padding:10px 16px;border-radius:12px 12px 0 0;font-weight:800;font-size:.9rem;color:#e7c9d3;background:rgba(255,255,255,.07)}
+.lv-tab:hover{background:rgba(255,255,255,.14);color:#fff}
+.lv-tab[aria-current="page"]{background:var(--lv-cream);color:var(--lv-deep)}
+.lv-gold-rule{height:4px;background:var(--lv-gold)}

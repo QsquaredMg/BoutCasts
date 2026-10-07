@@ -20,7 +20,7 @@ export default async function LiveVoteEventPage({
   const { checkout } = await searchParams;
 
   return (
-    <div className="mx-auto max-w-lg px-5 py-8">
+    <div className="mx-auto max-w-3xl px-5 py-8">
       <LiveVoteEventManager eventId={id} checkoutStatus={checkout ?? null} />
     </div>
   );

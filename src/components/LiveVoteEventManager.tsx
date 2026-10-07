@@ -417,7 +417,7 @@ export default function LiveVoteEventManager({
         </span>
       </div>
 
-      <h1 className="mb-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+      <h1 className="mb-2">
         {event.title}
       </h1>
       {event.description && (
