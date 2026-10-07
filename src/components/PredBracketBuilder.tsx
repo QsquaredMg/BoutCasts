@@ -142,7 +142,7 @@ export default function PredBracketBuilder() {
           <fieldset className="bc-card p-4">
             <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Round start times (your local time)</legend>
             <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>
-              Everyone&apos;s bracket locks when round 1 starts. {tier === "weekly" ? "The final must start within 7 days." : ""}
+              Everyone&apos;s bracket locks 15 minutes after round 1 starts. {tier === "weekly" ? "The final must start within 7 days." : ""}
             </p>
             {starts.map((s, i) => (
               <label key={i} className="mb-2 block text-xs font-bold">

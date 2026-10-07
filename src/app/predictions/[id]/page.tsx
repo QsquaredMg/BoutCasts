@@ -12,7 +12,7 @@ import CrowdSummary from "@/components/CrowdSummary";
 import CrowdGraphic from "@/components/CrowdGraphic";
 import type { CrowdStats } from "@/lib/predictions/crowd";
 import ShareButton from "@/components/ShareButton";
-import { GAME_FIELDS, isLocked, type PredGame, type PredPrediction } from "@/lib/predictions/types";
+import { GAME_FIELDS, hasPassed, isLocked, type PredGame, type PredPrediction } from "@/lib/predictions/types";
 
 type Props = { params: Promise<{ id: string }> };
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     ...(data.is_private ? { robots: { index: false, follow: false } } : {}),
     title: `${data.home_name} vs ${data.away_name} prediction`,
-    description: `Predict the winner and final score of ${data.home_name} vs ${data.away_name} before the game starts and earn points on BoutCasts.`,
+    description: `Predict the winner and final score of ${data.home_name} vs ${data.away_name} before picks close and earn points on BoutCasts.`,
   };
 }
 
@@ -89,7 +89,7 @@ export default async function GamePage({ params }: Props) {
 
       <div className="bc-card mb-5 p-5">
         <p className="mb-3 text-center text-xs font-bold" style={{ color: "var(--text-faint)" }}>
-          {game.status === "cancelled" ? "Cancelled" : final ? "Final" : locked ? "In progress" : "Starts"} · <LocalTime iso={game.starts_at} />
+          {game.status === "cancelled" ? "Cancelled" : final ? "Final" : locked ? "In progress" : hasPassed(game.starts_at) ? "Started, picks still open" : "Starts"} · <LocalTime iso={game.starts_at} />
         </p>
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
           <PredTeam name={game.home_name} logo={game.home_logo} size={72} />

@@ -26,7 +26,7 @@ export default async function NewGamePage({ searchParams }: { searchParams: Prom
       <Link href="/predictions" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>&larr; Bout Predictions</Link>
       <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{preset ? "Add a game to your slate" : "Create your free game"}</h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
-        Add both teams and the start time. Predictions lock the moment the game starts, and you enter the final score afterward.
+        Add both teams and the start time. Predictions stay open for 15 minutes after the game starts, and you enter the final score afterward.
       </p>
       <NewGameForm presetSlate={preset} />
       {!preset && (

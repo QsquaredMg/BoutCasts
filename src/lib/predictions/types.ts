@@ -74,9 +74,17 @@ export type LeaderRow = {
 export const GAME_FIELDS =
   "id, slate_id, created_by, home_name, home_logo, away_name, away_logo, starts_at, allow_draw, status, scoring_version, crowd_state, home_score, away_score, finalized_at, round, slot, home_team_id, away_team_id, winner_team_id, feeds_game_id, feeds_side, is_private";
 
-/** locked = started, closed or cancelled. */
+/** Rule: predictions stay open this long after a game's scheduled start. Keep in sync with pred_lock_grace() in the database. */
+export const LOCK_GRACE_MS = 15 * 60 * 1000;
+
+/** When predictions close for a game (ms since epoch). */
+export function lockAtMs(g: Pick<PredGame, "starts_at">) {
+  return new Date(g.starts_at).getTime() + LOCK_GRACE_MS;
+}
+
+/** locked = predictions closed (15 minutes after the start), game final, or cancelled. */
 export function isLocked(g: Pick<PredGame, "starts_at" | "status">, now = Date.now()) {
-  return g.status !== "scheduled" || new Date(g.starts_at).getTime() <= now;
+  return g.status !== "scheduled" || lockAtMs(g) <= now;
 }
 
 /** True when the timestamp has already passed (server-side checks). */

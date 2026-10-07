@@ -87,7 +87,7 @@ export default function EliminationBracket({
       setMsg({ ok: false, text: error.message });
       return;
     }
-    setMsg({ ok: true, text: "Bracket locked in! You can change it until the first game starts." });
+    setMsg({ ok: true, text: "Bracket locked in! You can change it until 15 minutes after the first game starts." });
     router.refresh();
   }
 
@@ -104,7 +104,7 @@ export default function EliminationBracket({
     <div className="mb-8">
       {canPredict && (
         <p className="mb-4 rounded-xl p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
-          Pick the winner of every game and the final score (winner&apos;s score first). Your later rounds follow from the winners you pick. Everything locks when the first game starts{slate.locks_at ? <> (<LocalTime iso={slate.locks_at} />)</> : null}.
+          Pick the winner of every game and the final score (winner&apos;s score first). Your later rounds follow from the winners you pick. Everything locks 15 minutes after the first game starts{slate.locks_at ? <> (<LocalTime iso={slate.locks_at} />)</> : null}.
         </p>
       )}
       {rounds.map((r) => (

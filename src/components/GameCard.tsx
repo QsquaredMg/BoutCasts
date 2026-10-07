@@ -1,13 +1,13 @@
 import Link from "next/link";
 import PredTeam from "@/components/PredTeam";
 import LocalTime from "@/components/LocalTime";
-import { isLocked, type PredGame } from "@/lib/predictions/types";
+import { hasPassed, isLocked, type PredGame } from "@/lib/predictions/types";
 
 export default function GameCard({ game, mine }: { game: PredGame; mine?: { pred_home: number; pred_away: number; pts_total: number | null } | null }) {
   const final = game.status === "final";
   const cancelled = game.status === "cancelled";
   const started = isLocked(game);
-  const label = cancelled ? "Cancelled" : final ? "Final" : started ? "In progress" : "Open for picks";
+  const label = cancelled ? "Cancelled" : final ? "Final" : started ? "In progress" : hasPassed(game.starts_at) ? "Started, picks open" : "Open for picks";
   return (
     <Link href={`/predictions/${game.id}`} className="bc-card block p-4 transition hover:opacity-95">
       <div className="mb-3 flex items-center justify-between text-xs font-bold" style={{ color: "var(--text-faint)" }}>

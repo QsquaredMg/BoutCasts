@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import PredTeam from "@/components/PredTeam";
 import { pickFor } from "@/lib/predictions/scoring";
 import { countdown, useNow } from "@/lib/predictions/useNow";
-import type { PredGame } from "@/lib/predictions/types";
+import { lockAtMs, type PredGame } from "@/lib/predictions/types";
 
 export default function PredictionForm({
   game,
@@ -25,8 +25,8 @@ export default function PredictionForm({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const startMs = new Date(game.starts_at).getTime();
-  const closed = now !== 0 && now >= startMs;
+  const lockMs = lockAtMs(game);
+  const closed = now !== 0 && now >= lockMs;
   const pick = pickFor(home, away);
 
   function clamp(n: number) {
@@ -55,7 +55,7 @@ export default function PredictionForm({
       setMsg({ ok: false, text: error.message });
       return;
     }
-    setMsg({ ok: true, text: existing ? "Prediction updated." : "Locked in! Points are awarded when the game is final. You can change your pick until it starts." });
+    setMsg({ ok: true, text: existing ? "Prediction updated." : "Locked in! Points are awarded when the game is final. You can change your pick until picks close, 15 minutes after the start." });
     router.refresh();
   }
 
@@ -83,11 +83,11 @@ export default function PredictionForm({
           {existing ? "Your prediction" : "Make your prediction"}
         </h2>
         <span className="text-xs font-bold" style={{ color: closed ? "var(--red)" : "var(--blue)" }}>
-          {now === 0 ? "" : countdown(startMs - now)}
+          {now === 0 ? "" : countdown(lockMs - now)}
         </span>
       </div>
       <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
-        Pick the winner and the final score. You can change it until the game starts.
+        Pick the winner and the final score. You can change it until 15 minutes after the game starts.
       </p>
 
       <div className="mb-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${sides.length}, minmax(0, 1fr))` }}>

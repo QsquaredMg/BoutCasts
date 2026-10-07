@@ -84,7 +84,7 @@ export default function PrivateGameBuilder() {
                 <input aria-label={`Game ${i + 1} away team`} placeholder="Away team" value={g.away_name} onChange={(e) => setGame(i, { away_name: e.target.value })} required maxLength={40} className={field} style={border} />
                 <LogoUploadField value={g.away_logo} onChange={(url) => setGame(i, { away_logo: url })} folder="teams" compact />
                 <label className="block text-xs font-bold">
-                  Starts (your local time). Picks lock at this moment.
+                  Starts (your local time). Picks stay open for 15 minutes after this time.
                   <input type="datetime-local" value={g.starts_at} onChange={(e) => setGame(i, { starts_at: e.target.value })} required className={field} style={border} />
                 </label>
                 <label className="flex items-center gap-2 text-xs font-semibold">
