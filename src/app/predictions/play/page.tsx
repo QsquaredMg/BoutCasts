@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Link from "next/link";
+import { Big_Shoulders } from "next/font/google";
 import { SCORING } from "@/lib/predictions/scoring";
 import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
+import s from "./play.module.css";
+
+const cond = Big_Shoulders({ subsets: ["latin"], weight: ["800", "900"], variable: "--cond", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Run your own prediction game",
@@ -11,28 +16,21 @@ export const metadata: Metadata = {
 };
 
 const STEPS = [
-  { n: "1", t: "Set up a game", d: "Pick two teams and a start time. Logos fill in for pro and college teams, or add your own." },
-  { n: "2", t: "Share one link", d: "Text it, post it, or hand out a join code. Players only need an account, never a payment." },
-  { n: "3", t: "Everyone calls it", d: "Each player picks the winner and the final score before the game starts." },
-  { n: "4", t: "Points and bragging rights", d: "When the game ends, picks are graded automatically and the leaderboard updates." },
+  { t: "Set up a game", d: "Pick two teams and a start time. Logos fill in for pro and college teams, or add your own." },
+  { t: "Share one link", d: "Text it, post it, or hand out a join code. Players only need an account, never a payment." },
+  { t: "Everyone calls it", d: "Each player picks the winner and the final score before the game starts." },
+  { t: "Points and bragging rights", d: "When the game ends, picks are graded automatically and the leaderboard updates." },
 ];
 
-const FEATURES = [
-  { i: "🎯", t: "Winner plus score", d: "Calling the winner is only the start. Players guess the exact score for bonus points, so every game stays interesting to the final whistle." },
-  { i: "🏆", t: "Weekly and season leaderboards", d: "Points roll up automatically. Players chase the weekly crown and the season title." },
-  { i: "🏟️", t: "Brackets and slates", d: "Run a whole tournament or a full weekend of games in one place, with one leaderboard across all of it." },
-  { i: "🔒", t: "Private, invite-only games", d: "Keep it to your group. Share a code and only the people you invite can play." },
-  { i: "📊", t: "Crowd picks and a shareable graphic", d: "Once enough people have picked, see how the crowd is leaning and share a graphic of it." },
-  { i: "⏱️", t: "Fair by design", d: "Picks stay open until 15 minutes after the start time, then lock for everyone. No late changes once the result is clear." },
-];
+const TICKER = ["Friday night lights", "Band battles", "Homecoming week", "Rivalry games", "Watch parties", "Classroom contests", "Family group chats"];
 
 const USES = [
-  { i: "🎓", t: "Classrooms and school spirit", d: "Teachers, coaches and student groups can run friendly rivalry games around the home team. It is a natural way to practice reading stats and making a call." },
-  { i: "👨‍👩‍👧‍👦", t: "Family and friend groups", d: "Settle who really knows the game. A private game with a join code keeps the bragging rights in the group chat." },
-  { i: "🍔", t: "Bars, restaurants and watch parties", d: "Give the room a reason to stay for the whole game. Put a link or QR code on the table and post the leaderboard." },
-  { i: "🏫", t: "Booster clubs and school events", d: "Grow engagement before game night and give supporters something to talk about all week." },
-  { i: "🎙️", t: "Creators and communities", d: "Add a prediction game to your stream, show or newsletter and turn viewers into a competing community." },
-  { i: "🤝", t: "Sponsors and local business", d: "A game that fans return to every week is a place for a local business to be seen. Ask about sponsoring a game or a season." },
+  { c: "u1", i: "🎓", t: "Classrooms and school spirit", d: "Run friendly rivalry games around the home team. A natural way to practice reading stats and making a call." },
+  { c: "u2", i: "👨‍👩‍👧‍👦", t: "Family and friend groups", d: "Settle who really knows the game. A private game with a join code keeps the bragging rights in the group chat." },
+  { c: "u3", i: "🍔", t: "Bars, restaurants and watch parties", d: "Give the room a reason to stay for the whole game. Put a QR code on the table and post the leaderboard." },
+  { c: "u4", i: "📣", t: "Booster clubs and school events", d: "Build buzz before game night and give supporters something to talk about all week." },
+  { c: "u5", i: "🎙️", t: "Creators and communities", d: "Add a game to your stream, show or newsletter and turn viewers into a competing community." },
+  { c: "u6", i: "🤝", t: "Local sponsors", d: "A game fans return to every week is a place for a local business to be seen. Ask about sponsoring a game or season." },
 ];
 
 const FAQ = [
@@ -43,134 +41,270 @@ const FAQ = [
   { q: "Is this gambling?", a: "No. There is no money in play for players. It is points and bragging rights only." },
 ];
 
-const card = { background: "var(--surface)", border: "1px solid var(--border)" } as const;
+const PEOPLE = [
+  { n: "Maya T.", p: 42, bg: "linear-gradient(135deg,#7a4a2b,#b5764a)" },
+  { n: "Deon W.", p: 39, bg: "linear-gradient(135deg,#1b4fe4,#6e97ff)" },
+  { n: "Priya S.", p: 36, bg: "linear-gradient(135deg,#a8561f,#e0a15b)" },
+  { n: "Luis R.", p: 31, bg: "linear-gradient(135deg,#0e7c6b,#4cc2a8)" },
+];
+
+const bar = (v: number): CSSProperties => ({ width: `${(v / SCORING.perfect) * 100}%` });
 
 export default function PredictionsFunnelPage() {
   return (
-    <div className="mx-auto max-w-3xl px-5 pb-16 pt-8">
-      {/* Hero */}
-      <section className="mb-12 text-center">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--blue)" }}>Bout Predictions</p>
-        <h1 className="mb-3 text-4xl font-bold leading-tight sm:text-5xl" style={{ fontFamily: "var(--font-display)" }}>
-          Make every game a contest.
-        </h1>
-        <p className="mx-auto mb-6 max-w-xl text-base" style={{ color: "var(--text-dim)" }}>
-          Share one link and your friends, class, team or crowd pick the winner and the final score, earn points, and climb a live leaderboard. Players always play free.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href="/predictions/new" className="bc-btn-solid rounded-full px-6 py-3 text-sm font-bold">Start a free game</Link>
-          <Link href="/predictions" className="rounded-full border px-6 py-3 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Browse open games</Link>
-        </div>
-        <p className="mt-3 text-xs" style={{ color: "var(--text-faint)" }}>One free game a day. No card needed.</p>
-      </section>
-
-      {/* How it works */}
-      <section className="mb-12">
-        <h2 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>How it works</h2>
-        <ol className="grid gap-3 sm:grid-cols-2">
-          {STEPS.map((s) => (
-            <li key={s.n} className="rounded-xl p-4" style={card}>
-              <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: "var(--blue)", color: "#fff" }}>{s.n}</span>
-              <h3 className="mb-1 text-base font-bold">{s.t}</h3>
-              <p className="text-sm" style={{ color: "var(--text-dim)" }}>{s.d}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* Scoring */}
-      <section className="mb-12 rounded-2xl p-6" style={card}>
-        <h2 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Simple scoring, big swings</h2>
-        <p className="mb-4 text-sm" style={{ color: "var(--text-dim)" }}>Nail the winner, then chase the bonus for the score. A perfect call is worth {SCORING.perfect} points.</p>
-        <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          {[
-            ["Correct winner", `+${SCORING.winner}`],
-            ["Both scores exact", `+${SCORING.bothExact}`],
-            ["One score exact", `+${SCORING.oneExact}`],
-            ["Off by 1 or 2 points in total", `+${SCORING.closeNear}`],
-            ["Off by 3 to 5 points in total", `+${SCORING.closeFar}`],
-          ].map(([k, v]) => (
-            <div key={k} className="flex items-center justify-between rounded-lg px-3 py-2" style={{ background: "var(--surface-2)" }}>
-              <dt>{k}</dt>
-              <dd className="font-bold" style={{ color: "var(--gold)" }}>{v}</dd>
+    <div className={`${s.root} ${cond.variable}`}>
+      {/* HERO */}
+      <section className={s.hero}>
+        <div className={s.wrap}>
+          <div className={s.heroGrid}>
+            <div>
+              <p className={s.kicker}><span className={s.dot} aria-hidden /> Bout Predictions · players always play free</p>
+              <h1 className={s.h1}>Make every game a contest.</h1>
+              <p className={s.lede}>
+                Share one link and your friends, class, team or crowd pick the winner and the final score, earn points, and climb a live leaderboard.
+              </p>
+              <div className={s.ctaRow}>
+                <Link href="/predictions/new" className={s.btnGold}>Start a free game</Link>
+                <Link href="/predictions" className={s.btnGhost}>Browse open games</Link>
+              </div>
+              <p className={s.fine}>One free game a day. No card needed.</p>
             </div>
-          ))}
-        </dl>
-      </section>
 
-      {/* Features */}
-      <section className="mb-12">
-        <h2 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>What you get</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {FEATURES.map((f) => (
-            <div key={f.t} className="rounded-xl p-4" style={card}>
-              <div className="mb-1 text-2xl" aria-hidden>{f.i}</div>
-              <h3 className="mb-1 text-base font-bold">{f.t}</h3>
-              <p className="text-sm" style={{ color: "var(--text-dim)" }}>{f.d}</p>
+            <div className={s.stage} aria-hidden>
+              <div className={`${s.chip} ${s.chipB}`}>
+                <em>The crowd is leaning</em>
+                Eagles 62%
+                <div className={s.mini}><span style={{ width: "62%", background: "#1b4fe4" }} /><span style={{ width: "38%", background: "#ffc531" }} /></div>
+              </div>
+              <div className={s.slip}>
+                <div className={s.slipTop}><span>Your pick</span><span>Homecoming game</span></div>
+                <div className={s.slipBody}>
+                  <div className={s.teams}>
+                    <div className={s.team}><div className={s.crest} style={{ background: "#1b4fe4" }}>E</div><b>Eagles</b></div>
+                    <div className={s.vs}>vs</div>
+                    <div className={s.team}><div className={s.crest} style={{ background: "#e08a00" }}>T</div><b>Tigers</b></div>
+                  </div>
+                  <div className={s.board}>
+                    <div className={`${s.digits} ${s.count}`} style={{ "--to": 28 } as CSSProperties} />
+                    <div className={s.sep}>–</div>
+                    <div className={`${s.digits} ${s.count}`} style={{ "--to": 24 } as CSSProperties} />
+                  </div>
+                  <p className={s.yourcall}>Example pick. Winner and final score.</p>
+                </div>
+                <div className={s.perf} />
+                <div className={s.slipFoot}>
+                  <span className={s.lock}>Locks 15 min after kickoff</span>
+                </div>
+                <div className={`${s.stamp} ${s.cond}`}>+{SCORING.perfect}<small>Perfect call</small></div>
+              </div>
+              <div className={`${s.chip} ${s.chipA}`}>
+                <em>Weekly leaderboard</em>
+                Maya T. · #1 · {PEOPLE[0].p} pts
+              </div>
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
-      {/* Uses */}
-      <section className="mb-12">
-        <h2 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Who runs a game</h2>
-        <p className="mb-4 text-sm" style={{ color: "var(--text-dim)" }}>If people care about the game, they will care about the call.</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {USES.map((u) => (
-            <div key={u.t} className="rounded-xl p-4" style={card}>
-              <div className="mb-1 text-2xl" aria-hidden>{u.i}</div>
-              <h3 className="mb-1 text-base font-bold">{u.t}</h3>
-              <p className="text-sm" style={{ color: "var(--text-dim)" }}>{u.d}</p>
+      {/* TICKER */}
+      <div className={s.ticker} aria-hidden>
+        <div className={s.tickTrack}>
+          {[0, 1].map((k) => (
+            <div key={k} style={{ display: "flex" }}>
+              {TICKER.map((t) => (<span key={t + k}>{t}<i> &nbsp;🏈&nbsp; </i></span>))}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* HOW IT WORKS */}
+      <section className={`${s.sec} ${s.paper}`}>
+        <div className={s.wrap}>
+          <h2 className={s.secTitle}>Four steps to game day</h2>
+          <p className={s.secLede}>From setup to a finished leaderboard in about the time it takes the teams to warm up.</p>
+          <ol className={s.steps} style={{ listStyle: "none", padding: 0 }}>
+            {STEPS.map((x, i) => (
+              <li key={x.t} className={s.step}>
+                <div className={s.stepN}>{i + 1}</div>
+                <h3>{x.t}</h3>
+                <p>{x.d}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
-      {/* Plans */}
-      <section className="mb-12">
-        <h2 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Pick your size</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { t: "Single game", p: "Free", d: "One a day, open 24 hours. Perfect for trying it out.", href: "/predictions/new", cta: "Start free" },
-            { t: "Private game", p: money(BRACKET_PRICING.privateGameCents), d: "Invite-only with a join code. Invitees play free.", href: "/predictions/private/new", cta: "Create private" },
-            { t: "Bracket", p: `${money(BRACKET_PRICING.weeklyCents)}+`, d: `Many games, one leaderboard. ${BRACKET_PRICING.weeklyDays} days, or ${money(BRACKET_PRICING.seasonCents)} for the season.`, href: "/predictions/bracket/new", cta: "Build a bracket" },
-          ].map((x) => (
-            <div key={x.t} className="flex flex-col rounded-xl p-4" style={card}>
-              <h3 className="text-base font-bold">{x.t}</h3>
-              <p className="my-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--gold)" }}>{x.p}</p>
-              <p className="mb-4 flex-1 text-sm" style={{ color: "var(--text-dim)" }}>{x.d}</p>
-              <Link href={x.href} className="rounded-full border px-4 py-2 text-center text-sm font-semibold" style={{ borderColor: "var(--border)" }}>{x.cta}</Link>
+      {/* SCORING */}
+      <section className={`${s.sec} ${s.night}`}>
+        <div className={s.wrap}>
+          <div className={s.scoreGrid}>
+            <div>
+              <div className={s.big}>{SCORING.perfect}</div>
+              <div className={s.bigCap}>points for a perfect call</div>
+              <p style={{ color: "#b9c4ee", lineHeight: 1.6, marginTop: 14, maxWidth: "26em" }}>
+                Get the winner, then chase the bonus for the score. Every game stays interesting until the final whistle.
+              </p>
             </div>
-          ))}
+            <div className={s.rows}>
+              <div className={`${s.row} ${s.rowPerfect}`}>
+                <span>Perfect call</span>
+                <div className={s.track}><div className={s.fillB} style={bar(SCORING.winner)} /><div className={s.fillG} style={bar(SCORING.bothExact)} /></div>
+                <span className={s.val}>{SCORING.perfect}</span>
+              </div>
+              {[
+                ["Correct winner", SCORING.winner, s.fillB],
+                ["Both scores exact", SCORING.bothExact, s.fillG],
+                ["One score exact", SCORING.oneExact, s.fillS],
+                ["Off by 1 or 2 total", SCORING.closeNear, s.fillS],
+                ["Off by 3 to 5 total", SCORING.closeFar, s.fillS],
+              ].map(([k, v, f]) => (
+                <div key={k as string} className={s.row}>
+                  <span>{k as string}</span>
+                  <div className={s.track}><div className={f as string} style={bar(v as number)} /></div>
+                  <span className={s.val}>+{v as number}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <p className="mt-3 text-xs" style={{ color: "var(--text-faint)" }}>Players never pay. These prices are for the organizer only.</p>
+      </section>
+
+      {/* FEATURES */}
+      <section className={`${s.sec} ${s.paper}`}>
+        <div className={s.wrap}>
+          <h2 className={s.secTitle}>Built for bragging rights</h2>
+          <p className={s.secLede}>Everything a group needs to turn a game into a season-long rivalry.</p>
+          <div className={s.bento}>
+            <div className={`${s.card} ${s.b3}`}>
+              <h3>Weekly and season leaderboards</h3>
+              <p>Points roll up automatically. Players chase the weekly crown and the season title.</p>
+              <div className={s.lb} aria-hidden>
+                {PEOPLE.map((p, i) => (
+                  <div key={p.n} className={s.lbRow}>
+                    <span className={s.rank}>{i + 1}</span>
+                    <span className={s.av} style={{ background: p.bg }}>{p.n.split(" ").map((w) => w[0]).join("")}</span>
+                    {p.n}
+                    <span className={s.pts}>{p.p}</span>
+                  </div>
+                ))}
+              </div>
+              <span className={s.exLabel}>Example leaderboard</span>
+            </div>
+
+            <div className={`${s.card} ${s.b3}`}>
+              <h3>Crowd picks, ready to share</h3>
+              <p>Once enough people have picked, see how the crowd is leaning and share a graphic of it.</p>
+              <div className={s.split} aria-hidden>
+                <span style={{ width: "62%", background: "#1b4fe4" }}>Eagles 62%</span>
+                <span style={{ width: "38%", background: "#ffc531", color: "#0a0f2c" }}>38%</span>
+              </div>
+              <div className={s.tiles} aria-hidden>
+                <div className={s.tile}><b>27–24</b><span>Most picked score</span></div>
+                <div className={s.tile}><b>18</b><span>Picks so far</span></div>
+              </div>
+              <span className={s.exLabel}>Example crowd stats</span>
+            </div>
+
+            <div className={`${s.card} ${s.cardNight} ${s.b2}`}>
+              <h3>Fair by design</h3>
+              <p>Picks stay open until 15 minutes after the start time, then lock for everyone.</p>
+              <div className={s.clock} aria-hidden>14:59</div>
+            </div>
+
+            <div className={`${s.card} ${s.cardBlue} ${s.b2}`}>
+              <h3>Private, invite-only games</h3>
+              <p>Keep it to your group. Only people with your code can play.</p>
+              <div className={s.code} aria-hidden>K7P 2QX</div>
+            </div>
+
+            <div className={`${s.card} ${s.b2}`}>
+              <h3>Brackets and slates</h3>
+              <p>Run a whole tournament or a full weekend of games, with one leaderboard across all of it.</p>
+              <svg viewBox="0 0 220 110" width="100%" height="110" aria-hidden>
+                <g fill="none" stroke="#1b4fe4" strokeWidth="3" strokeLinecap="round">
+                  <path d="M10 14h46v28h46M10 42h46M10 70h46v-28M10 98h46V70h46" />
+                  <path d="M102 42v28M102 56h50" stroke="#ffc531" />
+                </g>
+                <circle cx="168" cy="56" r="14" fill="#ffc531" />
+                <text x="168" y="62" textAnchor="middle" fontFamily="var(--cond)" fontWeight="900" fontSize="18" fill="#0a0f2c">1</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* USES */}
+      <section className={`${s.sec}`} style={{ background: "#fff" }}>
+        <div className={s.wrap}>
+          <h2 className={s.secTitle}>Who runs a game</h2>
+          <p className={s.secLede}>If people care about the game, they will care about the call.</p>
+          <div className={s.uses}>
+            {USES.map((u) => (
+              <div key={u.t} className={`${s.use} ${s[u.c]}`}>
+                <div className={s.emoji} aria-hidden>{u.i}</div>
+                <div>
+                  <h3>{u.t}</h3>
+                  <p style={{ marginTop: 10 }}>{u.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section className={`${s.sec} ${s.paper}`}>
+        <div className={s.wrap}>
+          <h2 className={s.secTitle}>Pick your size</h2>
+          <p className={s.secLede}>Players never pay. These prices are for the organizer only.</p>
+          <div className={s.tickets}>
+            <div className={`${s.tk} ${s.tkHot}`}>
+              <span className={s.tkTag}>Start here</span>
+              <h3>Single game</h3>
+              <div className={s.price}>Free</div>
+              <p>One a day, open 24 hours. Perfect for trying it out.</p>
+              <Link href="/predictions/new" className={s.tkBtn}>Start a free game</Link>
+            </div>
+            <div className={s.tk}>
+              <h3>Private game</h3>
+              <div className={s.price}>{money(BRACKET_PRICING.privateGameCents)}</div>
+              <p>Invite-only with a join code. Invitees play free.</p>
+              <Link href="/predictions/private/new" className={s.tkBtn}>Create a private game</Link>
+            </div>
+            <div className={s.tk}>
+              <h3>Bracket</h3>
+              <div className={s.price}>{money(BRACKET_PRICING.weeklyCents)}+</div>
+              <p>Many games, one leaderboard. {BRACKET_PRICING.weeklyDays} days, or {money(BRACKET_PRICING.seasonCents)} for the whole season.</p>
+              <Link href="/predictions/bracket/new" className={s.tkBtn}>Build a bracket</Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* FAQ */}
-      <section className="mb-12">
-        <h2 className="mb-4 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Questions</h2>
-        <div className="grid gap-2">
-          {FAQ.map((f) => (
-            <details key={f.q} className="rounded-xl p-4" style={card}>
-              <summary className="cursor-pointer text-sm font-bold">{f.q}</summary>
-              <p className="mt-2 text-sm" style={{ color: "var(--text-dim)" }}>{f.a}</p>
-            </details>
-          ))}
+      <section className={s.sec} style={{ background: "#fff", paddingTop: 80, paddingBottom: 80 }}>
+        <div className={s.wrap}>
+          <h2 className={s.secTitle}>Questions</h2>
+          <div className={s.faq}>
+            {FAQ.map((f) => (
+              <details key={f.q}>
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="rounded-2xl p-8 text-center" style={card}>
-        <h2 className="mb-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Ready to call it?</h2>
-        <p className="mx-auto mb-5 max-w-md text-sm" style={{ color: "var(--text-dim)" }}>Set up your first game in about a minute and send the link to your group.</p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href="/predictions/new" className="bc-btn-solid rounded-full px-6 py-3 text-sm font-bold">Start a free game</Link>
-          <Link href="/predictions/join" className="rounded-full border px-6 py-3 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>I have a code</Link>
+      {/* FINAL */}
+      <section className={s.final}>
+        <h2 className={s.finalH}>Call it.</h2>
+        <p>Set up your first game in about a minute and send the link to your group.</p>
+        <div className={s.ctaRow} style={{ justifyContent: "center" }}>
+          <Link href="/predictions/new" className={s.btnGold}>Start a free game</Link>
+          <Link href="/predictions/join" className={s.btnGhost}>I have a code</Link>
         </div>
-        <p className="mt-4 text-xs" style={{ color: "var(--text-faint)" }}>
-          Want your brand on a game or season? <Link href="/sponsor" className="underline">Sponsor a game</Link>.
-        </p>
+        <p className={s.sponsor}>Want your brand on a game or a season? <Link href="/sponsor">Sponsor a game</Link>.</p>
       </section>
     </div>
   );
