@@ -4,9 +4,10 @@ export const BRACKET_PRICING = {
   seasonCents: 2500, // open all season, closes manually or at a scheduled time
   upgradeCents: 1500, // weekly -> season
   weeklyDays: 8,
+  privateGameCents: 500, // closed invite-only game: creator pays per game, invitees play free
 } as const;
 
-export type BracketTier = "weekly" | "season";
+export type BracketTier = "weekly" | "season" | "private";
 
 export const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 

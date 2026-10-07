@@ -19,11 +19,14 @@ export default async function PredictionsPage() {
   const user = auth.user;
 
   const [{ data: gameRows }, { data: slateRows }, { data: lb }] = await Promise.all([
-    supabase.from("pred_games").select(GAME_FIELDS).neq("status", "cancelled").is("round", null).order("starts_at", { ascending: false }).limit(60),
-    supabase.from("pred_slates").select("id, title, kind, tier, status, created_by").order("created_at", { ascending: false }).limit(12),
+    supabase.from("pred_games").select(GAME_FIELDS).neq("status", "cancelled").eq("is_private", false).is("round", null).order("starts_at", { ascending: false }).limit(60),
+    supabase.from("pred_slates").select("id, title, kind, tier, status, created_by").eq("visibility", "public").order("created_at", { ascending: false }).limit(12),
     supabase.rpc("pred_leaderboard", { p_scope: "week", p_limit: 5 }),
   ]);
   const games = (gameRows ?? []) as PredGame[];
+  const { data: myPrivate } = user
+    ? await supabase.from("pred_slates").select("id, title, status").eq("visibility", "private").eq("created_by", user.id).order("created_at", { ascending: false }).limit(10)
+    : { data: null };
 
   const mine: Record<string, { pred_home: number; pred_away: number; pts_total: number | null }> = {};
   if (user && games.length) {
@@ -46,12 +49,14 @@ export default async function PredictionsPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/predictions/bracket/new" className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold">Create a bracket</Link>
           <Link href="/predictions/new" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Free single game</Link>
+          <Link href="/predictions/private/new" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>🔒 Private game · {money(BRACKET_PRICING.privateGameCents)}</Link>
+          <Link href="/predictions/join" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Have a code?</Link>
           <Link href="/predictions/leaderboard" className="rounded-full border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Leaderboard</Link>
         </div>
       </div>
 
       <p className="bc-card mb-8 p-4 text-sm" style={{ color: "var(--text-dim)" }}>
-        <strong style={{ color: "var(--text)" }}>Players always play free.</strong> Organizers get one free single game a day (open 24 hours). A bracket with many games costs {money(BRACKET_PRICING.weeklyCents)} and stays open 8 days, or {money(BRACKET_PRICING.seasonCents)} to stay open all season.
+        <strong style={{ color: "var(--text)" }}>Players always play free.</strong> Organizers get one free single game a day (open 24 hours). A closed, invite-only private game is {money(BRACKET_PRICING.privateGameCents)} per game. A bracket with many games costs {money(BRACKET_PRICING.weeklyCents)} and stays open 8 days, or {money(BRACKET_PRICING.seasonCents)} to stay open all season.
       </p>
 
       <Section title="Open for picks" empty="No games are open right now. Create one to get your friends predicting!">
@@ -60,6 +65,20 @@ export default async function PredictionsPage() {
 
       {live.length > 0 && (
         <Section title="In progress">{live.map((g) => <GameCard key={g.id} game={g} mine={mine[g.id]} />)}</Section>
+      )}
+
+      {(myPrivate ?? []).length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Your private games</h2>
+          <div className="grid gap-2">
+            {(myPrivate ?? []).map((s) => (
+              <Link key={s.id} href={`/predictions/slate/${s.id}`} className="bc-card flex items-center justify-between gap-3 p-4 text-sm font-bold">
+                <span className="min-w-0 truncate">🔒 {s.title}</span>
+                <span className="text-xs font-semibold" style={{ color: "var(--text-faint)" }}>{s.status === "pending" ? "Not paid yet" : s.status === "open" ? "Open" : "Closed"}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {(slateRows ?? []).length > 0 && (

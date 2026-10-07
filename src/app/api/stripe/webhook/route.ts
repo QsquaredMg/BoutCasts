@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
           ? await admin.rpc("activate_pred_bracket", {
               p_id: metadata.bracket_id,
               p_session: session.id,
-              p_tier: metadata.tier === "season" ? "season" : "weekly",
+              p_tier: metadata.tier === "season" ? "season" : metadata.tier === "private" ? "private" : "weekly",
             })
           : await admin.rpc("upgrade_pred_bracket", { p_id: metadata.bracket_id, p_session: session.id });
       if (error) {

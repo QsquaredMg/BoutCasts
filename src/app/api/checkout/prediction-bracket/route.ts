@@ -36,10 +36,19 @@ export async function POST(req: NextRequest) {
     tier = "season";
   } else {
     if (bracket.status !== "pending") return NextResponse.json({ error: "This bracket is already paid for" }, { status: 400 });
-    const chosen = body?.tier === "season" ? "season" : body?.tier === "weekly" ? "weekly" : bracket.tier;
-    tier = chosen;
-    cents = chosen === "season" ? BRACKET_PRICING.seasonCents : BRACKET_PRICING.weeklyCents;
-    name = chosen === "season" ? `Season bracket — ${bracket.title}` : `8-day bracket — ${bracket.title}`;
+    if (bracket.tier === "private") {
+      // Closed invite-only game: $5 per game, paid by the creator. Invitees play free.
+      const { count } = await supabase.from("pred_games").select("id", { count: "exact", head: true }).eq("slate_id", bracket.id);
+      const games = Math.max(count ?? 1, 1);
+      tier = "private";
+      cents = BRACKET_PRICING.privateGameCents * games;
+      name = `Private prediction game (${games} ${games === 1 ? "game" : "games"} × ${money(BRACKET_PRICING.privateGameCents)}) — ${bracket.title}`;
+    } else {
+      const chosen = body?.tier === "season" ? "season" : body?.tier === "weekly" ? "weekly" : bracket.tier;
+      tier = chosen;
+      cents = chosen === "season" ? BRACKET_PRICING.seasonCents : BRACKET_PRICING.weeklyCents;
+      name = chosen === "season" ? `Season bracket — ${bracket.title}` : `8-day bracket — ${bracket.title}`;
+    }
     kind = "pred_bracket";
   }
 

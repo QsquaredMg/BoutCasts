@@ -32,7 +32,7 @@ export default async function NewGamePage({ searchParams }: { searchParams: Prom
       {!preset && (
         <p className="mt-6 rounded-xl border p-4 text-sm" style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}>
           Every account gets one free single game per day, open for 24 hours. Need more games, an elimination bracket or a longer schedule?{" "}
-          <Link href="/predictions/bracket/new" className="font-bold underline" style={{ color: "var(--blue)" }}>Create a bracket</Link>.
+          <Link href="/predictions/bracket/new" className="font-bold underline" style={{ color: "var(--blue)" }}>Create a bracket</Link>. Want it just for your group? <Link href="/predictions/private/new" className="font-bold underline" style={{ color: "var(--blue)" }}>Make a private game for $5</Link>.
         </p>
       )}
     </div>

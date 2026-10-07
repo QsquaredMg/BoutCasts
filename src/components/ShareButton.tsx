@@ -17,6 +17,7 @@ export default function ShareButton({
   label = "🔗 Share",
   big = false,
   track,
+  imageUrl,
 }: {
   title: string;
   text?: string;
@@ -26,6 +27,8 @@ export default function ShareButton({
   big?: boolean;
   /** When set, each share is counted for sponsor reports. */
   track?: ShareTarget;
+  /** A graphic to attach on devices that can share files (the link preview works everywhere else). */
+  imageUrl?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -45,6 +48,22 @@ export default function ShareButton({
   async function handleShareClick() {
     logShare(track, "share");
     const url = window.location.href;
+    if (imageUrl && navigator.share && navigator.canShare) {
+      try {
+        const res = await fetch(imageUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const file = new File([blob], "boutcasts-vs.png", { type: blob.type || "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: "BoutCasts", text: `${shareText} ${url}` });
+            return;
+          }
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // fall through to the normal link share
+      }
+    }
     if (navigator.share) {
       try {
         await navigator.share({ title: "BoutCasts", text: shareText, url });

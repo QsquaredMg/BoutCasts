@@ -21,9 +21,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   if (!UUID.test(id)) return { title: "Game not found" };
   const supabase = await createClient();
-  const { data } = await supabase.from("pred_games").select("home_name, away_name").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("pred_games").select("home_name, away_name, is_private").eq("id", id).maybeSingle();
   if (!data) return { title: "Game not found" };
   return {
+    ...(data.is_private ? { robots: { index: false, follow: false } } : {}),
     title: `${data.home_name} vs ${data.away_name} prediction`,
     description: `Predict the winner and final score of ${data.home_name} vs ${data.away_name} before the game starts and earn points on BoutCasts.`,
   };
@@ -72,7 +73,7 @@ export default async function GamePage({ params }: Props) {
     : null;
   const final = game.status === "final";
   const graded = all.filter((p) => p.pts_total != null);
-  const winners = graded.slice(0, 3).map((p) => ({
+  const winners = graded.slice(0, 10).map((p) => ({
     name: names[p.user_id] ?? "Player",
     points: p.pts_total as number,
     detail: `Picked ${p.pred_home}–${p.pred_away}`,
@@ -98,7 +99,7 @@ export default async function GamePage({ params }: Props) {
           <PredTeam name={game.away_name} logo={game.away_logo} size={72} />
         </div>
         <div className="mt-4 flex justify-center">
-          <ShareButton title={`${game.home_name} vs ${game.away_name}`} text={`${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
+          <ShareButton imageUrl={`/predictions/${game.id}/vs`} title={`${game.home_name} vs ${game.away_name}`} text={`${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
         </div>
       </div>
 
