@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import PredHero from "@/components/PredHero";
 import NewGameForm from "@/components/NewGameForm";
 
 export const metadata: Metadata = {
@@ -22,19 +23,22 @@ export default async function NewGamePage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <div className="mx-auto max-w-xl px-5 py-8">
-      <Link href="/predictions" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>&larr; Bout Predictions</Link>
-      <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{preset ? "Add a game to your slate" : "Create your free game"}</h1>
-      <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
-        Add both teams and the start time. Predictions stay open for 15 minutes after the game starts, and you enter the final score afterward.
-      </p>
+    <>
+      <PredHero
+        small
+        kicker="Free for organizers · free for players"
+        title={preset ? "Add a game to your slate" : "Create your free game"}
+        sub="Add both teams and the start time. Predictions stay open for 15 minutes after the game starts, and you enter the final score afterward."
+      />
+      <div className="pt-body">
       <NewGameForm presetSlate={preset} />
       {!preset && (
-        <p className="mt-6 rounded-xl border p-4 text-sm" style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}>
+        <p className="pt-info mt-6">
           Every account gets one free single game per day, open for 24 hours. Need more games, an elimination bracket or a longer schedule?{" "}
-          <Link href="/predictions/bracket/new" className="font-bold underline" style={{ color: "var(--blue)" }}>Create a bracket</Link>. Want it just for your group? <Link href="/predictions/private/new" className="font-bold underline" style={{ color: "var(--blue)" }}>Make a private game for $5</Link>.
+          <Link href="/predictions/bracket/new" className="font-bold underline" style={{ color: "#ffc531" }}>Create a bracket</Link>. Want it just for your group? <Link href="/predictions/private/new" className="font-bold underline" style={{ color: "#ffc531" }}>Make a private game for $5</Link>.
         </p>
       )}
-    </div>
+      </div>
+    </>
   );
 }

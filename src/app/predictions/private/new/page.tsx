@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import PredHero from "@/components/PredHero";
 import PrivateGameBuilder from "@/components/PrivateGameBuilder";
 
 export const metadata: Metadata = {
@@ -15,13 +15,11 @@ export default async function NewPrivatePage() {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect(`/login?next=${encodeURIComponent("/predictions/private/new")}`);
   return (
-    <div className="mx-auto max-w-xl px-5 py-8">
-      <Link href="/predictions" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>&larr; Bout Predictions</Link>
-      <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Create a private game</h1>
-      <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
-        Closed and invite-only: just your people, with their own private leaderboard. No limit on using a matchup that already exists publicly.
-      </p>
+    <>
+      <PredHero small kicker="🔒 Invite-only · players always free" title="Create a private game" sub="Closed and invite-only: just your people, with their own private leaderboard. No limit on using a matchup that already exists publicly." />
+      <div className="pt-body">
       <PrivateGameBuilder />
-    </div>
+      </div>
+    </>
   );
 }

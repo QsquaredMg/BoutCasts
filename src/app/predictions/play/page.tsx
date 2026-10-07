@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { Big_Shoulders } from "next/font/google";
+import { cond } from "../font";
 import { SCORING } from "@/lib/predictions/scoring";
 import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
 import s from "./play.module.css";
 
-const cond = Big_Shoulders({ subsets: ["latin"], weight: ["800", "900"], variable: "--cond", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Run your own prediction game",

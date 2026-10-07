@@ -79,7 +79,7 @@ export default function PredictionForm({
   return (
     <div className="bc-card p-5">
       <div className="mb-1 flex items-center justify-between gap-2">
-        <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        <h2 className="pt-h2">
           {existing ? "Your prediction" : "Make your prediction"}
         </h2>
         <span className="text-xs font-bold" style={{ color: closed ? "var(--red)" : "var(--blue)" }}>
@@ -146,8 +146,8 @@ function ScoreInput({ label, logo, value, onChange, disabled }: { label: string;
           disabled={disabled}
           onChange={(e) => onChange(Number(e.target.value))}
           aria-label={`${label} score`}
-          className="h-12 w-16 rounded-xl border bg-transparent text-center text-2xl font-black tabular-nums"
-          style={{ borderColor: "var(--border)" }}
+          className="pt-led h-14 w-[4.5rem] border-0 text-center text-4xl"
+          style={{ fontFamily: "var(--cond), sans-serif" }}
         />
         <button type="button" disabled={disabled} onClick={() => onChange(value + 1)} aria-label={`Raise ${label} score`} className="h-10 w-10 rounded-full border text-lg font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
           +

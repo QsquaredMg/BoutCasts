@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import GameCard from "@/components/GameCard";
 import PredLeaderboardTable from "@/components/PredLeaderboardTable";
 import WinnersGraphic from "@/components/WinnersGraphic";
+import PredHero from "@/components/PredHero";
 import ShareButton from "@/components/ShareButton";
 import BracketOwnerPanel from "@/components/BracketOwnerPanel";
 import EliminationBracket, { type BracketPick } from "@/components/EliminationBracket";
@@ -77,33 +78,36 @@ export default async function SlatePage({ params, searchParams }: Props) {
     slate.status === "pending" ? "Not open yet" : open ? (slate.closes_at ? "Open" : "Open all season") : "Closed to new predictions";
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-8">
-      <Link href="/predictions" className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>&larr; Bout Predictions</Link>
-      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--blue)" }}>
-        {slate.visibility === "private" ? "🔒 Private game" : isElim ? `${slate.bracket_size}-team bracket` : "Weekly slate"} · {statusText}
-      </p>
-      {(slate.brand_name || slate.brand_logo_url) && (
-        <div className="mb-3 flex items-center gap-3" style={slate.brand_color ? { borderLeft: `4px solid ${slate.brand_color}`, paddingLeft: 12 } : undefined}>
-          {slate.brand_logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={slate.brand_logo_url} alt={slate.brand_name ?? "Host logo"} className="h-12 max-w-[160px] object-contain" />
-          )}
-          {slate.brand_name && <span className="text-sm font-bold" style={{ color: "var(--text-dim)" }}>{whiteLabel ? slate.brand_name : `Hosted by ${slate.brand_name}`}</span>}
-        </div>
-      )}
-      <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{slate.title}</h1>
-      <p className="mb-4 text-sm" style={{ color: "var(--text-faint)" }}>
-        {games.length} {games.length === 1 ? "game" : "games"} · {finals} final · points add up across the whole {isElim ? "bracket" : "slate"}
-        {isElim && slate.locks_at && beforeLock ? <> · picks lock <LocalTime iso={slate.locks_at} /></> : null}
-      </p>
-
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        {isOwner && !isElim && open && (
-          <Link href={`/predictions/new?slate=${slate.id}`} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold">Add a game</Link>
+    <>
+      <PredHero
+        wide
+        backLabel="Bout Predictions"
+        kicker={<>{slate.visibility === "private" ? "🔒 Private game" : isElim ? `${slate.bracket_size}-team bracket` : "Weekly slate"} · {statusText}</>}
+        live={open}
+        title={slate.title}
+        sub={<>
+          {games.length} {games.length === 1 ? "game" : "games"} · {finals} final · points add up across the whole {isElim ? "bracket" : "slate"}
+          {isElim && slate.locks_at && beforeLock ? <> · picks lock <LocalTime iso={slate.locks_at} withYear /></> : null}
+        </>}
+      >
+        {(slate.brand_name || slate.brand_logo_url) && (
+          <div className="mt-4 flex items-center gap-3" style={slate.brand_color ? { borderLeft: `4px solid ${slate.brand_color}`, paddingLeft: 12 } : undefined}>
+            {slate.brand_logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={slate.brand_logo_url} alt={slate.brand_name ?? "Host logo"} className="h-12 max-w-[160px] rounded-lg bg-white object-contain p-1" />
+            )}
+            {slate.brand_name && <span className="text-sm font-bold" style={{ color: "#cdd6f5" }}>{whiteLabel ? slate.brand_name : `Hosted by ${slate.brand_name}`}</span>}
+          </div>
         )}
-        {slate.status !== "pending" && <ShareButton title={slate.title} text={`${slate.title}: make your picks on BoutCasts!`} imageUrl={`/predictions/slate/${slate.id}/vs`} />}
-      </div>
+        <div className="pt-cta">
+          {isOwner && !isElim && open && (
+            <Link href={`/predictions/new?slate=${slate.id}`} className="pt-gold">Add a game</Link>
+          )}
+          {slate.status !== "pending" && <ShareButton title={slate.title} text={`${slate.title}: make your picks on BoutCasts!`} imageUrl={`/predictions/slate/${slate.id}/vs`} />}
+        </div>
+      </PredHero>
 
+      <div className="pt-body wide">
       {slate.status !== "pending" && <PredSponsorStrip bracketId={slate.id} />}
 
       {isOwner && <BracketOwnerPanel slate={slate} justPaid={checkout === "success"} isAdmin={!!me?.is_admin} gameCount={games.length} />}
@@ -124,7 +128,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
       )}
 
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Leaderboard</h2>
+        <h2 className="pt-h2 mb-3">Leaderboard</h2>
         <PredLeaderboardTable rows={rows} meId={user?.id} />
       </section>
 
@@ -138,6 +142,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
           fileName={`winners-${slate.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

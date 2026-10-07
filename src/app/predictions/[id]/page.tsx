@@ -79,29 +79,39 @@ export default async function GamePage({ params }: Props) {
     detail: `Picked ${p.pred_home}–${p.pred_away}`,
   }));
 
+  const statusLabel = game.status === "cancelled" ? "Cancelled" : final ? "Final" : locked ? "In progress" : hasPassed(game.starts_at) ? "Started, picks still open" : "Starts";
   return (
-    <div className="mx-auto max-w-xl px-5 py-8">
-      <Link href={slate ? `/predictions/slate/${slate.id}` : "/predictions"} className="mb-4 inline-block text-sm font-semibold" style={{ color: "var(--blue)" }}>
-        &larr; {slate ? slate.title : "Bout Predictions"}
-      </Link>
-
-      {slate && <PredSponsorStrip bracketId={slate.id} />}
-
-      <div className="bc-card mb-5 p-5">
-        <p className="mb-3 text-center text-xs font-bold" style={{ color: "var(--text-faint)" }}>
-          {game.status === "cancelled" ? "Cancelled" : final ? "Final" : locked ? "In progress" : hasPassed(game.starts_at) ? "Started, picks still open" : "Starts"} · <LocalTime iso={game.starts_at} />
-        </p>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <PredTeam name={game.home_name} logo={game.home_logo} size={72} />
-          <div className="text-center text-3xl font-black tabular-nums" style={{ fontFamily: "var(--font-display)" }}>
-            {final ? `${game.home_score} – ${game.away_score}` : "vs"}
+    <>
+      <header className="pt-hero">
+        <div className="pt-in">
+          <Link href={slate ? `/predictions/slate/${slate.id}` : "/predictions"} className="pt-back">
+            &larr; {slate ? slate.title : "Bout Predictions"}
+          </Link>
+          <p className="pt-kick">
+            {!final && !locked && game.status !== "cancelled" && <span className="pt-live" aria-hidden />}
+            {statusLabel} · <LocalTime iso={game.starts_at} withYear />
+          </p>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-white">
+            <PredTeam name={game.home_name} logo={game.home_logo} size={84} />
+            {final ? (
+              <div className="pt-led flex items-center gap-2 px-4 py-3 text-5xl">
+                <span>{game.home_score}</span>
+                <span style={{ color: "#3a4274" }}>–</span>
+                <span>{game.away_score}</span>
+              </div>
+            ) : (
+              <div className="text-center text-4xl font-black" style={{ fontFamily: "var(--font-display)", color: "#7ea3ff" }}>VS</div>
+            )}
+            <PredTeam name={game.away_name} logo={game.away_logo} size={84} />
           </div>
-          <PredTeam name={game.away_name} logo={game.away_logo} size={72} />
+          <div className="mt-6 flex justify-center">
+            <ShareButton imageUrl={`/predictions/${game.id}/vs`} title={`${game.home_name} vs ${game.away_name}`} text={`${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
+          </div>
         </div>
-        <div className="mt-4 flex justify-center">
-          <ShareButton imageUrl={`/predictions/${game.id}/vs`} title={`${game.home_name} vs ${game.away_name}`} text={`${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
-        </div>
-      </div>
+      </header>
+
+      <div className="pt-body">
+      {slate && <div className="mb-5"><PredSponsorStrip bracketId={slate.id} /></div>}
 
       {game.status === "cancelled" ? (
         <p className="bc-card mb-5 p-5 text-center text-sm">This game was cancelled, so predictions will not be scored.</p>
@@ -182,7 +192,7 @@ export default async function GamePage({ params }: Props) {
 
       {locked && all.length > 0 && (
         <section className="mb-5">
-          <h2 className="mb-3 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Everyone&apos;s picks ({all.length})</h2>
+          <h2 className="pt-h2 mb-3">Everyone&apos;s picks ({all.length})</h2>
           <ul className="bc-card divide-y overflow-hidden">
             {all.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderColor: "var(--border)" }}>
@@ -200,6 +210,7 @@ export default async function GamePage({ params }: Props) {
           ? "Scoring: 2 for entering · 3 correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5."
           : "Scoring: 5 for the correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5."}
       </p>
-    </div>
+      </div>
+    </>
   );
 }
