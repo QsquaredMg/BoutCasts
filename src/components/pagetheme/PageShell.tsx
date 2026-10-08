@@ -38,7 +38,7 @@ export default function PageShell({
   children: React.ReactNode;
 }) {
   const path = usePathname() ?? "";
-  if (path.endsWith("/play")) return <>{children}</>;
+  if (path.endsWith("/play") || path.endsWith("/screen")) return <>{children}</>;
 
   const isCurrent = (t: ShellTab) =>
     (t.match ?? [t.href]).some((m) => (m.endsWith("$") ? path === m.slice(0, -1) : path === m || path.startsWith(m + "/")));

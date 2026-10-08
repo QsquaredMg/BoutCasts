@@ -8,7 +8,7 @@ import { zoneAbbr } from "@/lib/time/zones";
 // or picks close. A server-drawn image can't know the viewer's time zone, so each time is
 // shown in Eastern, Central and Pacific.
 
-export type CardType = "predictions" | "bout" | "bracket" | "livevote" | "competition" | "showcase" | "debate" | "paidbout";
+export type CardType = "predictions" | "bout" | "bracket" | "livevote" | "competition" | "showcase" | "debate" | "paidbout" | "trivia";
 
 export const CARD_LABEL: Record<CardType, string> = {
   predictions: "Predictions",
@@ -19,6 +19,7 @@ export const CARD_LABEL: Record<CardType, string> = {
   showcase: "Showcase",
   debate: "Debate",
   paidbout: "Paid Bout",
+  trivia: "Live Trivia",
 };
 
 const THEME: Record<CardType, { bg: string; accent: string }> = {
@@ -30,6 +31,7 @@ const THEME: Record<CardType, { bg: string; accent: string }> = {
   showcase: { bg: "linear-gradient(160deg, #3a1a78 0%, #170a35 80%)", accent: "#b69cff" },
   debate: { bg: "linear-gradient(160deg, #14307a 0%, #0a1030 80%)", accent: "#7fb0ff" },
   paidbout: { bg: "linear-gradient(160deg, #0b4a38 0%, #06241b 80%)", accent: "#3fe0a8" },
+  trivia: { bg: "linear-gradient(160deg, #3b1a6e 0%, #0a0e1a 80%)", accent: "#ffc531" },
 };
 
 export type Contender = { name: string; img: string | null; color?: string };

@@ -307,6 +307,25 @@ export async function loadPaidBoutCard(supabase: SupabaseClient, id: string, _im
   };
 }
 
+export async function loadTriviaCard(supabase: SupabaseClient, code: string, _imgs = true): Promise<CardData | null> {
+  const { data } = await supabase.rpc("trivia_state", { p_code: code, p_token: null });
+  const g = data?.game;
+  if (!g) return null;
+  const done = g.status === "done";
+  const top = (data.board ?? [])[0];
+  const facts = [`${data.players} playing`, `${g.total} questions`];
+  if (done && top) facts.push(`Winner: ${top.name} (${top.score})`);
+  return {
+    type: "trivia",
+    kicker: g.mode === "team" ? "Team trivia" : "Live trivia",
+    title: g.title,
+    contenders: g.mode === "team" ? [{ name: g.teamA, img: null, color: "#e5263b" }, { name: g.teamB, img: null, color: "#1b4fe4" }] : [],
+    closeLabel: done ? "Final scores are in" : `Join with code ${g.code}`,
+    facts,
+    cta: `Can you beat the room? boutcasts.com/trivia`,
+  };
+}
+
 export const CARD_LOADERS: Record<CardType | "predictions-slate", (s: SupabaseClient, id: string, imgs?: boolean) => Promise<CardData | null>> = {
   predictions: loadPredGameCard,
   "predictions-slate": loadPredSlateCard,
@@ -317,4 +336,5 @@ export const CARD_LOADERS: Record<CardType | "predictions-slate", (s: SupabaseCl
   showcase: loadShowcaseCard,
   debate: loadDebateCard,
   paidbout: loadPaidBoutCard,
+  trivia: loadTriviaCard,
 };
