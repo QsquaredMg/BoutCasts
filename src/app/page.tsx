@@ -100,7 +100,7 @@ const PRODUCTS: { emoji: string; name: string; line: string; href: string }[] = 
   { emoji: "🗳️", name: "Live Vote", line: "Elections, polls and live events.", href: "/host" },
   { emoji: "🎬", name: "Showcases", line: "Many groups, one video, one winner.", href: "/showcase/play" },
   { emoji: "🎙️", name: "Debates", line: "Pick a side and make your case.", href: "/debates/play" },
-  { emoji: "🧠", name: "Live Trivia", line: "Phones in, scores on the big screen.", href: "/trivia" },
+  { emoji: "🧠", name: "Live Trivia", line: "Phones in, scores on the big screen.", href: "/trivia/play" },
   { emoji: "💵", name: "Paid Bouts", line: "Entry-fee contests with prizes.", href: "/paid-bouts/play" },
   { emoji: "🏫", name: "Schools", line: "Votes for campuses and leagues.", href: "/schools" },
   { emoji: "📣", name: "Host an event", line: "Run any of these live in your room.", href: "/host" },

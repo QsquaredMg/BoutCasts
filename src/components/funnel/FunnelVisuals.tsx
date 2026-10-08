@@ -269,3 +269,43 @@ export function VoteVisual() {
     </div>
   );
 }
+
+export function TriviaVisual() {
+  return (
+    <div className={s.vCard} style={tilt(-2)}>
+      <div className={s.vBar}>
+        <span>Question 3 of 10</span>
+        <span className={s.vLive}>
+          <span className={s.dot} /> Live
+        </span>
+      </div>
+      <div className={s.vBody}>
+        <div className={s.brkCol}>
+          <div className={s.slot}>
+            Which quarter did the home team lead?<small>Scan to answer</small>
+          </div>
+          <div className={`${s.slot} ${s.slotWin}`}>
+            Second quarter<small>57%</small>
+            <div className={s.vbar}><i style={{ width: "57%" }} /></div>
+          </div>
+          <div className={s.slot}>
+            Halftime<small>21%</small>
+            <div className={s.vbar}><i style={{ width: "21%", opacity: 0.4 }} /></div>
+          </div>
+        </div>
+      </div>
+      <div className={s.vStamp}>
+        <small>Section 112</small>
+        Leads by 1,440
+      </div>
+      <div className={`${s.vChip} ${s.vChipA}`}>
+        <em>Join code</em>
+        HOME1
+      </div>
+      <div className={`${s.vChip} ${s.vChipB}`}>
+        <em>Fans in</em>
+        12,540
+      </div>
+    </div>
+  );
+}
