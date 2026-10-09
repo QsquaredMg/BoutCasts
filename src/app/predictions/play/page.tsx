@@ -33,7 +33,7 @@ const USES = [
 ];
 
 const FAQ = [
-  { q: "Do players have to pay?", a: "No. Players always play free. Organizers get one free single game a day." },
+  { q: "Do players have to pay?", a: "No. Players always play free. Organizers get one free single game every two weeks." },
   { q: "How do I keep a game private?", a: `A private game is invite-only and costs ${money(BRACKET_PRICING.privateGameCents)} per game. Invitees join with a code and play free.` },
   { q: "What about brackets?", a: `A bracket with many games is ${money(BRACKET_PRICING.weeklyCents)} and stays open ${BRACKET_PRICING.weeklyDays} days, or ${money(BRACKET_PRICING.seasonCents)} to stay open all season.` },
   { q: "When do picks lock?", a: "15 minutes after the game's start time." },
@@ -66,7 +66,7 @@ export default function PredictionsFunnelPage() {
                 <Link href="/predictions/new" className={s.btnGold}>Start a free game</Link>
                 <Link href="/predictions" className={s.btnGhost}>Browse open games</Link>
               </div>
-              <p className={s.fine}>One free game a day. No card needed.</p>
+              <p className={s.fine}>One free game every two weeks. No card needed.</p>
             </div>
 
             <div className={s.stage} aria-hidden>
@@ -261,7 +261,7 @@ export default function PredictionsFunnelPage() {
               <span className={s.tkTag}>Start here</span>
               <h3>Single game</h3>
               <div className={s.price}>Free</div>
-              <p>One a day, open 24 hours. Perfect for trying it out.</p>
+              <p>One every two weeks, open 24 hours. Perfect for trying it out.</p>
               <Link href="/predictions/new" className={s.tkBtn}>Start a free game</Link>
             </div>
             <div className={s.tk}>

@@ -61,7 +61,7 @@ export default async function PredictionsPage() {
 
       <div className="pt-body wide">
       <p className="pt-info mb-8">
-        <strong>Players always play free.</strong> Organizers get one free single game a day (open 24 hours). A closed, invite-only private game is <b>{money(BRACKET_PRICING.privateGameCents)}</b> per game. A bracket with many games costs <b>{money(BRACKET_PRICING.weeklyCents)}</b> and stays open 8 days, or <b>{money(BRACKET_PRICING.seasonCents)}</b> to stay open all season.
+        <strong>Players always play free.</strong> Organizers get one free single game every two weeks (open 24 hours). A closed, invite-only private game is <b>{money(BRACKET_PRICING.privateGameCents)}</b> per game. A bracket with many games costs <b>{money(BRACKET_PRICING.weeklyCents)}</b> and stays open 8 days, or <b>{money(BRACKET_PRICING.seasonCents)}</b> to stay open all season.
       </p>
 
       <Section title="Open for picks" empty="No games are open right now. Create one to get your friends predicting!">
