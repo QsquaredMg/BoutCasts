@@ -13,8 +13,6 @@ const STATIC_ROUTES = [
   "/schools",
   "/discover",
   "/create",
-  "/matchups",
-  "/explore",
   "/debates",
   "/debates/play",
   "/competitions",

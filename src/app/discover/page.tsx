@@ -1,25 +1,41 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import JoinBox from "@/components/JoinBox";
+import MatchupsView from "@/components/browse/MatchupsView";
+import LiveEventsView from "@/components/browse/LiveEventsView";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoryIcon } from "@/lib/categoryIcon";
 
-export const metadata: Metadata = {
-  title: "Discover",
-  description: "Browse matchups, brackets, showcases, debates and live events by category.",
+type View = "browse" | "matchups" | "events";
+const VIEWS: { key: View; label: string }[] = [
+  { key: "browse", label: "Browse" },
+  { key: "matchups", label: "Live matchups" },
+  { key: "events", label: "Live events" },
+];
+const TITLES: Record<View, { title: string; description: string }> = {
+  browse: { title: "Discover", description: "Browse matchups, brackets, showcases, debates and live events by category." },
+  matchups: { title: "Matchups — vote on today’s bouts", description: "Head-to-head band battles, dance-offs and showdowns live right now. Watch both sides and vote for who won." },
+  events: { title: "Live events — happening now", description: "Vote in live polls, elections, talent shows and battles happening on BoutCasts right now." },
 };
+const viewOf = (v?: string): View => (v === "matchups" || v === "events" ? v : "browse");
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ view?: string }> }): Promise<Metadata> {
+  const { view } = await searchParams;
+  const m = TITLES[viewOf(view)];
+  return { title: m.title, description: m.description };
+}
 
 // One place to browse everything fans can watch and vote on.
 const FORMATS = [
-  { href: "/matchups", icon: "🥊", title: "Matchups & brackets", body: "Head-to-head clips. Pick a winner, watch them advance." },
   { href: "/debates", icon: "🎙️", title: "Debates", body: "Video arguments in rounds. Vote for who made the case." },
-  { href: "/explore", icon: "🗳️", title: "Live events", body: "Public Live Votes happening right now." },
   { href: "/competitions", icon: "🏟️", title: "Competitions", body: "Hubs run by schools, leagues and organizers." },
   { href: "/leaderboard", icon: "🏆", title: "Leaderboard", body: "Top voters and competitors by points." },
   { href: "/boutcard", icon: "🎟️", title: "BoutCard", body: "Today's featured bout and the full bracket." },
 ];
 
-export default async function DiscoverPage() {
+export default async function DiscoverPage({ searchParams }: { searchParams: Promise<{ view?: string; category?: string }> }) {
+  const { view: viewParam, category } = await searchParams;
+  const view = viewOf(viewParam);
   const supabase = await createClient();
   const [{ data: cats }, { data: live }] = await Promise.all([
     supabase.from("categories").select("id, name, description").eq("is_listed", true).order("sort_order", { ascending: true }).limit(60),
@@ -32,11 +48,28 @@ export default async function DiscoverPage() {
   return (
     <div className="mx-auto max-w-[1100px] px-5 py-8">
       <h1 className="mb-1 text-3xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Discover
+        {view === "matchups" ? "Live matchups" : view === "events" ? "Live events" : "Discover"}
       </h1>
       <p className="mb-5 text-sm" style={{ color: "var(--text-dim)" }}>
-        Find something to watch and vote on.
+        {view === "matchups"
+          ? "Head-to-head clip battles. Vote on the current round's winner."
+          : view === "events"
+            ? "Happening now: polls, elections and shows open to everyone."
+            : "Find something to watch and vote on."}
       </p>
+
+      <nav aria-label="Browse" className="mb-6 flex flex-wrap gap-2">
+        {VIEWS.map((v) => (
+          <Link key={v.key} href={v.key === "browse" ? "/discover" : `/discover?view=${v.key}`} className={`bc-chip${view === v.key ? " active" : ""}`}>
+            {v.label}
+          </Link>
+        ))}
+      </nav>
+
+      {view === "matchups" && <MatchupsView />}
+      {view === "events" && <LiveEventsView categoryFilter={category} />}
+      {view === "browse" && (
+        <>
 
       <form action="/search" className="mb-8 flex gap-2">
         <input
@@ -96,6 +129,8 @@ export default async function DiscoverPage() {
               );
             })}
           </div>
+        </>
+      )}
         </>
       )}
     </div>

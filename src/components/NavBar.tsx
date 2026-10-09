@@ -13,7 +13,7 @@ import type { User } from "@supabase/supabase-js";
 type Tab = { key: string; label: string; href: string; icon: (active: boolean) => React.ReactNode; match: (p: string) => boolean };
 
 const VOTE_PREFIXES = [
-  "/join", "/vote", "/discover", "/matchups", "/explore", "/debates", "/leaderboard", "/c/", "/bracket", "/bout/",
+  "/join", "/vote", "/discover", "/debates", "/leaderboard", "/c/", "/bracket", "/bout/",
   "/showcase/", "/competitions", "/search", "/boutcard", "/how-it-works", "/trivia/",
 ];
 

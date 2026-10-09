@@ -11,8 +11,8 @@ export default function MainShell({ tagline, children, bandWidth }: { tagline: s
       bandWidth={bandWidth}
       tabs={[
         { href: "/discover", label: "Discover" },
-        { href: "/matchups", label: "Live matchups" },
-        { href: "/explore", label: "Live events" },
+        { href: "/debates", label: "Debates" },
+        { href: "/competitions", label: "Competitions" },
         { href: "/host", label: "Host a vote" },
       ]}
     >

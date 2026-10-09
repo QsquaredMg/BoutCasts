@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
 import ConfirmCodeForm from "@/components/ConfirmCodeForm";
+import PasswordlessAuth from "@/components/PasswordlessAuth";
 import { isSchoolEmail, SCHOOL_EMAIL_TIP } from "@/lib/schoolEmail";
 import { useRouter } from "next/navigation";
 import { friendlyAuthError } from "@/lib/authMessages";
@@ -41,6 +42,9 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+  const [ready, setReady] = useState(false);
+  const [nextVal, setNextVal] = useState("/");
+  const [preEmail, setPreEmail] = useState("");
   const router = useRouter();
 
   function nextPath() {
@@ -68,7 +72,12 @@ export default function SignupPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ref) setReferralCode(ref.toUpperCase());
     const pre = qs.get("email");
-    if (pre && pre.length < 255) setEmail(pre);
+    if (pre && pre.length < 255) {
+      setEmail(pre);
+      setPreEmail(pre);
+    }
+    setNextVal(safeNext(qs.get("next")));
+    setReady(true);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -186,6 +195,22 @@ export default function SignupPage() {
         >
           Signing up with invite code <strong>{referralCode}</strong>
         </p>
+      )}
+      {ready && (
+        <>
+          <PasswordlessAuth
+            next={nextVal}
+            hasNext={nextVal !== "/"}
+            referral={referralCode}
+            initialEmail={preEmail}
+            intro="The quickest way in: no password to make or remember."
+          />
+          <div className="my-5 flex items-center gap-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+            <span className="h-px flex-1" style={{ background: "var(--border)" }} />
+            or sign up with a password
+            <span className="h-px flex-1" style={{ background: "var(--border)" }} />
+          </div>
+        </>
       )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input

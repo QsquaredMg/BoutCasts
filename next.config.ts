@@ -18,6 +18,19 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // Matchups and Explore now live inside Discover. Old links keep working.
+  async redirects() {
+    return [
+      { source: "/matchups", destination: "/discover?view=matchups", permanent: true },
+      {
+        source: "/explore",
+        has: [{ type: "query", key: "category", value: "(?<category>.+)" }],
+        destination: "/discover?view=events&category=:category",
+        permanent: true,
+      },
+      { source: "/explore", destination: "/discover?view=events", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

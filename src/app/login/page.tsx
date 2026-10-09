@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
 import ConfirmCodeForm from "@/components/ConfirmCodeForm";
+import PasswordlessAuth from "@/components/PasswordlessAuth";
 import { isSchoolEmail, SCHOOL_EMAIL_TIP } from "@/lib/schoolEmail";
 import { classifyAuthError, friendlyAuthError, LOGIN_NOTICES, type AuthProblem } from "@/lib/authMessages";
 
@@ -107,6 +108,12 @@ function LoginForm() {
           {n.text}
         </p>
       )}
+      <PasswordlessAuth next={next} hasNext={hasNext} initialEmail={searchParams.get("email") ?? ""} />
+      <div className="my-5 flex items-center gap-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+        <span className="h-px flex-1" style={{ background: "var(--border)" }} />
+        or use your password
+        <span className="h-px flex-1" style={{ background: "var(--border)" }} />
+      </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="email"
