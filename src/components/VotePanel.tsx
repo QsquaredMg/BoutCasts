@@ -4,28 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AfterVote from "@/components/AfterVote";
+import GuestPassCard from "@/components/GuestPassCard";
+import { getGuestToken, rpcMessage, saveGuestProfile, signupHref } from "@/lib/guestPass";
 import { getZone } from "@/lib/time/pref";
 import { formatWhen } from "@/lib/time/zones";
 
-// Guests (no account) get one free bout vote per day, tracked by a random
-// token kept on this device. The database also caps free votes per network.
-const GUEST_TOKEN_KEY = "bc_guest_vote_token";
-
-function getGuestToken(): string {
-  try {
-    let t = localStorage.getItem(GUEST_TOKEN_KEY);
-    if (!t) {
-      t = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
-      localStorage.setItem(GUEST_TOKEN_KEY, t);
-    }
-    return t;
-  } catch {
-    // Storage blocked (private mode etc.) — a per-visit token still works,
-    // and the per-network cap keeps it fair.
-    return `${crypto.randomUUID()}-${crypto.randomUUID()}`;
-  }
-}
-
+// Guests (no account) give a name and email once, then get up to 15 votes a day, tracked by a
+// random token kept on this device. The database also caps free votes per network.
 function resetTime(iso: string | null): string {
   if (!iso) return "tomorrow";
   const zone = getZone();
@@ -67,6 +52,10 @@ export default function VotePanel({
   const [guestUsedToday, setGuestUsedToday] = useState(false);
   const [guestVotedHere, setGuestVotedHere] = useState(false);
   const [resetsAt, setResetsAt] = useState<string | null>(null);
+  // Guest pass: null until loaded. `legacy` = the database predates the guest pass (old 1-a-day flow).
+  const [guest, setGuest] = useState<{ registered: boolean; name: string | null; used: number; limit: number } | null>(null);
+  const [legacy, setLegacy] = useState(false);
+  const [askSide, setAskSide] = useState<"a" | "b" | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -83,13 +72,26 @@ export default function VotePanel({
           .maybeSingle();
         if (existing) setMyVote(existing.side as "a" | "b");
       } else {
-        const { data: status } = await supabase.rpc("get_guest_vote_status", { p_guest_token: getGuestToken() });
-        const st = status as { voted_today: boolean; bout_id: string | null; side: "a" | "b" | null; resets_at: string } | null;
-        if (st) {
+        const { data: gs, error: gsErr } = await supabase.rpc("get_guest_status", { p_token: getGuestToken(), p_bout_id: boutId });
+        if (gsErr) {
+          setLegacy(true);
+          const { data: status } = await supabase.rpc("get_guest_vote_status", { p_guest_token: getGuestToken() });
+          const st = status as { voted_today: boolean; bout_id: string | null; side: "a" | "b" | null; resets_at: string } | null;
+          if (st) {
+            setResetsAt(st.resets_at);
+            setGuestUsedToday(st.voted_today);
+            if (st.voted_today && st.bout_id === boutId && st.side) {
+              setMyVote(st.side);
+              setGuestVotedHere(true);
+            }
+          }
+        } else {
+          const st = gs as { registered: boolean; name: string | null; used_today: number; limit: number; side_here: "a" | "b" | null; resets_at: string };
+          setGuest({ registered: st.registered, name: st.name, used: st.used_today, limit: st.limit });
           setResetsAt(st.resets_at);
-          setGuestUsedToday(st.voted_today);
-          if (st.voted_today && st.bout_id === boutId && st.side) {
-            setMyVote(st.side);
+          setGuestUsedToday(st.used_today >= st.limit);
+          if (st.side_here) {
+            setMyVote(st.side_here);
             setGuestVotedHere(true);
           }
         }
@@ -106,6 +108,11 @@ export default function VotePanel({
     const user = userData.user;
 
     if (!user) {
+      if (!legacy && guest && !guest.registered) {
+        setPending(false);
+        setAskSide(side);
+        return;
+      }
       const { data, error } = await supabase.rpc("cast_guest_bout_vote", {
         p_bout_id: boutId,
         p_side: side,
@@ -115,7 +122,13 @@ export default function VotePanel({
       if (error) {
         const m = error.message ?? "";
         setMessageKind("error");
-        if (m.includes("guest_limit")) {
+        if (m.includes("guest_profile")) {
+          setGuest((g) => (g ? { ...g, registered: false } : g));
+          setAskSide(side);
+        } else if (m.includes("already:")) {
+          setMyVote(side);
+          setGuestVotedHere(true);
+        } else if (m.includes("guest_limit")) {
           setGuestUsedToday(true);
           setMessage(m.split("guest_limit:")[1]?.trim() || "You've used your free vote for today.");
         } else if (m.includes("closed:")) {
@@ -125,11 +138,15 @@ export default function VotePanel({
         }
         return;
       }
-      const res = data as { resets_at?: string } | null;
+      const res = data as { resets_at?: string; used_today?: number; limit?: number } | null;
       if (res?.resets_at) setResetsAt(res.resets_at);
       setMyVote(side);
       setGuestVotedHere(true);
-      setGuestUsedToday(true);
+      if (legacy || res?.used_today === undefined) setGuestUsedToday(true);
+      else {
+        setGuest((g) => (g ? { ...g, used: res.used_today! } : g));
+        setGuestUsedToday(res.used_today >= (res.limit ?? 15));
+      }
       setTally((prev) => ({ ...prev, [side]: prev[side] + 1 }));
       setMessage(null);
       return;
@@ -155,6 +172,32 @@ export default function VotePanel({
     setTally((prev) => ({ ...prev, [side]: prev[side] + 1 }));
     setMessage(null);
     setPending(false);
+  }
+
+  async function registerAndVote(name: string, email: string): Promise<string | null> {
+    const { error } = await supabase.rpc("register_bout_guest", { p_token: getGuestToken(), p_name: name, p_email: email });
+    if (error) return rpcMessage(error.message, "We couldn't save that. Please try again.");
+    saveGuestProfile({ name, email });
+    setGuest((g) => ({ registered: true, name, used: g?.used ?? 0, limit: g?.limit ?? 15 }));
+    const side = askSide;
+    setAskSide(null);
+    if (side) {
+      // castVote reads `guest`, which hasn't re-rendered yet, so cast directly.
+      const { data, error: e2 } = await supabase.rpc("cast_guest_bout_vote", { p_bout_id: boutId, p_side: side, p_guest_token: getGuestToken() });
+      if (e2) {
+        setMessageKind("error");
+        setMessage(rpcMessage(e2.message, "Your vote didn't go through. Please try again."));
+        return null;
+      }
+      const res = data as { resets_at?: string; used_today?: number; limit?: number } | null;
+      if (res?.resets_at) setResetsAt(res.resets_at);
+      setMyVote(side);
+      setGuestVotedHere(true);
+      setGuest((g) => (g ? { ...g, used: res?.used_today ?? g.used + 1 } : g));
+      setGuestUsedToday((res?.used_today ?? 0) >= (res?.limit ?? 15));
+      setTally((prev) => ({ ...prev, [side]: prev[side] + 1 }));
+    }
+    return null;
   }
 
   const total = tally.a + tally.b;
@@ -232,10 +275,20 @@ export default function VotePanel({
         </p>
       )}
 
-      {signedIn === false && votingOpen && !guestUsedToday && myVote === null && (
+      {askSide && !legacy && (
+        <GuestPassCard askEmail headline="Add your name to cast your vote" button="Cast my vote" onSubmit={registerAndVote} onCancel={() => setAskSide(null)} />
+      )}
+
+      {signedIn === false && votingOpen && !guestUsedToday && myVote === null && !askSide && (
         <p className="col-span-full text-sm" style={{ color: "var(--text-faint)" }}>
-          No account needed — you get <strong>1 free vote a day</strong>.{" "}
-          <Link href={`/signup?next=${encodeURIComponent(`/bout/${boutId}`)}`} className="font-semibold underline" style={{ color: "var(--red)" }}>
+          {legacy ? (
+            <>No account needed — you get <strong>1 free vote a day</strong>.{" "}</>
+          ) : guest?.registered ? (
+            <>Voting as <strong>{guest.name}</strong> — {Math.max(0, guest.limit - guest.used)} of {guest.limit} free votes left today.{" "}</>
+          ) : (
+            <>No account needed — add your name and vote on up to <strong>15 bouts a day</strong>.{" "}</>
+          )}
+          <Link href={signupHref(`/bout/${boutId}`)} className="font-semibold underline" style={{ color: "var(--red)" }}>
             Sign up free
           </Link>{" "}
           to vote on every bout.
@@ -268,20 +321,21 @@ export default function VotePanel({
           />
           <div className="relative max-w-[78%]">
             <p className="text-xs font-extrabold uppercase tracking-[0.12em]" style={{ color: "#9fb8ff" }}>
-              {guestVotedHere ? "Vote counted ✓" : "Free vote used"}
+              {guestVotedHere ? "Vote counted ✓" : "Free votes used"}
             </p>
             <p className="mt-1 text-lg font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-              {guestVotedHere
-                ? "Want to vote on every bout?"
-                : "You've used today's free vote."}
+              {guestUsedToday
+                ? "You've used today's free votes."
+                : "Save your votes. Finish your account."}
             </p>
             <p className="mt-1.5 text-sm" style={{ color: "#c9d0e0" }}>
-              Guests get 1 vote a day (next one at {resetTime(resetsAt)}). Create a free account to vote on every
-              bout, earn points and badges, and build your streak.
+              {guestUsedToday ? `Guests get ${guest?.limit ?? 1} votes a day (more at ${resetTime(resetsAt)}). ` : ""}
+              Create a free account to keep this vote, vote on every bout, earn points and badges, and build your streak.
+              {guest?.registered ? " We already have your name and email, so it takes a minute." : ""}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
-                href={`/signup?next=${encodeURIComponent(`/bout/${boutId}`)}`}
+                href={signupHref(`/bout/${boutId}`)}
                 className="inline-flex min-h-[42px] items-center rounded-full px-4 text-sm font-bold"
                 style={{ background: "#1b4fe4", color: "#fff" }}
               >

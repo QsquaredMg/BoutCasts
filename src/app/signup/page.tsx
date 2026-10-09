@@ -63,9 +63,12 @@ export default function SignupPage() {
   }
 
   useEffect(() => {
-    const ref = new URLSearchParams(window.location.search).get("ref");
+    const qs = new URLSearchParams(window.location.search);
+    const ref = qs.get("ref");
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ref) setReferralCode(ref.toUpperCase());
+    const pre = qs.get("email");
+    if (pre && pre.length < 255) setEmail(pre);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

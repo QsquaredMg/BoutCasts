@@ -1,5 +1,7 @@
 "use client";
 
+import GuestPassCard from "@/components/GuestPassCard";
+import { rpcMessage, saveGuestProfile, signupHref } from "@/lib/guestPass";
 import OptionAvatar from "@/components/OptionAvatar";
 import { formatDuration } from "@/lib/mediaDuration";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -99,6 +101,11 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
   const [resultsKey, setResultsKey] = useState(0);
   // null = not checked yet; true = answered or skipped (hide the prompt)
   const [demoDone, setDemoDone] = useState<boolean | null>(null);
+  // Guest pass: private events ask for a name (and email when the organizer turns that on) before the first vote.
+  const [gcfg, setGcfg] = useState<{ needs_name: boolean; needs_email: boolean; registered: boolean; name: string | null } | null>(null);
+  const gcfgRef = useRef<typeof gcfg>(null);
+  const [askVote, setAskVote] = useState<null | { optionId: string } | { ranking: true }>(null);
+  const askRef = useRef<HTMLDivElement | null>(null);
   const [superTally, setSuperTally] = useState<Record<string, number>>({});
   const [boostNotice, setBoostNotice] = useState(false);
 
@@ -182,6 +189,17 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         p_voter_token: voterTokenRef.current,
       });
       setDemoDone(Boolean(answered));
+    }
+
+    if (eventRow.voter_mode === "open_link") {
+      const { data: gc, error: gcErr } = await supabase.rpc("get_live_vote_guest_config", {
+        p_event_id: eventId,
+        p_token: getOrCreateVoterToken(),
+      });
+      // If the guest pass SQL hasn't been run yet, the call errors and we simply don't ask.
+      const cfg = !gcErr && gc ? (gc as NonNullable<typeof gcfg>) : null;
+      gcfgRef.current = cfg;
+      setGcfg(cfg);
     }
 
     setLoading(false);
@@ -287,6 +305,11 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       setVoterToken(token);
     }
 
+    if (event.voter_mode === "open_link" && gcfgRef.current?.needs_name && !gcfgRef.current.registered) {
+      setAskVote({ ranking: true });
+      setTimeout(() => askRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      return;
+    }
     setSubmittingRanking(true);
     const { error: rpcError } = await supabase.rpc("cast_ranked_live_vote", {
       p_event_id: eventId,
@@ -345,6 +368,11 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     }
 
     // open_link mode
+    if (gcfgRef.current?.needs_name && !gcfgRef.current.registered) {
+      setAskVote({ optionId });
+      setTimeout(() => askRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      return;
+    }
     const token = voterTokenRef.current ?? getOrCreateVoterToken();
     voterTokenRef.current = token;
     setVoterToken(token);
@@ -364,6 +392,22 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     }
     setMyVote(optionId);
     refreshTally();
+  }
+
+  async function registerGuest(name: string, email: string): Promise<string | null> {
+    const token = voterTokenRef.current ?? getOrCreateVoterToken();
+    voterTokenRef.current = token;
+    const { error: e } = await supabase.rpc("register_live_vote_guest", { p_event_id: eventId, p_token: token, p_name: name, p_email: email || null });
+    if (e) return rpcMessage(e.message, "We couldn't save that. Please try again.");
+    saveGuestProfile({ name, email });
+    const next = gcfgRef.current ? { ...gcfgRef.current, registered: true, name } : null;
+    gcfgRef.current = next;
+    setGcfg(next);
+    const pending = askVote;
+    setAskVote(null);
+    if (pending && "optionId" in pending) handleVote(pending.optionId);
+    else if (pending) submitRanking();
+    return null;
   }
 
   if (loading) {
@@ -502,6 +546,28 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
             Sign in
           </Link>{" "}
           to cast your vote. You can watch the live tally either way.
+        </p>
+      )}
+
+      {askVote && gcfg && (
+        <div ref={askRef} className="mb-4 grid">
+          <GuestPassCard
+            askEmail={gcfg.needs_email}
+            headline="Add your name to cast your vote"
+            button="Cast my vote"
+            onSubmit={registerGuest}
+            onCancel={() => setAskVote(null)}
+          />
+        </div>
+      )}
+
+      {myVote && !signedIn && event.voter_mode === "open_link" && (
+        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+          Vote counted. Want to track your votes and earn points?{" "}
+          <Link href={signupHref(`/vote/${eventId}`)} className="font-semibold underline" style={{ color: "var(--red)" }}>
+            Create a free account
+          </Link>
+          .
         </p>
       )}
 

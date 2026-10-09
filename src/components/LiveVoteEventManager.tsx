@@ -1,5 +1,6 @@
 "use client";
 
+import LiveVoteRoster from "@/components/LiveVoteRoster";
 import { useEffect, useState, useCallback, useRef } from "react";
 import RankedResults from "@/components/RankedResults";
 import JudgePanelManager from "@/components/JudgePanelManager";
@@ -550,6 +551,10 @@ export default function LiveVoteEventManager({
             </span>
           </span>
         </label>
+      )}
+
+      {event.voter_mode === "open_link" && (
+        <LiveVoteRoster eventId={eventId} isPrivate={event.is_private} closed={event.status === "closed"} />
       )}
 
       {error && (

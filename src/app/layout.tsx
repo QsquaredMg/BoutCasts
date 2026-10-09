@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Archivo } from "next/font/google";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import GuestClaim from "@/components/GuestClaim";
 import AdInterstitial from "@/components/AdInterstitial";
 import SplashGate from "@/components/SplashGate";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col antialiased">
         <SplashGate />
         <AnalyticsTracker />
+        <GuestClaim />
         <ToastProvider>
           <NavBar />
           <main className="flex-1">{children}</main>
