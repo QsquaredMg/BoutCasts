@@ -114,7 +114,7 @@ create policy trivia_games_host_read on public.trivia_games for select to authen
 
 -- ---------------------------------------------------------------- approval gate
 create or replace function public.trivia_pack_guard() returns trigger
-language plpgsql as $$
+language plpgsql as $fn$
 begin
   if new.status = 'approved' and (tg_op = 'INSERT' or old.status is distinct from 'approved') then
     if exists (select 1 from public.trivia_questions q where q.pack_id = new.id and not q.reviewed)
@@ -125,25 +125,25 @@ begin
   end if;
   if new.status <> 'approved' then new.approved_at := null; end if;
   return new;
-end $$;
+end $fn$;
 drop trigger if exists trivia_pack_guard_t on public.trivia_packs;
 create trigger trivia_pack_guard_t before insert or update on public.trivia_packs
   for each row execute function public.trivia_pack_guard();
 
 create or replace function public.trivia_question_touch() returns trigger
-language plpgsql as $$
+language plpgsql as $fn$
 declare pid uuid := coalesce(new.pack_id, old.pack_id);
 begin
   update public.trivia_packs set status = 'draft' where id = pid and status = 'approved';
   return null;
-end $$;
+end $fn$;
 drop trigger if exists trivia_question_touch_t on public.trivia_questions;
 create trigger trivia_question_touch_t after insert or update or delete on public.trivia_questions
   for each row execute function public.trivia_question_touch();
 
 -- ---------------------------------------------------------------- helpers
 create or replace function public.trivia_new_code() returns text
-language plpgsql as $$
+language plpgsql as $fn$
 declare c text; chars text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; i int;
 begin
   loop
@@ -152,15 +152,15 @@ begin
     exit when not exists (select 1 from public.trivia_games where code = c);
   end loop;
   return c;
-end $$;
+end $fn$;
 
 -- ---------------------------------------------------------------- RPCs
 create or replace function public.trivia_create_game(p_pack uuid, p_mode text, p_team_a text, p_team_b text)
-returns text language plpgsql security definer set search_path = public as $$
+returns text language plpgsql security definer set search_path = public as $fn$
 declare pk public.trivia_packs; c text;
 begin
   if auth.uid() is null then raise exception 'Sign in to host'; end if;
-  select * into pk from public.trivia_packs where id = p_pack;
+  pk := (select z from public.trivia_packs z where id = p_pack);
   if pk.id is null or (pk.owner_id <> auth.uid() and not public.is_admin_user()) then raise exception 'Pack not found'; end if;
   if pk.status <> 'approved' then raise exception 'Approve the pack before going live'; end if;
   c := public.trivia_new_code();
@@ -168,37 +168,37 @@ begin
   values (p_pack, auth.uid(), c, pk.title, case when p_mode = 'team' then 'team' else 'solo' end,
           coalesce(nullif(left(trim(p_team_a), 24), ''), 'Team A'), coalesce(nullif(left(trim(p_team_b), 24), ''), 'Team B'));
   return c;
-end $$;
+end $fn$;
 
 create or replace function public.trivia_join(p_code text, p_name text, p_token text)
-returns json language plpgsql security definer set search_path = public as $$
+returns json language plpgsql security definer set search_path = public as $fn$
 declare g public.trivia_games; pl public.trivia_players; t text; na int; nb int;
 begin
-  select * into g from public.trivia_games where code = upper(trim(p_code));
+  g := (select z from public.trivia_games z where code = upper(trim(p_code)));
   if g.id is null then raise exception 'Game not found'; end if;
   if length(coalesce(p_token, '')) < 8 then raise exception 'Bad token'; end if;
-  select * into pl from public.trivia_players where game_id = g.id and token = p_token;
+  pl := (select z from public.trivia_players z where game_id = g.id and token = p_token);
   if pl.id is null then
     if g.status = 'done' then raise exception 'This game has ended'; end if;
     if g.mode = 'team' then
-      select count(*) filter (where team = 'a'), count(*) filter (where team = 'b') into na, nb
-        from public.trivia_players where game_id = g.id;
+      na := (select count(*) from public.trivia_players where game_id = g.id and team = 'a');
+      nb := (select count(*) from public.trivia_players where game_id = g.id and team = 'b');
       t := case when na <= nb then 'a' else 'b' end;
     end if;
     insert into public.trivia_players(game_id, token, user_id, name, team)
-    values (g.id, p_token, auth.uid(), left(trim(coalesce(nullif(trim(p_name), ''), 'Player')), 24), t)
-    returning * into pl;
+    values (g.id, p_token, auth.uid(), left(trim(coalesce(nullif(trim(p_name), ''), 'Player')), 24), t);
+    pl := (select x from public.trivia_players x where x.game_id = g.id and x.token = p_token);
   end if;
   return json_build_object('id', pl.id, 'name', pl.name, 'team', pl.team);
-end $$;
+end $fn$;
 
 create or replace function public.trivia_host_action(p_game uuid, p_action text, p_outcome int default null)
-returns void language plpgsql security definer set search_path = public as $$
+returns void language plpgsql security definer set search_path = public as $fn$
 declare g public.trivia_games; q public.trivia_questions; total int; nxt int;
 begin
-  select * into g from public.trivia_games where id = p_game;
+  g := (select z from public.trivia_games z where id = p_game);
   if g.id is null or (g.host_id <> auth.uid() and not public.is_admin_user()) then raise exception 'Not your game'; end if;
-  select count(*) into total from public.trivia_questions where pack_id = g.pack_id;
+  total := (select count(*) from public.trivia_questions where pack_id = g.pack_id);
 
   if p_action in ('start','next') then
     nxt := g.current_pos + 1;
@@ -209,8 +209,8 @@ begin
     end if;
   elsif p_action = 'reveal' then
     if g.status <> 'question' then return; end if;
-    select * into q from public.trivia_questions
-      where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1;
+    q := (select z from public.trivia_questions z
+      where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1);
     if q.kind = 'predict' then
       if q.correct_index is null then
         if p_outcome is null or p_outcome < 0 or p_outcome >= jsonb_array_length(q.options) then
@@ -228,16 +228,16 @@ begin
   elsif p_action = 'end' then
     update public.trivia_games set status = 'done' where id = g.id;
   end if;
-end $$;
+end $fn$;
 
 create or replace function public.trivia_hint(p_code text, p_token text)
-returns json language plpgsql security definer set search_path = public as $$
+returns json language plpgsql security definer set search_path = public as $fn$
 declare g public.trivia_games; pl public.trivia_players; q public.trivia_questions; hide int[] := '{}'; i int;
 begin
-  select * into g from public.trivia_games where code = upper(trim(p_code));
-  select * into pl from public.trivia_players where game_id = g.id and token = p_token;
+  g := (select z from public.trivia_games z where code = upper(trim(p_code)));
+  pl := (select z from public.trivia_players z where game_id = g.id and token = p_token);
   if g.id is null or pl.id is null or g.status <> 'question' then raise exception 'Not available'; end if;
-  select * into q from public.trivia_questions where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1;
+  q := (select z from public.trivia_questions z where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1);
   if q.kind <> 'mc' or q.correct_index is null then raise exception 'No hints on this question'; end if;
   if pl.hint_used and pl.hint_qid is distinct from q.id then raise exception 'Hint already used'; end if;
   update public.trivia_players set hint_used = true, hint_qid = q.id where id = pl.id;
@@ -245,18 +245,18 @@ begin
     if i <> q.correct_index and coalesce(array_length(hide, 1), 0) < 2 then hide := hide || i; end if;
   end loop;
   return json_build_object('hide', hide);
-end $$;
+end $fn$;
 
 create or replace function public.trivia_answer(p_code text, p_token text, p_choice int, p_double boolean default false)
-returns json language plpgsql security definer set search_path = public as $$
+returns json language plpgsql security definer set search_path = public as $fn$
 declare g public.trivia_games; pl public.trivia_players; q public.trivia_questions;
         remain numeric; pts int := 0; dbl boolean := false;
 begin
-  select * into g from public.trivia_games where code = upper(trim(p_code));
-  select * into pl from public.trivia_players where game_id = g.id and token = p_token;
+  g := (select z from public.trivia_games z where code = upper(trim(p_code)));
+  pl := (select z from public.trivia_players z where game_id = g.id and token = p_token);
   if g.id is null or pl.id is null then raise exception 'Join the game first'; end if;
   if g.status <> 'question' then raise exception 'Answers are closed'; end if;
-  select * into q from public.trivia_questions where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1;
+  q := (select z from public.trivia_questions z where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1);
   if p_choice < 0 or p_choice >= jsonb_array_length(q.options) then raise exception 'Bad choice'; end if;
   remain := q.seconds - extract(epoch from (now() - g.q_started_at));
   if remain < -2 then raise exception 'Time is up'; end if;
@@ -273,24 +273,24 @@ begin
   insert into public.trivia_answers(game_id, question_id, player_id, choice, doubled, points)
   values (g.id, q.id, pl.id, p_choice, dbl, pts);
   return json_build_object('ok', true, 'doubled', dbl);
-end $$;
+end $fn$;
 
 create or replace function public.trivia_state(p_code text, p_token text default null)
-returns json language plpgsql security definer set search_path = public as $$
+returns json language plpgsql security definer set search_path = public as $fn$
 declare g public.trivia_games; pl public.trivia_players; q public.trivia_questions; total int;
         show boolean; counts json; board json; teams json; mine json; qj json; remain numeric; hide int[] := '{}'; i int;
 begin
-  select * into g from public.trivia_games where code = upper(trim(p_code));
+  g := (select z from public.trivia_games z where code = upper(trim(p_code)));
   if g.id is null then return null; end if;
-  select count(*) into total from public.trivia_questions where pack_id = g.pack_id;
-  if p_token is not null then select * into pl from public.trivia_players where game_id = g.id and token = p_token; end if;
+  total := (select count(*) from public.trivia_questions where pack_id = g.pack_id);
+  if p_token is not null then pl := (select z from public.trivia_players z where game_id = g.id and token = p_token); end if;
 
   if g.current_pos >= 0 and g.status in ('question','reveal') then
-    select * into q from public.trivia_questions where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1;
+    q := (select z from public.trivia_questions z where pack_id = g.pack_id order by position, created_at offset g.current_pos limit 1);
     show := g.status = 'reveal';
     remain := greatest(0, q.seconds - extract(epoch from (now() - g.q_started_at)));
-    select coalesce(json_object_agg(choice, n), '{}'::json) into counts
-      from (select choice, count(*) n from public.trivia_answers where question_id = q.id and game_id = g.id group by choice) c;
+    counts := (select coalesce(json_object_agg(choice, n), '{}'::json)
+      from (select choice, count(*) n from public.trivia_answers where question_id = q.id and game_id = g.id group by choice) c);
     if pl.id is not null and pl.hint_qid = q.id and q.correct_index is not null then
       for i in 0..jsonb_array_length(q.options) - 1 loop
         if i <> q.correct_index and coalesce(array_length(hide, 1), 0) < 2 then hide := hide || i; end if;
@@ -302,17 +302,17 @@ begin
       'explanation', case when show then q.explanation else null end,
       'counts', counts, 'needsOutcome', (q.kind = 'predict' and q.correct_index is null));
     if pl.id is not null then
-      select json_build_object('choice', a.choice, 'points', a.points, 'doubled', a.doubled) into mine
-        from public.trivia_answers a where a.player_id = pl.id and a.question_id = q.id;
+      mine := (select json_build_object('choice', a.choice, 'points', a.points, 'doubled', a.doubled)
+        from public.trivia_answers a where a.player_id = pl.id and a.question_id = q.id);
     end if;
   end if;
 
-  select coalesce(json_agg(r), '[]'::json) into board from (
-    select name, team, score from public.trivia_players where game_id = g.id order by score desc, created_at limit 15) r;
-  select json_build_object(
+  board := (select coalesce(json_agg(r), '[]'::json) from (
+    select name, team, score from public.trivia_players where game_id = g.id order by score desc, created_at limit 15) r);
+  teams := (select json_build_object(
     'a', coalesce(sum(score) filter (where team = 'a'), 0), 'b', coalesce(sum(score) filter (where team = 'b'), 0),
     'na', count(*) filter (where team = 'a'), 'nb', count(*) filter (where team = 'b'))
-    into teams from public.trivia_players where game_id = g.id;
+    from public.trivia_players where game_id = g.id);
 
   return json_build_object(
     'game', json_build_object('id', g.id, 'code', g.code, 'title', g.title, 'mode', g.mode, 'teamA', g.team_a, 'teamB', g.team_b,
@@ -322,7 +322,7 @@ begin
         'doubleUsed', pl.double_used and pl.double_qid is distinct from (q).id, 'hintUsed', pl.hint_used and pl.hint_qid is distinct from (q).id,
         'rank', (select count(*) + 1 from public.trivia_players x where x.game_id = g.id and x.score > pl.score)) end,
     'players', (select count(*) from public.trivia_players where game_id = g.id));
-end $$;
+end $fn$;
 
 grant execute on function public.trivia_create_game(uuid, text, text, text) to authenticated;
 grant execute on function public.trivia_host_action(uuid, text, int) to authenticated;
