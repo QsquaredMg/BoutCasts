@@ -60,21 +60,19 @@ Reply with ONLY a JSON array, no other text. Each item: {"kind":"mc" or "stump",
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model, max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model, max_tokens: 8000, messages: [{ role: "user", content: prompt }] }),
     });
     if (!r.ok) return NextResponse.json({ error: `AI service error (${r.status}). Try again in a moment.` }, { status: 502 });
     const j = await r.json();
-    text = (j.content ?? []).map((c: { text?: string }) => c.text ?? "").join("");
+    text = (j.content ?? []).filter((c: { type?: string }) => c.type === "text" || c.type === undefined).map((c: { text?: string }) => c.text ?? "").join("");
   } catch {
     return NextResponse.json({ error: "Couldn't reach the AI service." }, { status: 502 });
   }
 
-  let items: Draft[] = [];
-  try {
-    const m = text.match(/\[[\s\S]*\]/);
-    items = JSON.parse(m ? m[0] : text);
-  } catch {
-    return NextResponse.json({ error: "The AI reply wasn't readable. Try again." }, { status: 502 });
+  const items = parseDrafts(text);
+  if (items.length === 0) {
+    console.error("trivia generate: unreadable AI reply", text.slice(0, 500));
+    return NextResponse.json({ error: "The AI reply wasn't readable. Try again, or make the topic more specific." }, { status: 502 });
   }
 
   const { data: last } = await supabase.from("trivia_questions").select("position").eq("pack_id", pack.id).order("position", { ascending: false }).limit(1);
@@ -98,4 +96,38 @@ Reply with ONLY a JSON array, no other text. Each item: {"kind":"mc" or "stump",
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   await supabase.from("trivia_packs").update({ source: "ai", ai_topic: topic, status: "review" }).eq("id", pack.id);
   return NextResponse.json({ added: rows.length });
+}
+
+// Pulls every complete {...} object out of the reply, so a code fence, a short preface, a trailing
+// note or a reply cut off mid-list still yields the questions that arrived intact.
+function parseDrafts(text: string): Draft[] {
+  const clean = text.replace(/```(?:json)?/gi, "");
+  try {
+    const m = clean.match(/\[[\s\S]*\]/);
+    const whole = JSON.parse(m ? m[0] : clean);
+    if (Array.isArray(whole)) return whole as Draft[];
+  } catch {
+    /* fall through to object-by-object scan */
+  }
+  const out: Draft[] = [];
+  let depth = 0, start = -1, inStr = false, esc = false;
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") { if (depth === 0) start = i; depth++; }
+    else if (ch === "}" && depth > 0) {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        try { out.push(JSON.parse(clean.slice(start, i + 1)) as Draft); } catch { /* skip */ }
+        start = -1;
+      }
+    }
+  }
+  return out;
 }
