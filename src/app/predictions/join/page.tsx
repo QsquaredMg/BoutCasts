@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import JoinByCode from "@/components/JoinByCode";
+import JoinBox from "@/components/JoinBox";
 import PredHero from "@/components/PredHero";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export default function JoinPage() {
       <PredHero small kicker="🔒 Private game" title="Join a private game" sub="Enter the 6-letter code from your invite. Private games are always free for players." />
       <div className="pt-body">
         <div className="bc-card p-5">
-          <JoinByCode />
+          <JoinBox autoFocus />
         </div>
       </div>
     </>

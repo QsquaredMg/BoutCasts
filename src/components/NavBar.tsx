@@ -12,30 +12,33 @@ import type { User } from "@supabase/supabase-js";
 // Five main tabs: the same on desktop (top bar) and phones (bottom bar).
 type Tab = { key: string; label: string; href: string; icon: (active: boolean) => React.ReactNode; match: (p: string) => boolean };
 
-const DISCOVER_PREFIXES = [
-  "/join",
-  "/discover", "/matchups", "/explore", "/debates", "/leaderboard", "/c/", "/bracket", "/bout/",
-  "/showcase/", "/competitions", "/search", "/boutcard", "/how-it-works",
+const VOTE_PREFIXES = [
+  "/join", "/vote", "/discover", "/matchups", "/explore", "/debates", "/leaderboard", "/c/", "/bracket", "/bout/",
+  "/showcase/", "/competitions", "/search", "/boutcard", "/how-it-works", "/trivia/",
 ];
 
 const PREDICTION_PREFIXES = ["/predictions"];
+const HOST_PREFIXES = ["/host", "/schools", "/live-vote", "/trivia/play", "/trivia/packs", "/sponsor"];
+const ME_PREFIXES = ["/profile/", "/wallet", "/activity", "/challenges", "/welcome"];
 
+const startsWithAny = (p: string, list: string[]) => list.some((x) => p === x || p.startsWith(x.endsWith("/") ? x : `${x}/`));
+
+// Four places to be, plus one button to make something. Everything else lives in the menu.
 function tabs(profileHref: string): Tab[] {
   return [
-    { key: "home", label: "Home", href: "/", icon: (a) => <HomeIcon filled={a} />, match: (p) => p === "/" },
     {
-      key: "discover",
-      label: "Discover",
+      key: "vote",
+      label: "Vote",
       href: "/discover",
       icon: (a) => <CompassIcon filled={a} />,
-      match: (p) => DISCOVER_PREFIXES.some((x) => p === x || p.startsWith(x.endsWith("/") ? x : `${x}/`)),
+      match: (p) => !startsWithAny(p, HOST_PREFIXES) && !startsWithAny(p, PREDICTION_PREFIXES) && startsWithAny(p, VOTE_PREFIXES),
     },
     {
       key: "predictions",
       label: "Predict",
       href: "/predictions",
       icon: (a) => <TargetIcon filled={a} />,
-      match: (p) => PREDICTION_PREFIXES.some((x) => p === x || p.startsWith(`${x}/`)),
+      match: (p) => startsWithAny(p, PREDICTION_PREFIXES),
     },
     {
       key: "create",
@@ -45,18 +48,18 @@ function tabs(profileHref: string): Tab[] {
       match: (p) => ["/create", "/submit", "/live-vote/new", "/showcase/new", "/debates/new"].includes(p),
     },
     {
-      key: "activity",
-      label: "Activity",
-      href: "/activity",
-      icon: (a) => <BellIcon filled={a} />,
-      match: (p) => p === "/activity" || p === "/challenges",
+      key: "host",
+      label: "Host",
+      href: "/host",
+      icon: (a) => <MicIcon filled={a} />,
+      match: (p) => startsWithAny(p, HOST_PREFIXES),
     },
     {
-      key: "profile",
-      label: "Profile",
+      key: "me",
+      label: "Me",
       href: profileHref,
       icon: (a) => <UserIcon filled={a} />,
-      match: (p) => p.startsWith("/profile/") || p === "/wallet",
+      match: (p) => startsWithAny(p, ME_PREFIXES),
     },
   ];
 }
@@ -174,7 +177,7 @@ export default function NavBar() {
                     }}
                   >
                     {t.label}
-                    {t.key === "activity" && activityBadge > 0 && <Badge n={activityBadge} />}
+                    {t.key === "me" && activityBadge > 0 && <Badge n={activityBadge} />}
                   </Link>
                 );
               })}
@@ -216,11 +219,11 @@ export default function NavBar() {
                 </Link>
               )}
               <Link
-                href="/host"
-                className="hidden rounded-full px-4 py-1.5 text-sm font-bold text-white lg:inline-block"
-                style={{ background: "#1b4fe4" }}
+                href="/join"
+                className="rounded-full border px-3.5 py-1.5 text-sm font-bold"
+                style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--surface)" }}
               >
-                Host a vote
+                Join
               </Link>
               <Link
                 href="/create"
@@ -249,27 +252,42 @@ export default function NavBar() {
 
           {menuOpen && (
             <div className="border-t" style={{ borderColor: "var(--border)", background: "var(--bg)" }}>
-              <div className="mx-auto grid max-w-[1440px] gap-1 px-4 py-3 sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
-                <MenuLink href="/host" strong>
-                  🎤 Host a vote — for schools, leagues &amp; events
-                </MenuLink>
-                <MenuLink href="/schools">🎓 For schools, colleges &amp; universities</MenuLink>
-                <MenuLink href="/join">🔒 Have an event code? Join</MenuLink>
-                <MenuLink href="/predictions">🎯 Bout Predictions</MenuLink>
-                <MenuLink href="/paid-bouts">💵 Paid Bouts</MenuLink>
-                <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
-                <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>
-                {user && (
-                  <MenuLink href="/challenges">
-                    🥊 Challenges{pendingChallenges > 0 ? ` (${pendingChallenges})` : ""}
-                  </MenuLink>
-                )}
-                {user && <MenuLink href="/live-vote">🗳️ My Live Votes</MenuLink>}
-                <MenuLink href="/how-it-works">❓ How it works</MenuLink>
-                <MenuLink href="/sponsor">🤝 For brands &amp; sponsors</MenuLink>
-                {isAdmin && <MenuLink href="/admin">🛠️ Admin</MenuLink>}
-                {!loading &&
-                  (user ? (
+              <div className="mx-auto grid max-w-[1440px] gap-x-6 gap-y-3 px-4 py-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
+                <MenuGroup title="Play">
+                  <MenuLink href="/join" strong>🔒 Join with a code or link</MenuLink>
+                  <MenuLink href="/predictions">🎯 Bout Predictions</MenuLink>
+                  <MenuLink href="/trivia">❓ Live Trivia</MenuLink>
+                  <MenuLink href="/paid-bouts">💵 Paid Bouts</MenuLink>
+                  <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
+                  <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>
+                </MenuGroup>
+                <MenuGroup title="Host">
+                  <MenuLink href="/host" strong>🎤 Host a vote or trivia night</MenuLink>
+                  <MenuLink href="/schools">🎓 Schools, colleges &amp; universities</MenuLink>
+                  <MenuLink href="/sponsor">🤝 Brands &amp; sponsors</MenuLink>
+                  {user && <MenuLink href="/live-vote">🗳️ My Live Votes</MenuLink>}
+                </MenuGroup>
+                <MenuGroup title="Me">
+                  {user ? (
+                    <>
+                      <MenuLink href={profileHref}>👤 My profile</MenuLink>
+                      <MenuLink href="/activity">🔔 Activity{unread > 0 ? ` (${unread})` : ""}</MenuLink>
+                      <MenuLink href="/challenges">🥊 Challenges{pendingChallenges > 0 ? ` (${pendingChallenges})` : ""}</MenuLink>
+                      {BOUTBUCKS_ENABLED && <MenuLink href="/wallet">💰 Wallet{walletBalance !== null ? ` (${walletBalance} BB)` : ""}</MenuLink>}
+                    </>
+                  ) : (
+                    !loading && (
+                      <>
+                        <MenuLink href="/signup" strong>✨ Create a free account</MenuLink>
+                        <MenuLink href="/login">Log in</MenuLink>
+                      </>
+                    )
+                  )}
+                </MenuGroup>
+                <MenuGroup title="More">
+                  <MenuLink href="/how-it-works">❓ How it works</MenuLink>
+                  {isAdmin && <MenuLink href="/admin">🛠️ Admin</MenuLink>}
+                  {!loading && user && (
                     <button
                       onClick={handleSignOut}
                       className="rounded-lg px-3 py-2.5 text-left text-sm font-semibold"
@@ -277,11 +295,8 @@ export default function NavBar() {
                     >
                       ↩︎ Sign out
                     </button>
-                  ) : (
-                    <MenuLink href="/signup" strong>
-                      ✨ Create a free account
-                    </MenuLink>
-                  ))}
+                  )}
+                </MenuGroup>
               </div>
             </div>
           )}
@@ -301,7 +316,7 @@ export default function NavBar() {
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div className="mx-auto grid max-w-md grid-cols-6">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {TABS.map((t) => {
             const active = t.match(pathname);
             if (t.key === "create") {
@@ -326,7 +341,7 @@ export default function NavBar() {
               >
                 <span className="relative">
                   {t.icon(active)}
-                  {t.key === "activity" && activityBadge > 0 && <Badge n={activityBadge} />}
+                  {t.key === "me" && activityBadge > 0 && <Badge n={activityBadge} />}
                 </span>
                 {t.label}
               </Link>
@@ -335,6 +350,17 @@ export default function NavBar() {
         </div>
       </nav>
     </>
+  );
+}
+
+function MenuGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="px-3 text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+        {title}
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -367,11 +393,6 @@ const svg = (filled: boolean, path: React.ReactNode) => (
   </svg>
 );
 
-function HomeIcon({ filled }: { filled: boolean }) {
-  return filled
-    ? svg(true, <path d="M11.3 2.6a1 1 0 0 1 1.4 0l8.6 8.2c.6.6.2 1.7-.7 1.7H19V20a1 1 0 0 1-1 1h-4v-6h-4v6H6a1 1 0 0 1-1-1v-7.5H3.4c-.9 0-1.3-1.1-.7-1.7z" />)
-    : svg(false, <path d="M3 11.5 12 3l9 8.5M5 10v10h5v-6h4v6h5V10" />);
-}
 function CompassIcon({ filled }: { filled: boolean }) {
   return svg(
     false,
@@ -398,8 +419,14 @@ function PlusIcon() {
     </svg>
   );
 }
-function BellIcon({ filled }: { filled: boolean }) {
-  return svg(filled, <path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10.3 20a2 2 0 0 0 3.4 0" />);
+function MicIcon({ filled }: { filled: boolean }) {
+  return svg(
+    false,
+    <>
+      <rect x="9" y="3" width="6" height="11" rx="3" fill={filled ? "currentColor" : "none"} />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </>
+  );
 }
 function UserIcon({ filled }: { filled: boolean }) {
   return svg(

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import JoinBox from "@/components/JoinBox";
 import { createClient } from "@/lib/supabase/server";
 import { getCategoryIcon } from "@/lib/categoryIcon";
 
@@ -47,20 +48,13 @@ export default async function DiscoverPage() {
         <button className="bc-btn-solid rounded-full px-5 text-sm font-bold">Search</button>
       </form>
 
-      <Link
-        href="/join"
-        className="bc-card mb-8 flex items-center justify-between gap-3 p-4 transition-colors hover:bg-[var(--surface-2)]"
-      >
-        <span>
-          <span className="block font-bold">🔒 Have an event code?</span>
-          <span className="block text-sm" style={{ color: "var(--text-dim)" }}>
-            School and private events don&apos;t show up here. Enter your code to join.
-          </span>
+      <div className="bc-card mb-8 p-4">
+        <span className="block font-bold">🔒 Have a code or a link?</span>
+        <span className="mb-3 block text-sm" style={{ color: "var(--text-dim)" }}>
+          School, private and game codes don&apos;t show up here. Enter yours to join. No account needed.
         </span>
-        <span className="flex-shrink-0 text-sm font-bold" style={{ color: "var(--red)" }}>
-          Join →
-        </span>
-      </Link>
+        <JoinBox compact />
+      </div>
 
       <h2 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
         Ways to vote
