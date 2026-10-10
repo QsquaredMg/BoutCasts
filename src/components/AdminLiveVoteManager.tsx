@@ -54,6 +54,25 @@ export default function AdminLiveVoteManager({
     );
   }
 
+  async function reopenEvent(ev: EventRow, openEnded: boolean) {
+    if (!confirm(openEnded ? `Reopen "${ev.title}" with no end time? You will need to close it yourself.` : `Reopen "${ev.title}" for 24 more hours?`)) return;
+    setError(null);
+    setSavingId(ev.id);
+    const { error } = await supabase.rpc("admin_reopen_live_vote_event", { p_event_id: ev.id, p_hours: 24, p_open_ended: openEnded });
+    setSavingId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === ev.id
+          ? { ...e, status: "live", closes_at: openEnded ? null : new Date(Date.now() + 24 * 3600 * 1000).toISOString() }
+          : e
+      )
+    );
+  }
+
   async function archiveEvent(ev: EventRow) {
     if (!confirm(`Archive "${ev.title}"? It disappears from the site and goes to Admin → Archives for the next downloadable dump. You can restore it until it is purged.`)) return;
     setError(null);
@@ -214,7 +233,17 @@ export default function AdminLiveVoteManager({
               </div>
 
               {e.status !== "live" && (
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap gap-1.5">
+                  {e.status === "closed" && (
+                    <>
+                      <button onClick={() => reopenEvent(e, false)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)", color: "#22c55e" }}>
+                        ↺ Reopen 24h
+                      </button>
+                      <button onClick={() => reopenEvent(e, true)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+                        Reopen, no end time
+                      </button>
+                    </>
+                  )}
                   <button onClick={() => archiveEvent(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
                     📦 Archive
                   </button>

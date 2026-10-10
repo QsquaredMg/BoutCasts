@@ -16,6 +16,8 @@ export default async function NewGamePage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect(`/login?next=${encodeURIComponent("/predictions/new")}`);
+  const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
+  const isAdmin = !!me?.is_admin;
   let preset: string | null = null;
   if (slate) {
     const { data: owned } = await supabase.from("pred_slates").select("id, kind, created_by").eq("id", slate).maybeSingle();
@@ -31,8 +33,11 @@ export default async function NewGamePage({ searchParams }: { searchParams: Prom
         sub="Add both teams and the start time. Predictions stay open for 15 minutes after the game starts, and you enter the final score afterward."
       />
       <div className="pt-body">
-      <NewGameForm presetSlate={preset} />
-      {!preset && (
+      <NewGameForm presetSlate={preset} isAdmin={isAdmin} />
+      {!preset && isAdmin && (
+        <p className="pt-info mt-6">Admin account: no free-game limits. Schedule any start time and create as many games as you need.</p>
+      )}
+      {!preset && !isAdmin && (
         <p className="pt-info mt-6">
           Every account gets one free single game every two weeks, open for 24 hours. Need more games, an elimination bracket or a longer schedule?{" "}
           <Link href="/predictions/bracket/new" className="font-bold underline" style={{ color: "#ffc531" }}>Create a bracket</Link>. Want it just for your group? <Link href="/predictions/private/new" className="font-bold underline" style={{ color: "#ffc531" }}>Make a private game for $5</Link>.

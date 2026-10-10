@@ -85,12 +85,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${manrope.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col antialiased">
+        <a href="#main-content" className="bc-skip-link">
+          Skip to main content
+        </a>
         <SplashGate />
         <AnalyticsTracker />
         <GuestClaim />
         <ToastProvider>
           <NavBar />
-          <main className="flex-1">{children}</main>
+          <main id="main-content" tabIndex={-1} className="flex-1 outline-none">{children}</main>
           <Footer />
           <AdInterstitial />
         </ToastProvider>

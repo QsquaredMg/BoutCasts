@@ -344,3 +344,32 @@ body:has([data-white-label]) [data-site-chrome] {
     padding-bottom: 0 !important;
   }
 }
+
+
+/* ---- Accessibility (WCAG 2.1 AA) ---- */
+/* Visible keyboard focus everywhere, including inputs that set outline: none. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid #6e97ff !important;
+  outline-offset: 2px;
+}
+/* Skip link: hidden until focused by keyboard. */
+.bc-skip-link {
+  position: absolute;
+  left: 8px;
+  top: -64px;
+  z-index: 10000;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+.bc-skip-link:focus { top: 8px; }

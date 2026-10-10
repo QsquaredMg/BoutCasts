@@ -9,6 +9,9 @@ import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourceP
 import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
 import { getZone } from "@/lib/time/pref";
 import { isoToWall, wallToIso } from "@/lib/time/zones";
+import { useNow } from "@/lib/predictions/useNow";
+
+const hoursFromNowIso = (h: number) => new Date(Date.now() + h * 3600 * 1000).toISOString();
 
 type SubmissionRow = {
   id: string;
@@ -55,6 +58,7 @@ export default function BoutCurator({
   submissions: SubmissionRow[];
   tallyByBout: Record<string, { a: number; b: number }>;
 }) {
+  const nowMs = useNow();
   const supabase = createClient();
   const [bouts, setBouts] = useState(initialBouts);
   const [error, setError] = useState<string | null>(null);
@@ -81,13 +85,6 @@ export default function BoutCurator({
 
   function categoryName(id: string) {
     return categories.find((c) => c.id === id)?.name ?? "Uncategorized";
-  }
-
-  // Voting windows are capped at 42h server-side (a check constraint on
-  // bouts.closes_at); this just reflects that cap in the datetime picker
-  // so the admin isn't surprised by a rejected save.
-  function maxClosesAtLocal(from: Date): string {
-    return isoToWall(new Date(from.getTime() + 42 * 60 * 60 * 1000).toISOString(), getZone());
   }
 
   // Creates a new `submissions` row for a clip the admin just uploaded
@@ -318,6 +315,26 @@ export default function BoutCurator({
     setBouts((prev) => prev.map((b) => (b.id === id ? { ...b, status: "final" } : b)));
   }
 
+  // Reopen a closed bout, or give a locked live bout (past its close time) more time.
+  async function reopenBout(id: string, wasFinal: boolean) {
+    const msg = wasFinal
+      ? "Reopen this bout for 24 more hours? The winner and any winner points are taken back, and it is decided again when it closes."
+      : "Give this bout 24 more hours of voting?";
+    if (!confirm(msg)) return;
+    setError(null);
+    setBusyId(id);
+    const { error } = await supabase.rpc("admin_reopen_bout", { p_bout_id: id, p_hours: 24 });
+    setBusyId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    const closesAt = hoursFromNowIso(24);
+    setBouts((prev) =>
+      prev.map((b) => (b.id === id ? ({ ...b, status: "live", winner_side: null, closes_at: closesAt } as Bout) : b))
+    );
+  }
+
   async function deleteBout(id: string) {
     if (!confirm("Move this bout to the trash? It disappears from the site, but you can restore it (votes and comments included) from Admin → Trash.")) return;
     setError(null);
@@ -524,9 +541,8 @@ export default function BoutCurator({
             <ZonedDateTimeInput
               value={form.closes_at}
               onChange={(v) => setForm((f) => ({ ...f, closes_at: v }))}
-              max={maxClosesAtLocal(new Date())}
               className="rounded border border-neutral-300 px-3 py-2 text-sm"
-              title="Voting closes at (max 42h from now)"
+              title="Voting closes at (admins have no time limit)"
             />
             <input
               type="text"
@@ -627,6 +643,15 @@ export default function BoutCurator({
                         >
                           Edit
                         </button>
+                        {(b.status === "final" || (b.status === "live" && !!b.closes_at && nowMs !== 0 && new Date(b.closes_at).getTime() < nowMs)) && (
+                          <button
+                            onClick={() => reopenBout(b.id, b.status === "final")}
+                            disabled={busyId === b.id}
+                            className="rounded border border-green-300 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50"
+                          >
+                            {b.status === "final" ? "Reopen voting" : "Extend 24h"}
+                          </button>
+                        )}
                         {b.status !== "final" && (
                           <button
                             onClick={() => closeBout(b.id)}
@@ -817,9 +842,8 @@ export default function BoutCurator({
                         <ZonedDateTimeInput
                           value={editForm.closes_at}
                           onChange={(v) => setEditForm((f) => ({ ...f, closes_at: v }))}
-                          max={maxClosesAtLocal(new Date(b.created_at))}
                           className="rounded border border-neutral-300 px-3 py-2 text-sm"
-                          title="Voting closes at (max 42h from when the bout was created)"
+                          title="Voting closes at (admins have no time limit)"
                         />
                         <input
                           type="text"

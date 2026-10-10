@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createEventClient } from "@/lib/supabase/client";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // Sponsors on an organizer's voting page: the title sponsor as "Presented by"
 // up top, everyone else in a "Thanks to our sponsors" row. Each page view and
@@ -56,7 +57,7 @@ export default function EventSponsorStrip({ eventId }: { eventId: string }) {
     const cls = `flex items-center justify-center rounded-lg border px-3 ${big ? "h-20 min-w-[180px]" : s.level === "gold" ? "h-16 min-w-[110px]" : "h-14 min-w-[88px]"}`;
     const style = { borderColor: "var(--border)", background: "var(--surface)" };
     return s.link_url ? (
-      <a key={s.id} href={s.link_url} target="_blank" rel="sponsored noopener noreferrer" className={cls} style={style} title={s.name} onClick={() => clicked(s.id)}>
+      <a key={s.id} href={safeHttpUrl(s.link_url) ?? undefined} target="_blank" rel="sponsored noopener noreferrer" className={cls} style={style} title={s.name} onClick={() => clicked(s.id)}>
         {inner}
       </a>
     ) : (

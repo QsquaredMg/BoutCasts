@@ -64,9 +64,11 @@ export default function PrivacyPage() {
         Your choices
       </h2>
       <p className={BODY} style={{ color: "var(--text-dim)" }}>
-        You can update or delete your profile information from your account settings, or request
-        account deletion by contacting us. Submitted content that has already appeared in a public
-        bout may remain visible in historical results even after account deletion.
+        You can update your profile from your account, and you can permanently delete your account
+        yourself at any time from Settings &amp; safety (see{" "}
+        <a href="/delete-account" className="underline">how to delete your account</a>), or by emailing
+        support@boutcasts.com. Deleting your account removes your profile and activity; records of
+        payments are kept without your name for accounting. Aggregate vote totals in past results do not change.
       </p>
 
       <h2 className={SECTION_HEADING} style={{ fontFamily: "var(--font-display)" }}>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Notification } from "@/lib/types";
+import { safeAppLink } from "@/lib/safeUrl";
 
 const TYPE_ICON: Record<string, string> = {
   follow: "👤",
@@ -123,7 +124,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               {notifications.map((n, i) => (
                 <Link
                   key={n.id}
-                  href={n.link ?? "#"}
+                  href={safeAppLink(n.link) ?? "#"}
                   onClick={() => setOpen(false)}
                   className="flex gap-2.5 px-3.5 py-2.5 text-sm"
                   style={{

@@ -15,6 +15,7 @@ import type { Instrumental } from "@/lib/types";
 import AdBanner from "@/components/AdBanner";
 import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
 import LocalTime from "@/components/LocalTime";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // The full "duel" card — vote bars, sponsor banner, prize pool, comments —
 // shared between the standalone /bout/[id] page and the BoutCard homepage,
@@ -204,7 +205,7 @@ export default async function FeaturedBout({
       {sponsor && (
         <div className="mb-2 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
           {sponsor.website_url ? (
-            <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="underline">
+            <a href={safeHttpUrl(sponsor.website_url) ?? undefined} target="_blank" rel="noreferrer" className="underline">
               <SponsorBadge sponsor={sponsor} />
             </a>
           ) : (

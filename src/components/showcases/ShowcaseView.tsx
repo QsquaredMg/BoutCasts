@@ -100,6 +100,12 @@ export default function ShowcaseView({
     if (error) return setMsg(error.message);
     router.refresh();
   }
+  async function adminReopen() {
+    if (!confirm("Reopen voting for 24 hours? The winner is cleared and decided again when it closes.")) return;
+    const { error } = await supabase.rpc("admin_reopen_showcase", { p_showcase_id: showcase.id, p_hours: 24 });
+    if (error) return setMsg(error.message);
+    router.refresh();
+  }
   async function adminDelete() {
     if (!confirm("Delete this showcase and all its votes? This can't be undone.")) return;
     const { error } = await supabase.rpc("admin_delete_showcase", { p_showcase_id: showcase.id });
@@ -350,6 +356,11 @@ export default function ShowcaseView({
             {showcase.status === "live" && (
               <button type="button" onClick={adminClose} className="bc-btn-solid rounded-full px-4 py-2 text-xs font-bold">
                 Close voting & announce winner
+              </button>
+            )}
+            {showcase.status === "closed" && (
+              <button type="button" onClick={adminReopen} className="bc-btn-solid rounded-full px-4 py-2 text-xs font-bold">
+                Reopen voting
               </button>
             )}
             <button type="button" onClick={adminDelete} className="rounded-full border px-4 py-2 text-xs font-bold" style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}>

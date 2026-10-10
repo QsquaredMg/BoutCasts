@@ -33,6 +33,8 @@ const STATIC_ROUTES = [
   "/signup",
   "/privacy",
   "/terms",
+  "/accessibility",
+  "/delete-account",
 ];
 
 type Entry = MetadataRoute.Sitemap[number];

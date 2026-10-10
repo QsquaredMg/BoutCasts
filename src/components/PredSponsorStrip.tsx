@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // Sponsors on a bracket page: the title sponsor as "Presented by", the rest in a row.
 // Page views (once per browser session) and logo clicks are counted for the organizer.
@@ -41,7 +42,7 @@ export default function PredSponsorStrip({ bracketId }: { bracketId: string }) {
     const cls = `flex items-center justify-center rounded-lg border px-3 ${big ? "h-20 min-w-[180px]" : s.level === "gold" ? "h-16 min-w-[110px]" : "h-14 min-w-[88px]"}`;
     const style = { borderColor: "var(--border)", background: "var(--surface)" };
     return s.link_url ? (
-      <a key={s.id} href={s.link_url} target="_blank" rel="sponsored noopener noreferrer" className={cls} style={style} title={s.name} onClick={() => createClient().rpc("log_pred_sponsor", { p_bracket: bracketId, p_kind: "click", p_sponsor: s.id }).then(() => {})}>
+      <a key={s.id} href={safeHttpUrl(s.link_url) ?? undefined} target="_blank" rel="sponsored noopener noreferrer" className={cls} style={style} title={s.name} onClick={() => createClient().rpc("log_pred_sponsor", { p_bracket: bracketId, p_kind: "click", p_sponsor: s.id }).then(() => {})}>
         {inner}
       </a>
     ) : (

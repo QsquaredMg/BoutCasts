@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { roomThemeVars } from "@/lib/liveVoteEvents/roomTheme";
 import ShareButton from "@/components/ShareButton";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // Public competition hub — "The [Sponsor] [Competition]" when a sponsor has
 // bought the placement. Shows live bouts, brackets, recent winners and an
@@ -187,7 +188,7 @@ export default async function HubPage({ params }: { params: Promise<{ id: string
 
         {hub.sponsors?.website_url && (
           <a
-            href={hub.sponsors.website_url}
+            href={safeHttpUrl(hub.sponsors.website_url) ?? undefined}
             target="_blank"
             rel="sponsored noopener noreferrer"
             className="flex items-center gap-3 rounded-xl border p-4"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { money, STATUS_LABEL, type PaidBoutStatus } from "@/lib/paidBouts";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 export type ManagerEntry = { id: string; username: string | null; entry_title: string | null; entry_url: string | null; status: string };
 export type ManagerPrize = { id: string; place: number; amount_cents: number; winner_entry_id: string | null };
@@ -131,7 +132,7 @@ export default function PaidBoutManager({
                 <span className="font-medium">{e.username ?? "Entrant"}</span>
                 {e.entry_title && <span style={{ color: "var(--text-dim)" }}>{e.entry_title}</span>}
                 {e.entry_url && (
-                  <a href={e.entry_url} target="_blank" rel="noopener noreferrer" className="text-xs underline">view</a>
+                  <a href={safeHttpUrl(e.entry_url) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-xs underline">view</a>
                 )}
                 <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ background: "var(--surface-2)" }}>{e.status}</span>
               </li>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { BoutComment } from "@/lib/types";
+import ReportButton from "@/components/ReportButton";
+import BlockUserButton from "@/components/BlockUserButton";
 
 type Props = {
   boutId: string;
@@ -23,6 +25,7 @@ export default function CrowdComments({ boutId }: Props) {
   const supabase = createClient();
   const [comments, setComments] = useState<BoutComment[]>([]);
   const [signedIn, setSignedIn] = useState(false);
+  const [myId, setMyId] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +34,7 @@ export default function CrowdComments({ boutId }: Props) {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       setSignedIn(!!userData.user);
+      setMyId(userData.user?.id ?? null);
 
       const { data } = await supabase
         .from("bout_comments")
@@ -139,6 +143,18 @@ export default function CrowdComments({ boutId }: Props) {
                 <span className="text-xs" style={{ color: "var(--text-faint)" }}>
                   {timeAgo(c.created_at)}
                 </span>
+                {myId && c.user_id !== myId && (
+                  <span className="ml-auto flex items-center gap-3">
+                    <ReportButton targetType="comment" targetId={c.id} />
+                    <BlockUserButton
+                      targetId={c.user_id}
+                      targetName={c.profiles?.username}
+                      onChange={(blocked) => {
+                        if (blocked) setComments((cur) => cur.filter((x) => x.user_id !== c.user_id));
+                      }}
+                    />
+                  </span>
+                )}
               </div>
               <p className="mt-0.5 text-sm" style={{ color: "var(--text-dim)" }}>
                 {c.body}

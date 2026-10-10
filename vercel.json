@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/social",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/pred-scores",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

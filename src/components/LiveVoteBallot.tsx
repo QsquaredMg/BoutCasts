@@ -20,6 +20,7 @@ import EventSponsorStrip from "@/components/EventSponsorStrip";
 import SuperVoteBoost from "@/components/SuperVoteBoost";
 import { displayClip } from "@/lib/liveVoteEvents/displayClip";
 import LocalTime from "@/components/LocalTime";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 type EventStatus = "draft" | "live" | "closed";
 
@@ -723,7 +724,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
               {clip?.kind === "embed" && <EmbeddedClipPlayer sourceUrl={clip.url} label={option.name} />}
               {clip?.kind === "link" && (
                 <a
-                  href={clip.url}
+                  href={safeHttpUrl(clip.url) ?? undefined}
                   target="_blank"
                   rel="noreferrer"
                   className="text-sm font-semibold underline"

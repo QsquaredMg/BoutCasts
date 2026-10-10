@@ -18,7 +18,7 @@ export default function ReportButton({
   targetType,
   targetId,
 }: {
-  targetType: "bout" | "comment";
+  targetType: "bout" | "comment" | "user";
   targetId: string;
 }) {
   const [open, setOpen] = useState(false);

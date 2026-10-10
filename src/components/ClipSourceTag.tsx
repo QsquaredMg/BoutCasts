@@ -1,4 +1,5 @@
 import { getClipSourceTag } from "@/lib/clipSource";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 function WaveformIcon() {
   const heights = [4, 9, 6, 11, 5, 8];
@@ -43,7 +44,7 @@ export default function ClipSourceTag({
 
   if (sourceUrl && (sourceType === "link" || sourceType === "upload")) {
     return (
-      <a href={sourceUrl} target="_blank" rel="noreferrer" className="hover:opacity-80">
+      <a href={safeHttpUrl(sourceUrl) ?? undefined} target="_blank" rel="noreferrer" className="hover:opacity-80">
         {content}
       </a>
     );

@@ -32,14 +32,20 @@ export async function POST(req: Request) {
   const { data: pack } = await supabase.from("trivia_packs").select("id").eq("id", body.packId).maybeSingle();
   if (!pack) return NextResponse.json({ error: "Pack not found." }, { status: 404 });
 
+  // Admins have no daily cap.
+  const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", u.user.id).maybeSingle();
+  const isAdmin = !!me?.is_admin;
+
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  const { count: used } = await supabase
-    .from("trivia_questions")
-    .select("id, trivia_packs!inner(owner_id,source)", { count: "exact", head: true })
-    .eq("trivia_packs.owner_id", u.user.id)
-    .eq("trivia_packs.source", "ai")
-    .gte("created_at", since);
-  if ((used ?? 0) + count > DAILY_LIMIT)
+  const { count: used } = isAdmin
+    ? { count: 0 }
+    : await supabase
+        .from("trivia_questions")
+        .select("id, trivia_packs!inner(owner_id,source)", { count: "exact", head: true })
+        .eq("trivia_packs.owner_id", u.user.id)
+        .eq("trivia_packs.source", "ai")
+        .gte("created_at", since);
+  if (!isAdmin && (used ?? 0) + count > DAILY_LIMIT)
     return NextResponse.json({ error: `Daily AI limit reached (${DAILY_LIMIT} questions per day). Try again tomorrow or write questions by hand.` }, { status: 429 });
 
   const prompt = `Write ${count} trivia questions for a live event crowd.

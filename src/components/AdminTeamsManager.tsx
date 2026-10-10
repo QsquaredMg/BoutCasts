@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
-import { LEAGUE_LABEL, TEAM_FIELDS, searchTeams, type DirectoryTeam, type TeamLeague } from "@/lib/teams/directory";
+import { LEAGUE_LABEL, ADMIN_TEAM_FIELDS, searchTeams, type DirectoryTeam, type TeamLeague } from "@/lib/teams/directory";
 
 type Seed = Omit<DirectoryTeam, "id" | "hidden">;
 
@@ -26,7 +26,7 @@ export default function AdminTeamsManager({ initial }: { initial: DirectoryTeam[
   const shown = searchTeams(teams.filter((t) => t.league === league), q, 400);
 
   async function reload() {
-    const { data } = await sb.from("team_directory").select(TEAM_FIELDS).order("league").order("name").limit(2000);
+    const { data } = await sb.from("team_directory").select(ADMIN_TEAM_FIELDS).order("league").order("name").limit(2000);
     setTeams((data ?? []) as DirectoryTeam[]);
   }
 
@@ -59,7 +59,7 @@ export default function AdminTeamsManager({ initial }: { initial: DirectoryTeam[
 
   async function saveEdit() {
     if (!editing) return;
-    const { error } = await sb.from("team_directory").update({ name: editing.name.trim(), full_name: editing.full_name.trim(), conference: editing.conference || null, logo_url: editing.logo_url || null }).eq("id", editing.id);
+    const { error } = await sb.from("team_directory").update({ name: editing.name.trim(), full_name: editing.full_name.trim(), conference: editing.conference || null, logo_url: editing.logo_url || null, instagram_handle: editing.instagram_handle?.trim().replace(/^@/, "") || null, facebook_page: editing.facebook_page?.trim() || null }).eq("id", editing.id);
     if (error) return setMsg(error.message);
     setTeams((p) => p.map((x) => (x.id === editing.id ? editing : x)));
     setEditing(null);
@@ -72,7 +72,7 @@ export default function AdminTeamsManager({ initial }: { initial: DirectoryTeam[
     const { data, error } = await sb.from("team_directory").insert({
       league, ext_id: `c-${crypto.randomUUID().slice(0, 8)}`, name, full_name: name,
       conference: draft.conference.trim() || null, logo_url: draft.logo || null,
-    }).select(TEAM_FIELDS).single();
+    }).select(ADMIN_TEAM_FIELDS).single();
     if (error) return setMsg(error.message);
     setTeams((p) => [...p, data as DirectoryTeam]);
     setDraft({ name: "", logo: "", conference: "" });
@@ -146,6 +146,12 @@ export default function AdminTeamsManager({ initial }: { initial: DirectoryTeam[
             </label>
             <label className="text-xs font-bold">Conference
               <input value={editing.conference ?? ""} maxLength={60} onChange={(e) => setEditing({ ...editing, conference: e.target.value })} className={input} style={border} />
+            </label>
+            <label className="text-xs font-bold">Instagram handle (for social tags)
+              <input value={editing.instagram_handle ?? ""} maxLength={40} placeholder="@school" onChange={(e) => setEditing({ ...editing, instagram_handle: e.target.value })} className={input} style={border} />
+            </label>
+            <label className="text-xs font-bold">Facebook Page name
+              <input value={editing.facebook_page ?? ""} maxLength={80} onChange={(e) => setEditing({ ...editing, facebook_page: e.target.value })} className={input} style={border} />
             </label>
             <LogoUploadField value={editing.logo_url ?? ""} onChange={(u) => setEditing({ ...editing, logo_url: u })} folder="teams" compact />
             <div className="mt-1 flex gap-2">
