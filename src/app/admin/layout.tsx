@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AdminNav from "@/components/AdminNav";
 import PageShell from "@/components/pagetheme/PageShell";
@@ -22,16 +21,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile?.is_admin) {
-    return (
-      <div className="mx-auto max-w-2xl px-5 py-8">
-        <p style={{ color: "var(--text-faint)" }}>You don&apos;t have access to this page.</p>
-        <Link href="/matchups" className="text-sm font-semibold underline" style={{ color: "var(--red)" }}>
-          Back to matchups
-        </Link>
-      </div>
-    );
-  }
+  // Not an admin account: the page simply does not exist for them.
+  if (!profile?.is_admin) notFound();
 
   return (
     <PageShell

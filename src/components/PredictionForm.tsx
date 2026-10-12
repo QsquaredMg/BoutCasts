@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import PredTeam from "@/components/PredTeam";
+import GuestPassCard from "@/components/GuestPassCard";
+import { getGuestToken, rpcMessage, saveGuestProfile, signupHref } from "@/lib/guestPass";
 import { pickFor } from "@/lib/predictions/scoring";
 import { countdown, useNow } from "@/lib/predictions/useNow";
 import { lockAtMs, type PredGame } from "@/lib/predictions/types";
@@ -24,6 +26,30 @@ export default function PredictionForm({
   const [away, setAway] = useState(existing?.pred_away ?? 0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Guest pass: people can pick without an account. null = not loaded yet.
+  const [guest, setGuest] = useState<{ registered: boolean; name: string | null } | null>(null);
+  const [askProfile, setAskProfile] = useState(false);
+  const [guestSaved, setGuestSaved] = useState(false);
+
+  useEffect(() => {
+    if (signedIn) return;
+    let live = true;
+    createClient()
+      .rpc("get_guest_prediction", { p_game: game.id, p_token: getGuestToken() })
+      .then(({ data, error }) => {
+        if (!live || error || !data) return;
+        const d = data as { registered: boolean; name: string | null; pred_home: number | null; pred_away: number | null };
+        setGuest({ registered: d.registered, name: d.name });
+        if (d.pred_home !== null && d.pred_away !== null) {
+          setHome(d.pred_home);
+          setAway(d.pred_away);
+          setGuestSaved(true);
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, [signedIn, game.id]);
 
   const lockMs = lockAtMs(game);
   const closed = now !== 0 && now >= lockMs;
@@ -48,6 +74,17 @@ export default function PredictionForm({
       setMsg({ ok: false, text: "This game can't end in a tie. Pick a winner." });
       return;
     }
+    if (!signedIn) {
+      if (!guest?.registered) {
+        setAskProfile(true);
+        return;
+      }
+      setBusy(true);
+      const err = await sendGuestPick();
+      setBusy(false);
+      if (err) setMsg({ ok: false, text: err });
+      return;
+    }
     setBusy(true);
     const { error } = await createClient().rpc("submit_prediction", { p_game: game.id, p_home: home, p_away: away });
     setBusy(false);
@@ -59,10 +96,31 @@ export default function PredictionForm({
     router.refresh();
   }
 
-  if (!signedIn) {
+  /** Saves a guest pick. Returns an error message, or null when it worked. */
+  async function sendGuestPick(): Promise<string | null> {
+    const { error } = await createClient().rpc("submit_guest_prediction", { p_game: game.id, p_home: home, p_away: away, p_token: getGuestToken() });
+    if (error) return rpcMessage(error.message, "Your pick didn't go through. Please try again.");
+    setGuestSaved(true);
+    setMsg({ ok: true, text: "Pick saved! Make a free account to put your points on the leaderboard." });
+    return null;
+  }
+
+  async function registerAndPick(name: string, email: string): Promise<string | null> {
+    if (pick === "draw" && !game.allow_draw) return "This game can't end in a tie. Pick a winner.";
+    const { error } = await createClient().rpc("register_bout_guest", { p_token: getGuestToken(), p_name: name, p_email: email });
+    if (error) return rpcMessage(error.message, "We couldn't save that. Please try again.");
+    saveGuestProfile({ name, email });
+    setGuest({ registered: true, name });
+    const err = await sendGuestPick();
+    if (err) return err;
+    setAskProfile(false);
+    return null;
+  }
+
+  if (!signedIn && game.is_private) {
     return (
       <div className="bc-card p-5 text-center">
-        <p className="mb-3 text-sm font-semibold">Sign in to make your prediction and earn points.</p>
+        <p className="mb-3 text-sm font-semibold">This is a private game. Sign in to make your prediction.</p>
         <Link href={`/login?next=${encodeURIComponent(`/predictions/${game.id}`)}`} className="bc-btn-solid inline-block rounded-full px-5 py-2 text-sm font-bold">
           Sign in to predict
         </Link>
@@ -118,8 +176,19 @@ export default function PredictionForm({
       </div>
 
       <button type="button" onClick={save} disabled={busy || closed} className="bc-btn-solid w-full rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60">
-        {closed ? "Picks closed" : busy ? "Saving…" : existing ? "Update prediction" : "Lock in prediction"}
+        {closed ? "Picks closed" : busy ? "Saving…" : existing || guestSaved ? "Update prediction" : "Lock in prediction"}
       </button>
+      {!signedIn && askProfile && (
+        <div className="mt-4 grid">
+          <GuestPassCard askEmail headline="Who's picking?" button="Lock in my pick" onSubmit={registerAndPick} onCancel={() => setAskProfile(false)} />
+        </div>
+      )}
+      {!signedIn && !askProfile && (
+        <p className="mt-3 text-xs" style={{ color: "var(--text-faint)" }}>
+          {guest?.registered ? <>Picking as <strong>{guest.name}</strong>. </> : "No account needed. "}
+          <Link href={signupHref(`/predictions/${game.id}`)} className="font-semibold underline">Make a free account</Link> to earn leaderboard points.
+        </p>
+      )}
       {msg && (
         <p role="status" className="mt-3 text-sm font-semibold" style={{ color: msg.ok ? "var(--blue)" : "var(--red)" }}>
           {msg.text}

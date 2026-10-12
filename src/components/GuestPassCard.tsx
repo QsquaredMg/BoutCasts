@@ -42,10 +42,10 @@ export default function GuestPassCard({
     <form ref={ref} onSubmit={go} className="col-span-full rounded-2xl border-2 p-4" style={{ borderColor: "var(--blue)", background: "var(--surface)" }}>
       <p className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{headline}</p>
       <p className="mb-3 text-sm" style={{ color: "var(--text-faint)" }}>
-        No account or password needed.{askEmail ? " We use your email to save your votes so you can finish an account later." : ""}
+        No account or password needed. A nickname is fine.{askEmail ? " We use your email to keep it to one vote per person and to save your activity if you make an account later." : ""}
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
-        <input className={inp} placeholder={askEmail ? "Your name" : "Your name or nickname"} value={name} onChange={(e) => setName(e.target.value)} maxLength={40} autoComplete="given-name" required autoFocus style={{ borderColor: "var(--border)" }} />
+        <input className={inp} placeholder="Your name or nickname" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} autoComplete="given-name" required autoFocus style={{ borderColor: "var(--border)" }} />
         {askEmail && (
           <input className={inp} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} autoComplete="email" required style={{ borderColor: "var(--border)" }} />
         )}
