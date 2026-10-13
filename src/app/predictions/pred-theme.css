@@ -1,0 +1,59 @@
+/* Bout Predictions look: night-stadium headers, scoreboard digits, gold and blue accents.
+   Scoped to .pt so the rest of the site is untouched. Mirrors /predictions/play. */
+.pt{
+  --pt-night:#0a0f2c; --pt-night2:#121a52; --pt-blue:#1b4fe4; --pt-sky:#7ea3ff; --pt-gold:#ffc531; --pt-paper:#f4f6fb;
+  --font-display:var(--cond),"Arial Narrow",sans-serif;
+  --gold:#a97a12;
+}
+.pt h1,.pt h2,.pt h3{font-stretch:normal;text-transform:uppercase;letter-spacing:.01em}
+.pt .pt-h2{font-size:1.7rem;line-height:.98;font-weight:900}
+.pt .pt-h3{font-size:1.35rem;line-height:1;font-weight:900}
+
+.pt .bc-card{background:#fff;border:1px solid #e1e6f2;border-radius:22px;box-shadow:0 14px 34px -24px rgba(10,15,44,.35)}
+.pt a.bc-card{transition:transform .18s ease,box-shadow .18s ease,border-color .18s}
+.pt a.bc-card:hover{transform:translateY(-3px);box-shadow:0 22px 40px -22px rgba(27,79,228,.45);border-color:#b9c9f7}
+.pt .bc-btn-solid{font-weight:800;box-shadow:0 12px 26px -12px rgba(27,79,228,.8)}
+.pt input:focus-visible,.pt select:focus-visible,.pt textarea:focus-visible,.pt button:focus-visible,.pt a:focus-visible{outline:3px solid var(--pt-sky);outline-offset:2px}
+
+/* ---- header band ---- */
+.pt-hero{position:relative;isolation:isolate;background:var(--pt-night);color:#fff;padding:30px 0 40px;overflow:hidden}
+.pt-hero::before{content:"";position:absolute;inset:0;z-index:-1;background:
+  radial-gradient(55% 90% at 90% 0%,rgba(27,79,228,.7),transparent 70%),
+  radial-gradient(40% 70% at 0% 100%,rgba(255,197,49,.12),transparent 70%),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 2px,transparent 2px 96px)}
+.pt-hero::after{content:"";position:absolute;right:-140px;top:-120px;width:420px;height:420px;border:2px solid rgba(255,255,255,.07);border-radius:50%;z-index:-1}
+.pt-in{margin:0 auto;padding:0 20px;max-width:42rem}
+.pt-in.wide{max-width:48rem}
+.pt-back{display:block;width:fit-content;margin-bottom:16px;font-size:.88rem;font-weight:700;color:#b9c8f5}
+.pt-back:hover{color:#fff}
+.pt-kick{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.82rem;color:#cfd9ff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:5px 12px;border-radius:999px;margin-bottom:14px}
+.pt-live{width:8px;height:8px;border-radius:50%;background:#ff4d5e;animation:pt-pulse 1.8s infinite}
+@keyframes pt-pulse{70%{box-shadow:0 0 0 9px rgba(255,77,94,0)}100%{box-shadow:0 0 0 0 rgba(255,77,94,0)}}
+.pt-h1{font-family:var(--cond),"Arial Narrow",sans-serif;font-weight:900;text-transform:uppercase;font-size:clamp(2.6rem,9vw,4.6rem);line-height:.9;letter-spacing:.012em;margin:0 0 12px;color:#fff}
+.pt-h1.sm{font-size:clamp(2.2rem,7vw,3.4rem)}
+.pt-sub{font-size:1.02rem;line-height:1.55;color:#cdd6f5;max-width:34rem;margin:0}
+.pt-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.pt-gold{background:var(--pt-gold);color:var(--pt-night);font-weight:800;padding:12px 24px;border-radius:999px;box-shadow:0 10px 26px -10px rgba(255,197,49,.6);transition:transform .15s}
+.pt-gold:hover{transform:translateY(-2px)}
+.pt-ghost{color:#fff;font-weight:700;padding:11px 20px;border-radius:999px;border:1.5px solid rgba(255,255,255,.35)}
+.pt-ghost:hover{background:rgba(255,255,255,.1)}
+.pt-body{margin:0 auto;padding:30px 20px 56px;max-width:42rem}
+.pt-body.wide{max-width:48rem}
+
+/* ---- scoreboard bits ---- */
+.pt-led{font-family:var(--cond),"Arial Narrow",sans-serif;font-weight:900;font-variant-numeric:tabular-nums;color:var(--pt-gold);background:#05081c;border-radius:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 0 22px -6px rgba(255,197,49,.45);text-shadow:0 0 18px rgba(255,197,49,.5);line-height:1}
+.pt-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:800;font-size:.72rem}
+.pt-info{background:var(--pt-night);color:#dbe3ff;border-radius:22px;padding:18px 20px;font-size:.92rem;line-height:1.55;position:relative;overflow:hidden}
+.pt-info strong{color:#fff}
+.pt-info b{color:var(--pt-gold)}
+.pt-sec{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.pt-sec h2{margin:0}
+.pt-sec a{font-weight:800;font-size:.88rem;color:var(--pt-blue)}
+.pt-medal{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;font-family:var(--cond);font-weight:900;font-size:1.25rem;flex:none;background:#eef1f8;color:#6b738a}
+.pt-medal.m1{background:var(--pt-gold);color:var(--pt-night);box-shadow:0 0 0 3px rgba(255,197,49,.3)}
+.pt-medal.m2{background:#dfe5f2;color:#2a3350}
+.pt-medal.m3{background:#e9b98a;color:#4a2a10}
+@media (prefers-reduced-motion:reduce){.pt-live{animation:none}.pt a.bc-card{transition:none}}
+
+.pt-hero button{color:#e6ecff!important;border-color:rgba(255,255,255,.4)!important;background:transparent}
+.pt-hero button:hover{background:rgba(255,255,255,.1)}

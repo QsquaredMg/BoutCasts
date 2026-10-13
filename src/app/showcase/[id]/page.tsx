@@ -1,3 +1,4 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -8,10 +9,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const supabase = await createClient();
   const { data } = await supabase.from("showcases").select("title, kind").eq("id", id).maybeSingle();
-  return {
-    title: data ? data.title : "Showcase",
-    description: data?.kind === "debate" ? "Watch the panel debate and vote for the best debater on BoutCasts." : "Watch every group in one video and vote for your favorite on BoutCasts.",
-  };
+  return cardMetadata("showcase", id, data ? data.title : "Showcase");
 }
 
 export default async function ShowcasePage({ params }: { params: Promise<{ id: string }> }) {

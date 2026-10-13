@@ -1,17 +1,6 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { isPublicBout, PUBLIC_BOUT_FIELDS } from "@/lib/publicBouts";
 import { createClient } from "@/lib/supabase/server";
-
-export const metadata: Metadata = {
-  title: "Explore Live Votes",
-  description:
-    "Vote in live polls, elections, talent shows and battles happening on BoutCasts right now — or start your own.",
-  openGraph: {
-    title: "Explore Live Votes on BoutCasts",
-    description: "Vote in live polls, elections, talent shows and battles happening right now.",
-  },
-};
 
 type ExploreRow = {
   id: string;
@@ -115,12 +104,7 @@ function boutCategory(c: LiveBout["categories"]) {
   return Array.isArray(c) ? (c[0]?.name ?? null) : c.name;
 }
 
-export default async function ExplorePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string }>;
-}) {
-  const { category: categoryFilter } = await searchParams;
+export default async function LiveEventsView({ categoryFilter }: { categoryFilter?: string }) {
   const supabase = await createClient();
   const { data } = await supabase.rpc("get_explore_live_votes", { p_limit: 60 });
   const rows = (data ?? []) as ExploreRow[];
@@ -161,25 +145,14 @@ export default async function ExplorePage({
   const now = Date.now();
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-8">
-      <p className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: "var(--red)" }}>
-        Explore
-      </p>
-      <h1 className="mb-2 text-3xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Happening now
-      </h1>
-      <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
-        Head-to-head matchups, polls, elections and talent shows open to everyone. Tap one to watch and
-        cast your vote.
-      </p>
-
+    <div>
       {catChips.length > 0 && (
         <div className="mb-6 flex flex-wrap gap-2">
-          <Link href="/explore" className={`bc-chip${!categoryFilter ? " active" : ""}`}>
+          <Link href="/discover?view=events" className={`bc-chip${!categoryFilter ? " active" : ""}`}>
             All
           </Link>
           {catChips.map(([id, name]) => (
-            <Link key={id} href={`/explore?category=${id}`} className={`bc-chip${categoryFilter === id ? " active" : ""}`}>
+            <Link key={id} href={`/discover?view=events&category=${id}`} className={`bc-chip${categoryFilter === id ? " active" : ""}`}>
               {name}
             </Link>
           ))}
@@ -192,7 +165,7 @@ export default async function ExplorePage({
             <h2 className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
               Live matchups
             </h2>
-            <Link href="/matchups" className="text-xs font-bold" style={{ color: "var(--red)" }}>
+            <Link href="/discover?view=matchups" className="text-xs font-bold" style={{ color: "var(--red)" }}>
               See all →
             </Link>
           </div>

@@ -9,6 +9,7 @@ import type { NextConfig } from "next";
 const securityHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), browsing-topics=()" },
@@ -17,6 +18,19 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
+  },
+  // Matchups and Explore now live inside Discover. Old links keep working.
+  async redirects() {
+    return [
+      { source: "/matchups", destination: "/discover?view=matchups", permanent: true },
+      {
+        source: "/explore",
+        has: [{ type: "query", key: "category", value: "(?<category>.+)" }],
+        destination: "/discover?view=events&category=:category",
+        permanent: true,
+      },
+      { source: "/explore", destination: "/discover?view=events", permanent: true },
+    ];
   },
 };
 

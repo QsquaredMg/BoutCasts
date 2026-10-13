@@ -5,6 +5,7 @@ import Link from "next/link";
 import LogoUploadField from "@/components/LogoUploadField";
 import { createClient } from "@/lib/supabase/client";
 import type { Sponsor, Category, Bout } from "@/lib/types";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 type BoutRow = Pick<Bout, "id" | "title" | "status" | "sponsor_id">;
 
@@ -201,7 +202,7 @@ export default function SponsorManager({
                   )}
                   {s.website_url && (
                     <a
-                      href={s.website_url}
+                      href={safeHttpUrl(s.website_url) ?? undefined}
                       target="_blank"
                       rel="noreferrer"
                       className="ml-2 text-xs text-neutral-400 hover:underline"

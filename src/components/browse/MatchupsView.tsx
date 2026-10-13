@@ -1,5 +1,4 @@
 import { BOUTBUCKS_ENABLED } from "@/lib/features";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { isPlaceholderName, isPublicBout } from "@/lib/publicBouts";
 import ShowcaseCards from "@/components/showcases/ShowcaseCards";
@@ -11,18 +10,13 @@ import StopPropagation from "@/components/StopPropagation";
 import SponsorBadge from "@/components/SponsorBadge";
 import AdBanner from "@/components/AdBanner";
 
-export const metadata: Metadata = {
-  title: "Matchups — vote on today’s bouts",
-  description: "Head-to-head band battles, dance-offs and showdowns live right now. Watch both sides and vote for who won.",
-};
-
 const STATUS_LABEL: Record<Bout["status"], string> = {
   live: "LIVE",
   upcoming: "UPCOMING",
   final: "FINAL",
 };
 
-export default async function MatchupsPage() {
+export default async function MatchupsView() {
   const supabase = await createClient();
 
   const { data: allBouts, error } = await supabase
@@ -112,17 +106,7 @@ export default async function MatchupsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-5 py-8">
-      <h1
-        className="mb-1 text-2xl font-bold"
-        style={{ fontFamily: "var(--font-display)", color: "var(--text)" }}
-      >
-        Matchups
-      </h1>
-      <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Head-to-head clip battles. Vote on the current round&apos;s winner.
-      </p>
-
+    <div>
       <AdBanner />
 
       <ShowcaseCards kind="bout" heading="Showcases — one video, vote for your favorite" />

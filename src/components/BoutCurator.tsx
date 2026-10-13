@@ -6,6 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import type { Bout, Category, Subcategory } from "@/lib/types";
 import InstrumentalPicker from "@/components/InstrumentalPicker";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { isoToWall, wallToIso } from "@/lib/time/zones";
+import { useNow } from "@/lib/predictions/useNow";
+
+const hoursFromNowIso = (h: number) => new Date(Date.now() + h * 3600 * 1000).toISOString();
 
 type SubmissionRow = {
   id: string;
@@ -52,6 +58,7 @@ export default function BoutCurator({
   submissions: SubmissionRow[];
   tallyByBout: Record<string, { a: number; b: number }>;
 }) {
+  const nowMs = useNow();
   const supabase = createClient();
   const [bouts, setBouts] = useState(initialBouts);
   const [error, setError] = useState<string | null>(null);
@@ -78,15 +85,6 @@ export default function BoutCurator({
 
   function categoryName(id: string) {
     return categories.find((c) => c.id === id)?.name ?? "Uncategorized";
-  }
-
-  // Voting windows are capped at 42h server-side (a check constraint on
-  // bouts.closes_at); this just reflects that cap in the datetime picker
-  // so the admin isn't surprised by a rejected save.
-  function maxClosesAtLocal(from: Date): string {
-    const max = new Date(from.getTime() + 42 * 60 * 60 * 1000);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${max.getFullYear()}-${pad(max.getMonth() + 1)}-${pad(max.getDate())}T${pad(max.getHours())}:${pad(max.getMinutes())}`;
   }
 
   // Creates a new `submissions` row for a clip the admin just uploaded
@@ -188,7 +186,7 @@ export default function BoutCurator({
         competitor_b_name: form.competitor_b_name.trim(),
         competitor_b_submission_id: bSubmissionId,
         status: form.status,
-        closes_at: form.closes_at ? new Date(form.closes_at).toISOString() : null,
+        closes_at: form.closes_at ? wallToIso(form.closes_at, getZone()) : null,
         round_theme_name: form.round_theme_name.trim() || null,
         round_theme_rules: form.round_theme_rules.trim() || null,
         ...(form.instrumental_id ? { instrumental_id: form.instrumental_id } : {}),
@@ -221,7 +219,7 @@ export default function BoutCurator({
       competitor_b_submission_id: b.competitor_b_submission_id ?? "",
       competitor_b_clip: { sourceType: "upload", sourceUrl: null } as ClipSourceValue,
       status: b.status,
-      closes_at: b.closes_at ? b.closes_at.slice(0, 16) : "",
+      closes_at: b.closes_at ? isoToWall(b.closes_at, getZone()) : "",
       round_theme_name: b.round_theme_name ?? "",
       round_theme_rules: b.round_theme_rules ?? "",
       instrumental_id: b.instrumental_id ?? "",
@@ -277,7 +275,7 @@ export default function BoutCurator({
         competitor_b_name: editForm.competitor_b_name.trim(),
         competitor_b_submission_id: bSubmissionId,
         status: editForm.status,
-        closes_at: editForm.closes_at ? new Date(editForm.closes_at).toISOString() : null,
+        closes_at: editForm.closes_at ? wallToIso(editForm.closes_at, getZone()) : null,
         round_theme_name: editForm.round_theme_name.trim() || null,
         round_theme_rules: editForm.round_theme_rules.trim() || null,
         ...(editForm.instrumental_id || (bouts.find((x) => x.id === id)?.instrumental_id ?? null)
@@ -315,6 +313,26 @@ export default function BoutCurator({
       return;
     }
     setBouts((prev) => prev.map((b) => (b.id === id ? { ...b, status: "final" } : b)));
+  }
+
+  // Reopen a closed bout, or give a locked live bout (past its close time) more time.
+  async function reopenBout(id: string, wasFinal: boolean) {
+    const msg = wasFinal
+      ? "Reopen this bout for 24 more hours? The winner and any winner points are taken back, and it is decided again when it closes."
+      : "Give this bout 24 more hours of voting?";
+    if (!confirm(msg)) return;
+    setError(null);
+    setBusyId(id);
+    const { error } = await supabase.rpc("admin_reopen_bout", { p_bout_id: id, p_hours: 24 });
+    setBusyId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    const closesAt = hoursFromNowIso(24);
+    setBouts((prev) =>
+      prev.map((b) => (b.id === id ? ({ ...b, status: "live", winner_side: null, closes_at: closesAt } as Bout) : b))
+    );
   }
 
   async function deleteBout(id: string) {
@@ -520,13 +538,11 @@ export default function BoutCurator({
               <option value="upcoming">Upcoming</option>
               <option value="live">Live</option>
             </select>
-            <input
-              type="datetime-local"
+            <ZonedDateTimeInput
               value={form.closes_at}
-              onChange={(e) => setForm((f) => ({ ...f, closes_at: e.target.value }))}
-              max={maxClosesAtLocal(new Date())}
+              onChange={(v) => setForm((f) => ({ ...f, closes_at: v }))}
               className="rounded border border-neutral-300 px-3 py-2 text-sm"
-              title="Voting closes at (max 42h from now)"
+              title="Voting closes at (admins have no time limit)"
             />
             <input
               type="text"
@@ -627,6 +643,15 @@ export default function BoutCurator({
                         >
                           Edit
                         </button>
+                        {(b.status === "final" || (b.status === "live" && !!b.closes_at && nowMs !== 0 && new Date(b.closes_at).getTime() < nowMs)) && (
+                          <button
+                            onClick={() => reopenBout(b.id, b.status === "final")}
+                            disabled={busyId === b.id}
+                            className="rounded border border-green-300 px-3 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50"
+                          >
+                            {b.status === "final" ? "Reopen voting" : "Extend 24h"}
+                          </button>
+                        )}
                         {b.status !== "final" && (
                           <button
                             onClick={() => closeBout(b.id)}
@@ -812,12 +837,14 @@ export default function BoutCurator({
                           <option value="live">Live</option>
                           <option value="final">Final</option>
                         </select>
-                        <input
-                          type="datetime-local"
+                        <ZonedDateTimeInput
                           value={editForm.closes_at}
                           onChange={(e) => setEditForm((f) => ({ ...f, closes_at: e.target.value }))}
                           className="rounded border border-neutral-300 px-3 py-2 text-sm"
                           title="Voting closes at (admins can set any time)"
+                          onChange={(v) => setEditForm((f) => ({ ...f, closes_at: v }))}
+                          className="rounded border border-neutral-300 px-3 py-2 text-sm"
+                          title="Voting closes at (admins have no time limit)"
                         />
                         <input
                           type="text"

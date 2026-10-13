@@ -14,6 +14,8 @@ import InstrumentalPlayer from "@/components/InstrumentalPlayer";
 import type { Instrumental } from "@/lib/types";
 import AdBanner from "@/components/AdBanner";
 import { getClipSourceTag, getEmbedInfo } from "@/lib/clipSource";
+import LocalTime from "@/components/LocalTime";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // The full "duel" card — vote bars, sponsor banner, prize pool, comments —
 // shared between the standalone /bout/[id] page and the BoutCard homepage,
@@ -203,7 +205,7 @@ export default async function FeaturedBout({
       {sponsor && (
         <div className="mb-2 text-xs font-medium" style={{ color: "var(--text-faint)" }}>
           {sponsor.website_url ? (
-            <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="underline">
+            <a href={safeHttpUrl(sponsor.website_url) ?? undefined} target="_blank" rel="noreferrer" className="underline">
               <SponsorBadge sponsor={sponsor} />
             </a>
           ) : (
@@ -233,7 +235,7 @@ export default async function FeaturedBout({
 
       {votingOpen && bout.closes_at && (
         <p className="mb-4 text-center text-xs" style={{ color: "var(--text-faint)" }}>
-          Voting closes {new Date(bout.closes_at).toLocaleString()}
+          Voting closes <LocalTime iso={bout.closes_at} withYear />
         </p>
       )}
 
@@ -359,6 +361,7 @@ export default async function FeaturedBout({
           </a>
           <ShareButton
             track={{ type: "bout", id: bout.id }}
+            imageUrl={`/api/bouts/${bout.id}/vote-card`}
             title={bout.title}
             text={`${bout.competitor_a_name} vs ${bout.competitor_b_name} — cast your vote, or start your own Bout, on BoutCasts!`}
           />

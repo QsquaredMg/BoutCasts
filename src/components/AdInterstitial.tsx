@@ -4,6 +4,7 @@ import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import AdVideo from "@/components/AdVideo";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 type AdPayload = {
   id: string;
@@ -95,8 +96,8 @@ export default function AdInterstitial() {
     } catch {
       // ignore tracking failures — the click-through still happens
     }
-    if (ad!.clickUrl) {
-      window.open(ad!.clickUrl, "_blank", "noopener,noreferrer");
+    if (safeHttpUrl(ad!.clickUrl)) {
+      window.open(safeHttpUrl(ad!.clickUrl)!, "_blank", "noopener,noreferrer");
     }
   }
 

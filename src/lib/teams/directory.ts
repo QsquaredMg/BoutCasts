@@ -14,6 +14,8 @@ export type DirectoryTeam = {
   color: string | null;
   logo_url: string | null;
   hidden: boolean;
+  instagram_handle?: string | null;
+  facebook_page?: string | null;
 };
 
 export const LEAGUE_LABEL: Record<Exclude<TeamLeague, "custom">, string> = {
@@ -24,6 +26,8 @@ export const LEAGUE_LABEL: Record<Exclude<TeamLeague, "custom">, string> = {
 };
 
 export const TEAM_FIELDS = "id, league, ext_id, name, full_name, abbr, conference, color, logo_url, hidden";
+/** Admin-only: includes social accounts (needs docs/sql/social_launch_posts.sql). */
+export const ADMIN_TEAM_FIELDS = `${TEAM_FIELDS}, instagram_handle, facebook_page`;
 
 /** Makes a stored logo path usable everywhere (graphics, emails, other pages). */
 export function absoluteLogo(url: string | null | undefined, origin?: string): string {

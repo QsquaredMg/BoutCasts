@@ -93,7 +93,14 @@ export default function AfterVote({
       </p>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <ShareButton title={title} text={shareText} label="📣 Share your vote" big track={track} />
+        <ShareButton
+          title={title}
+          text={shareText}
+          label="📣 Share your vote"
+          big
+          track={track}
+          imageUrl={track?.type === "bout" ? `/api/bouts/${track.id}/vote-card` : track?.type === "live_vote" ? `/api/share-card/livevote/${track.id}` : track?.type === "showcase" ? `/api/share-card/showcase/${track.id}` : undefined}
+        />
         {graphicUrl && (
           <a
             href={graphicUrl}

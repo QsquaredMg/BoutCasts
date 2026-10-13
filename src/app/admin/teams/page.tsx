@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import AdminTeamsManager from "@/components/AdminTeamsManager";
-import { TEAM_FIELDS, type DirectoryTeam } from "@/lib/teams/directory";
+import { ADMIN_TEAM_FIELDS, type DirectoryTeam } from "@/lib/teams/directory";
 
 export const metadata: Metadata = { title: "Admin teams", description: "Manage the NCAA, NFL, NBA and MLB team directory used when creating bouts and predictions." };
 
 export default async function AdminTeamsPage() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("team_directory").select(TEAM_FIELDS).order("league").order("name").limit(2000);
+  const { data, error } = await supabase.from("team_directory").select(ADMIN_TEAM_FIELDS).order("league").order("name").limit(2000);
   return (
     <div>
       <h2 className="mb-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Team directory</h2>

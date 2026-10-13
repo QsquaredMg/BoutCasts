@@ -9,6 +9,9 @@ import LogoUploadField from "@/components/LogoUploadField";
 import TeamPicker from "@/components/TeamPicker";
 import { normalizeEmbedInput } from "@/lib/clipSource";
 import { parseClock, type ShowcaseKind } from "@/lib/showcases";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 type Category = { id: string; name: string };
 type Sub = { id: string; name: string; category_id: string };
@@ -87,7 +90,7 @@ export default function NewShowcasePage() {
       p_scoring_mode: scoring,
       p_crowd_weight: crowdWeight,
       p_hide_tally: hideTally,
-      p_closes_at: closesAt ? new Date(closesAt).toISOString() : null,
+      p_closes_at: closesAt ? wallToIso(closesAt, getZone()) : null,
       p_choices: parsed,
     });
     setSaving(false);
@@ -248,7 +251,7 @@ export default function NewShowcasePage() {
         <label className={label} style={{ color: "var(--text-dim)" }}>
           Voting closes (optional — leave empty to close it yourself)
         </label>
-        <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className={input} style={inputStyle} />
+        <ZonedDateTimeInput value={closesAt} onChange={setClosesAt} className={input} style={inputStyle} />
       </div>
       <label className="flex cursor-pointer items-center gap-2.5 text-sm">
         <input type="checkbox" className="h-4 w-4 accent-[var(--red)]" checked={hideTally} onChange={(e) => setHideTally(e.target.checked)} />

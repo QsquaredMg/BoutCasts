@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { getEmbedInfo } from "@/lib/clipSource";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // Plays a "link"-type submission (YouTube, TikTok, Instagram, Vimeo,
 // SoundCloud, Spotify) inline, right on the bout page, instead of sending
@@ -42,7 +43,7 @@ export default function EmbeddedClipPlayer({
           cite={info.url}
           style={{ maxWidth: "100%", minWidth: 240, margin: 0 }}
         >
-          <a href={info.url} target="_blank" rel="noreferrer">
+          <a href={safeHttpUrl(info.url) ?? undefined} target="_blank" rel="noreferrer">
             {label}
           </a>
         </blockquote>
@@ -60,7 +61,7 @@ export default function EmbeddedClipPlayer({
         data-instgrm-version="14"
         style={{ maxWidth: "100%", minWidth: 240, margin: 0 }}
       >
-        <a href={info.url} target="_blank" rel="noreferrer">
+        <a href={safeHttpUrl(info.url) ?? undefined} target="_blank" rel="noreferrer">
           {label}
         </a>
       </blockquote>

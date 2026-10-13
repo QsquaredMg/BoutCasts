@@ -21,7 +21,10 @@ export default async function SponsorPage({
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Put your brand in front of an engaged, competitive crowd. Pick a tier below to get
-        started — we&apos;ll follow up to activate your logo, links, and placement.
+        started — we&apos;ll follow up to activate your logo, links, and placement.{" "}
+        <Link href="/sponsor/play" className="font-semibold underline">
+          See what sponsors get
+        </Link>
       </p>
 
       {checkout === "success" && (

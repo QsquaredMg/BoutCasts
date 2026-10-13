@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 type AdPayload = {
   id: string;
@@ -71,7 +72,7 @@ export default function ClipPlayer({
     } catch {
       // ignore tracking failures
     }
-    if (ad.clickUrl) window.open(ad.clickUrl, "_blank", "noopener,noreferrer");
+    if (safeHttpUrl(ad.clickUrl)) window.open(safeHttpUrl(ad.clickUrl)!, "_blank", "noopener,noreferrer");
   }
 
   if (!adChecked) {

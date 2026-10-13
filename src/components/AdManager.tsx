@@ -5,6 +5,9 @@ import { prepareImage, isPhotoFile, UnsupportedPhotoError } from "@/lib/prepareI
 import { createClient } from "@/lib/supabase/client";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import { normalizeEmbedInput } from "@/lib/clipSource";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 type Sponsor = { id: string; name: string };
 
@@ -128,8 +131,8 @@ export default function AdManager({
         headline: form.headline.trim() || null,
         weight: form.weight,
         max_impressions: form.max_impressions ? Math.max(1, Math.floor(Number(form.max_impressions))) : null,
-        starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
-        ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
+        starts_at: form.starts_at ? wallToIso(form.starts_at, getZone()) : null,
+        ends_at: form.ends_at ? wallToIso(form.ends_at, getZone()) : null,
       })
       .select()
       .single();
@@ -352,19 +355,17 @@ export default function AdManager({
           <div className="flex flex-wrap gap-3">
             <label className="flex flex-col gap-1 text-xs text-neutral-500">
               Flight starts (optional)
-              <input
-                type="datetime-local"
+              <ZonedDateTimeInput
                 value={form.starts_at}
-                onChange={(e) => setForm((f) => ({ ...f, starts_at: e.target.value }))}
+                onChange={(v) => setForm((f) => ({ ...f, starts_at: v }))}
                 className="rounded border border-neutral-300 px-3 py-2 text-sm"
               />
             </label>
             <label className="flex flex-col gap-1 text-xs text-neutral-500">
               Flight ends (optional)
-              <input
-                type="datetime-local"
+              <ZonedDateTimeInput
                 value={form.ends_at}
-                onChange={(e) => setForm((f) => ({ ...f, ends_at: e.target.value }))}
+                onChange={(v) => setForm((f) => ({ ...f, ends_at: v }))}
                 className="rounded border border-neutral-300 px-3 py-2 text-sm"
               />
             </label>

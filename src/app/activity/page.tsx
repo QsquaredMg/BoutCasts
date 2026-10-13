@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import PushOptIn from "@/components/PushOptIn";
 import MarkNotificationsRead from "@/components/MarkNotificationsRead";
 import type { Notification } from "@/lib/types";
+import { safeAppLink } from "@/lib/safeUrl";
 
 export const metadata: Metadata = { title: "Activity", robots: { index: false } };
 
@@ -88,7 +89,7 @@ export default async function ActivityPage() {
             );
             const border = i > 0 ? { borderTop: "1px solid var(--border)" } : undefined;
             return n.link ? (
-              <Link key={n.id} href={n.link} className="transition-colors hover:bg-[var(--surface-2)]" style={border}>
+              <Link key={n.id} href={safeAppLink(n.link) ?? "/activity"} className="transition-colors hover:bg-[var(--surface-2)]" style={border}>
                 {body}
               </Link>
             ) : (

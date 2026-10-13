@@ -346,7 +346,7 @@ export default function SchoolBallotDemo({ real }: { real: DemoRealEvent | null 
       </div>
 
       {real && sIdx === 0 && isJc && (
-        <Link href={`/live-vote/${real.id}`} className="mt-4 inline-block text-[14px] font-bold underline" style={{ color: "#fff" }}>
+        <Link href={`/vote/${real.id}`} className="mt-4 inline-block text-[14px] font-bold underline" style={{ color: "#fff" }}>
           Vote on the real JC High sample ballot
         </Link>
       )}

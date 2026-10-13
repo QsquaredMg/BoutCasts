@@ -261,8 +261,8 @@ export default function NewLiveVoteEventPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-5 py-8">
-      <h1 className="mb-2 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+    <div className="mx-auto max-w-3xl px-5 py-8">
+      <h1 className="mb-2">
         Create a Live Vote Event
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>

@@ -33,7 +33,7 @@ export default function SignInCard({
               {eyebrow}
             </p>
           )}
-          <h1 className="text-3xl leading-[0.95] sm:text-4xl" style={{ fontWeight: 900, textTransform: "uppercase", fontStretch: "112%" }}>
+          <h1 className="text-3xl leading-[0.95] sm:text-4xl" style={{ fontWeight: 900, textTransform: "uppercase", fontStretch: "112%", color: "#fff" }}>
             {title}
           </h1>
           <p className="mt-3 text-sm leading-relaxed" style={{ color: "#c9d0e0" }}>

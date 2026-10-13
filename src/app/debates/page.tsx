@@ -55,7 +55,10 @@ export default async function DebatesPage() {
       </div>
       <p className="mb-7 text-sm" style={{ color: "var(--text-dim)" }}>
         Pick a side, answer on video in 3 minutes or less, and watch your opponent before you respond. The crowd or a
-        panel of judges picks the winner.
+        panel of judges picks the winner.{" "}
+        <Link href="/debates/play" className="font-semibold underline" style={{ color: "var(--red)" }}>
+          How debates work
+        </Link>
       </p>
 
       <ShowcaseCards kind="debate" heading="Panel debates — one video, vote for the best debater" />

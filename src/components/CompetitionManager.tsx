@@ -9,6 +9,7 @@ import ClipSourceTag from "@/components/ClipSourceTag";
 import ShareEventModal from "@/components/ShareEventModal";
 import FileUploadPicker from "@/components/FileUploadPicker";
 import type { Category } from "@/lib/types";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // Organizer's control room for one competition: share the entry link,
 // approve entries, build brackets, and follow the bouts.
@@ -322,7 +323,7 @@ export default function CompetitionManager({ categoryId }: { categoryId: string 
                   <ClipSourceTag sourceType={e.source_type} sourceUrl={e.source_url} />
                 </div>
                 {e.source_url && (
-                  <a href={e.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold underline" style={{ color: "var(--red)" }}>
+                  <a href={safeHttpUrl(e.source_url) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold underline" style={{ color: "var(--red)" }}>
                     Review clip ↗
                   </a>
                 )}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
 import ConfirmCodeForm from "@/components/ConfirmCodeForm";
+import PasswordlessAuth from "@/components/PasswordlessAuth";
 import { isSchoolEmail, SCHOOL_EMAIL_TIP } from "@/lib/schoolEmail";
 import { classifyAuthError, friendlyAuthError, LOGIN_NOTICES, type AuthProblem } from "@/lib/authMessages";
 
@@ -33,6 +34,8 @@ function LoginForm() {
   const next = safeNext(searchParams.get("next"));
   // No specific destination asked for → send people to their own profile.
   const hasNext = !!searchParams.get("next") && next !== "/";
+  // Only offer "keep going as a guest" where a guest can really do something.
+  const guestOk = next === "/" || /^\/(predictions\/[0-9a-f-]{36}|bout|vote|debates|showcase|discover)(\/|$|\?)/i.test(next);
 
   useEffect(() => {
     // ?notice=... from our auth routes, or #error_code=... straight from Supabase.
@@ -91,9 +94,12 @@ function LoginForm() {
 
   return (
     <div className="mx-auto max-w-sm px-5 py-12">
-      <h1 className="mb-6 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Sign in
+      <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+        Sign in or sign up
       </h1>
+      <p className="mb-5 text-sm" style={{ color: "var(--text-dim)" }}>
+        One step: pick a way below. If you&apos;re new, it makes your account for you.
+      </p>
       {n && (
         <p
           className="mb-4 rounded-xl border p-3 text-sm"
@@ -107,6 +113,12 @@ function LoginForm() {
           {n.text}
         </p>
       )}
+      <PasswordlessAuth next={next} hasNext={hasNext} initialEmail={searchParams.get("email") ?? ""} />
+      <details className="mt-5 rounded-xl border p-3" style={{ borderColor: "var(--border)" }} open={!!error || problem !== null}>
+        <summary className="cursor-pointer text-sm font-semibold" style={{ color: "var(--text-dim)" }}>
+          Use a password instead
+        </summary>
+        <div className="mt-4">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="email"
@@ -176,10 +188,21 @@ function LoginForm() {
           Forgot password?
         </Link>
       </p>
-      <p className="mt-4 text-sm" style={{ color: "var(--text-faint)" }}>
-        No account?{" "}
-        <Link href={next !== "/" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-semibold underline" style={{ color: "var(--red)" }}>
-          Sign up
+        </div>
+      </details>
+      {guestOk && (
+        <p className="mt-5 text-sm" style={{ color: "var(--text-faint)" }}>
+          Just here to vote or predict?{" "}
+          <Link href={next} className="font-semibold underline" style={{ color: "var(--red)" }}>
+            Keep going as a guest
+          </Link>
+          . No account needed.
+        </p>
+      )}
+      <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>
+        Want a password account?{" "}
+        <Link href={next !== "/" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="underline">
+          Sign up with a password
         </Link>
       </p>
     </div>

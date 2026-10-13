@@ -6,6 +6,8 @@ import ClipPlayer from "@/components/ClipPlayer";
 import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import { displayClip } from "@/lib/liveVoteEvents/displayClip";
 import JudgeOptionNotes, { type JudgeNote } from "@/components/JudgeOptionNotes";
+import LocalTime from "@/components/LocalTime";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // Judge scoring screen, reached by a private link. Every tap saves right
 // away, so a judge can close the tab and pick up where they left off.
@@ -174,7 +176,7 @@ export default function JudgePortal({ token }: { token: string }) {
           <>
             Score each contestant from 1 (low) to 10 (high). Every tap saves automatically — you can
             change scores until judging closes
-            {event.closes_at ? ` at ${new Date(event.closes_at).toLocaleString()}` : ""}.
+            {event.closes_at ? <> at <LocalTime iso={event.closes_at} withYear /></> : ""}.
           </>
         )}
         {!open && event.status !== "draft" && "Judging is closed. Thanks for judging!"}
@@ -199,7 +201,7 @@ export default function JudgePortal({ token }: { token: string }) {
               {clip?.kind === "hosted" && <ClipPlayer src={clip.url} isAudio={clip.isAudio} label={option.name} />}
               {clip?.kind === "embed" && <EmbeddedClipPlayer sourceUrl={clip.url} label={option.name} />}
               {clip?.kind === "link" && (
-                <a href={clip.url} target="_blank" rel="noreferrer" className="text-sm font-semibold underline" style={{ color: "var(--red)" }}>
+                <a href={safeHttpUrl(clip.url) ?? undefined} target="_blank" rel="noreferrer" className="text-sm font-semibold underline" style={{ color: "var(--red)" }}>
                   Watch clip ↗
                 </a>
               )}

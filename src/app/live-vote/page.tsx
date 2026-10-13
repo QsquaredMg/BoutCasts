@@ -74,7 +74,7 @@ export default function LiveVoteEventsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-8">
+    <div className="mx-auto max-w-3xl px-5 py-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
@@ -87,10 +87,10 @@ export default function LiveVoteEventsPage() {
         </div>
         <Link
           href="/live-vote/new"
-          className="rounded-full px-4 py-2 text-sm font-bold text-white"
-          style={{ background: "var(--red)" }}
+          className="lp-btn px-6 py-3 text-sm"
+          style={{ background: "#e0a93b", color: "#3b0d1f", boxShadow: "0 12px 24px -12px rgba(224,169,59,.9)" }}
         >
-          + Create event
+          + Create a vote
         </Link>
       </div>
 
@@ -109,9 +109,8 @@ export default function LiveVoteEventsPage() {
                 onClick={() => setTab(key)}
                 className="flex-1 rounded-full px-3 py-2 text-sm font-semibold"
                 style={{
-                  background: tab === key ? "var(--surface-2)" : "transparent",
-                  color: tab === key ? "var(--text)" : "var(--text-dim)",
-                  boxShadow: tab === key ? "inset 0 0 0 1px var(--border)" : "none",
+                  background: tab === key ? "#7a1f3d" : "transparent",
+                  color: tab === key ? "#fff" : "var(--text-dim)",
                 }}
               >
                 {label} ({n})
@@ -142,8 +141,8 @@ export default function LiveVoteEventsPage() {
                   <Link
                     key={event.id}
                     href={`/live-vote/${event.id}`}
-                    className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 hover:opacity-90"
-                    style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                    className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 transition hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)", borderLeft: "5px solid #7a1f3d" }}
                   >
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{event.title}</p>
@@ -179,13 +178,13 @@ export default function LiveVoteEventsPage() {
             ([key, tier]) => (
               <div
                 key={key}
-                className="rounded-xl border p-4"
-                style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                className="rounded-2xl border p-4"
+                style={{ borderColor: "var(--border)", background: "var(--surface)", borderTop: "4px solid #e0a93b" }}
               >
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
+                <p className="text-sm font-extrabold" style={{ color: "var(--text-dim)" }}>
                   {tier.label}
                 </p>
-                <p className="mt-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+                <p className="mt-1 text-3xl font-black" style={{ fontFamily: "var(--font-hero), sans-serif", fontStretch: "110%", color: "#7a1f3d" }}>
                   {tierPriceLabel(key)}
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
@@ -205,7 +204,7 @@ export default function LiveVoteEventsPage() {
 
       <Link
         href="/competitions"
-        className="mb-8 flex items-center justify-between gap-3 rounded-xl border p-4 hover:opacity-90"
+        className="mb-8 flex items-center justify-between gap-3 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md"
         style={{ borderColor: "var(--border)", background: "var(--surface)" }}
       >
         <span>
@@ -221,7 +220,7 @@ export default function LiveVoteEventsPage() {
 
       <Link
         href="/org"
-        className="mb-8 flex items-center justify-between gap-3 rounded-xl border p-4 hover:opacity-90"
+        className="mb-8 flex items-center justify-between gap-3 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md"
         style={{ borderColor: "var(--border)", background: "var(--surface)" }}
       >
         <span>

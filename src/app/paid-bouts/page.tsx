@@ -37,7 +37,10 @@ export default async function PaidBoutsPage() {
       </div>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
         Competitions with an entry fee. Every bout publishes its rules, how winners are chosen and exactly how the money is paid out.
-        If a bout doesn&apos;t reach its minimum entries, everyone is refunded.
+        If a bout doesn&apos;t reach its minimum entries, everyone is refunded.{" "}
+        <Link href="/paid-bouts/play" className="font-semibold underline">
+          See how it works
+        </Link>
       </p>
       {!canCreate && (
         <p className="mb-6 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>

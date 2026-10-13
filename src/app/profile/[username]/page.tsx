@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cloutTierFor } from "@/lib/clout";
 import FollowButton from "@/components/FollowButton";
+import BlockUserButton from "@/components/BlockUserButton";
+import ReportButton from "@/components/ReportButton";
 import AppealButton from "@/components/AppealButton";
 import type { Badge, UserBadge, PointEvent, Submission } from "@/lib/types";
 import ClipSourceTag from "@/components/ClipSourceTag";
@@ -57,6 +59,16 @@ export default async function ProfilePage({
   const { data: userData } = await supabase.auth.getUser();
   const viewer = userData.user;
   const isOwnProfile = viewer?.id === profile.id;
+  let viewerBlocked = false;
+  if (viewer && !isOwnProfile) {
+    const { data: blockRow } = await supabase
+      .from("user_blocks")
+      .select("blocked_id")
+      .eq("blocker_id", viewer.id)
+      .eq("blocked_id", profile.id)
+      .maybeSingle();
+    viewerBlocked = !!blockRow;
+  }
 
   const [
     { data: badgeRows },
@@ -171,11 +183,24 @@ export default async function ProfilePage({
           </p>
         </div>
         {isOwnProfile ? (
-          <span className="rounded-lg border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}>
-            This is you
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="rounded-lg border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}>
+              This is you
+            </span>
+            <Link href="/settings" className="text-sm font-semibold underline" style={{ color: "var(--text-faint)" }}>
+              Settings
+            </Link>
+          </div>
         ) : (
-          <FollowButton targetId={profile.id} initialFollowing={!!viewerFollow} />
+          <div className="flex items-center gap-3">
+            <FollowButton targetId={profile.id} initialFollowing={!!viewerFollow} />
+            {viewer && (
+              <>
+                <ReportButton targetType="user" targetId={profile.id} />
+                <BlockUserButton targetId={profile.id} targetName={profile.username} initialBlocked={viewerBlocked} />
+              </>
+            )}
+          </div>
         )}
       </div>
 

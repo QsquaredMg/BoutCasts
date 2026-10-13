@@ -5,6 +5,9 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useNow } from "@/lib/predictions/useNow";
 import type { PredGame } from "@/lib/predictions/types";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
 // Organizer tools: enter the final score, move the start time, or cancel.
 export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGame; isAdmin?: boolean }) {
@@ -13,6 +16,7 @@ export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGa
   const [away, setAway] = useState(game.away_score ?? 0);
   const [when, setWhen] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reopenMins, setReopenMins] = useState(60);
   const [msg, setMsg] = useState<string | null>(null);
   const now = useNow();
   const started = now !== 0 && new Date(game.starts_at).getTime() <= now;
@@ -27,6 +31,21 @@ export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGa
     if (!error) router.refresh();
   }
   const sb = createClient();
+
+  async function fetchScore() {
+    setBusy(true);
+    setMsg(null);
+    const res = await fetch(`/api/admin/pred-score?game=${game.id}`).catch(() => null);
+    const json = res ? await res.json().catch(() => null) : null;
+    setBusy(false);
+    if (json?.ok) {
+      setHome(json.score.home);
+      setAway(json.score.away);
+      setMsg(`Found ${json.score.home}–${json.score.away}. Check it, then press Submit.`);
+    } else {
+      setMsg(json?.reason ?? json?.error ?? "Couldn't look up the score.");
+    }
+  }
 
   return (
     <div className="bc-card p-5">
@@ -60,6 +79,11 @@ export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGa
               <input type="number" min={0} max={999} value={away} onChange={(e) => setAway(Number(e.target.value))} className="mt-1 h-11 w-full rounded-xl border bg-transparent text-center text-xl font-black" style={{ borderColor: "var(--border)" }} />
             </label>
           </div>
+          {isAdmin && (
+            <button type="button" disabled={busy} onClick={fetchScore} className="mb-2 w-full rounded-full border px-5 py-2 text-sm font-semibold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+              Fetch final score automatically
+            </button>
+          )}
           <button
             type="button"
             disabled={busy}
@@ -68,13 +92,39 @@ export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGa
           >
             {final ? "Correct final score" : "Submit final score"}
           </button>
+          {isAdmin && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+              <span className="text-xs font-bold">Admin:</span>
+              <select value={reopenMins} onChange={(e) => setReopenMins(Number(e.target.value))} className="h-9 rounded-lg border bg-transparent px-2 text-xs font-semibold" style={{ borderColor: "var(--border)" }}>
+                <option value={30}>30 minutes</option>
+                <option value={60}>1 hour</option>
+                <option value={180}>3 hours</option>
+                <option value={1440}>1 day</option>
+                <option value={4320}>3 days</option>
+              </select>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const warn = final
+                    ? "Reopen this game? The final score and every prediction's grade are cleared, and predictions open again until the new start time."
+                    : "Reopen predictions? The start time moves to the time you chose.";
+                  if (window.confirm(warn)) run(() => sb.rpc("admin_reopen_pred_game", { p_game: game.id, p_minutes: reopenMins }), "Game reopened. Predictions are open again.");
+                }}
+                className="rounded-full border px-4 py-2 text-xs font-bold disabled:opacity-50"
+                style={{ borderColor: "var(--border)" }}
+              >
+                ↺ Reopen {final ? "game" : "predictions"}
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <>
           <p className="mb-3 text-xs" style={{ color: "var(--text-faint)" }}>The final score can be entered once the game starts. Until then you can reschedule or cancel.</p>
           <label className="mb-2 block text-xs font-bold">
             New start time
-            <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 h-11 w-full rounded-xl border bg-transparent px-3" style={{ borderColor: "var(--border)" }} />
+            <ZonedDateTimeInput value={when} onChange={setWhen} className="mt-1 h-11 w-full rounded-xl border bg-transparent px-3" style={{ borderColor: "var(--border)" }} />
           </label>
           {isAdmin && (
             <button type="button" disabled={busy} onClick={() => run(() => sb.rpc("admin_start_pred_game", { p_game: game.id }), "Game started. Predictions are closed.")} className="mb-2 w-full rounded-full border px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
@@ -85,7 +135,7 @@ export default function GameAdminPanel({ game, isAdmin = false }: { game: PredGa
             <button
               type="button"
               disabled={busy || !when}
-              onClick={() => run(() => sb.rpc("reschedule_pred_game", { p_game: game.id, p_starts_at: new Date(when).toISOString() }), "Start time updated.")}
+              onClick={() => run(() => sb.rpc("reschedule_pred_game", { p_game: game.id, p_starts_at: wallToIso(when, getZone()) }), "Start time updated.")}
               className="rounded-full border px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
               style={{ borderColor: "var(--border)" }}
             >

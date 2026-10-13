@@ -13,13 +13,17 @@ const STATIC_ROUTES = [
   "/schools",
   "/discover",
   "/create",
-  "/matchups",
-  "/explore",
   "/debates",
+  "/debates/play",
   "/competitions",
+  "/competitions/play",
+  "/showcase/play",
+  "/paid-bouts/play",
+  "/sponsor/play",
   "/live-vote",
   "/leaderboard",
   "/predictions",
+  "/predictions/play",
   "/predictions/leaderboard",
   "/sponsor",
   "/how-it-works",
@@ -29,6 +33,8 @@ const STATIC_ROUTES = [
   "/signup",
   "/privacy",
   "/terms",
+  "/accessibility",
+  "/delete-account",
 ];
 
 type Entry = MetadataRoute.Sitemap[number];

@@ -42,6 +42,19 @@ export default function TermsPage() {
       </ul>
 
       <h2 className={SECTION_HEADING} style={{ fontFamily: "var(--font-display)" }}>
+        Copyright complaints (DMCA)
+      </h2>
+      <p className={BODY} style={{ color: "var(--text-dim)" }}>
+        If you believe content on BoutCasts infringes your copyright, email support@boutcasts.com with
+        the subject &quot;Copyright notice&quot; and include: the work you own, the link to the content on
+        BoutCasts, your name and contact details, a statement that you have a good-faith belief the use
+        is not authorized, and a statement, under penalty of perjury, that your notice is accurate and
+        that you own or are authorized to act for the owner. Please include your physical or electronic
+        signature. We remove infringing content promptly and may end the accounts of repeat infringers.
+        If you believe content was removed by mistake, you may send a counter-notice to the same address.
+      </p>
+
+      <h2 className={SECTION_HEADING} style={{ fontFamily: "var(--font-display)" }}>
         Voting, points &amp; badges
       </h2>
       <p className={BODY} style={{ color: "var(--text-dim)" }}>

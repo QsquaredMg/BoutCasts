@@ -6,6 +6,7 @@ import ImageField from "@/components/ImageField";
 import ClipSourcePicker, { type ClipSourceValue } from "@/components/ClipSourcePicker";
 import OptionAvatar from "@/components/OptionAvatar";
 import { SPEECH_MAX_SECONDS, formatDuration } from "@/lib/mediaDuration";
+import { safeHttpUrl } from "@/lib/safeUrl";
 
 // Organizer: each option's profile photo, photo, speech/video (3 min max) and
 // blurb — editable until voting closes. Also hands out a private link so each
@@ -346,7 +347,7 @@ export function MediaPreview({
       <div className="flex items-center gap-3">
         <OptionAvatar name={name} url={m.thumbnail_url} size={44} />
         {m.source_url ? (
-          <a href={m.source_url} target="_blank" rel="noreferrer" className="text-xs font-semibold underline" style={{ color: "var(--red)" }}>
+          <a href={safeHttpUrl(m.source_url) ?? undefined} target="_blank" rel="noreferrer" className="text-xs font-semibold underline" style={{ color: "var(--red)" }}>
             ▶ Watch speech{m.media_seconds ? ` (${formatDuration(m.media_seconds)})` : ""}
           </a>
         ) : (

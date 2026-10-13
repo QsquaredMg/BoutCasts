@@ -6,8 +6,11 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
 import TeamPicker from "@/components/TeamPicker";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { wallToIso } from "@/lib/time/zones";
 
-export default function NewGameForm({ presetSlate }: { presetSlate: string | null }) {
+export default function NewGameForm({ presetSlate, isAdmin = false }: { presetSlate: string | null; isAdmin?: boolean }) {
   const router = useRouter();
   const [homeName, setHomeName] = useState("");
   const [homeLogo, setHomeLogo] = useState("");
@@ -35,7 +38,7 @@ export default function NewGameForm({ presetSlate }: { presetSlate: string | nul
       p_home_logo: homeLogo || null,
       p_away_name: awayName,
       p_away_logo: awayLogo || null,
-      p_starts_at: new Date(when).toISOString(),
+      p_starts_at: wallToIso(when, getZone()),
       p_slate_id: sid,
       p_allow_draw: allowDraw,
     });
@@ -90,8 +93,8 @@ export default function NewGameForm({ presetSlate }: { presetSlate: string | nul
 
       <div className="bc-card p-4">
         <label className="block text-xs font-bold">
-          Game start (your local time). Predictions lock at this moment.{!presetSlate && " A free single game must start within 24 hours."}
-          <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} required className={field} style={{ borderColor: "var(--border)" }} />
+          Game start (your local time). Predictions stay open for 15 minutes after this time.{!presetSlate && !isAdmin && " A free single game must start within 24 hours."}
+          <ZonedDateTimeInput value={when} onChange={setWhen} required className={field} style={{ borderColor: "var(--border)" }} />
         </label>
         <label className="mt-3 flex items-center gap-2 text-sm font-semibold">
           <input type="checkbox" checked={allowDraw} onChange={(e) => setAllowDraw(e.target.checked)} className="h-4 w-4" />

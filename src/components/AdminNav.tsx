@@ -17,6 +17,7 @@ const ADMIN_LINKS = [
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/live-vote", label: "Live Vote" },
   { href: "/admin/notifications", label: "Notifications" },
+  { href: "/admin/social", label: "Social" },
   { href: "/debates", label: "Debates" },
   { href: "/admin/licenses", label: "Licenses" },
   { href: "/admin/categories", label: "Categories" },

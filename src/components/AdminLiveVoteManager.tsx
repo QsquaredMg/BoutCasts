@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
+import { getZone } from "@/lib/time/pref";
+import { formatWhen, wallToIso } from "@/lib/time/zones";
 
 type EventRow = {
   id: string;
@@ -84,6 +87,25 @@ export default function AdminLiveVoteManager({
     }
     setEvents((prev) =>
       prev.map((e) => (e.id === ev.id ? { ...e, status: "closed", closes_at: new Date().toISOString() } : e))
+    );
+  }
+
+  async function reopenEvent(ev: EventRow, openEnded: boolean) {
+    if (!confirm(openEnded ? `Reopen "${ev.title}" with no end time? You will need to close it yourself.` : `Reopen "${ev.title}" for 24 more hours?`)) return;
+    setError(null);
+    setSavingId(ev.id);
+    const { error } = await supabase.rpc("admin_reopen_live_vote_event", { p_event_id: ev.id, p_hours: 24, p_open_ended: openEnded });
+    setSavingId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === ev.id
+          ? { ...e, status: "live", closes_at: openEnded ? null : new Date(Date.now() + 24 * 3600 * 1000).toISOString() }
+          : e
+      )
     );
   }
 
@@ -190,7 +212,7 @@ export default function AdminLiveVoteManager({
                       {" "}&middot;{" "}
                       <span style={{ color: e.closes_at ? undefined : "var(--red)", fontWeight: e.closes_at ? undefined : 700 }}>
                         {e.closes_at
-                          ? `closes ${new Date(e.closes_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
+                          ? `closes ${formatWhen(e.closes_at, getZone(), { weekday: false })}`
                           : "no end time"}
                       </span>
                     </>
@@ -200,15 +222,14 @@ export default function AdminLiveVoteManager({
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     {editingEndId === e.id ? (
                       <>
-                        <input
-                          type="datetime-local"
+                        <ZonedDateTimeInput
                           value={endInput}
-                          onChange={(ev) => setEndInput(ev.target.value)}
+                          onChange={setEndInput}
                           className="rounded-lg border px-2 py-1 text-xs"
                           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
                         />
                         <button
-                          onClick={() => endInput && setEnd(e.id, new Date(endInput).toISOString())}
+                          onClick={() => endInput && setEnd(e.id, wallToIso(endInput, getZone()))}
                           disabled={!endInput || savingId === e.id}
                           className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50"
                           style={{ borderColor: "var(--border)" }}
@@ -277,6 +298,18 @@ export default function AdminLiveVoteManager({
                   <button onClick={() => startEdit(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
                     ✏️ Edit
                   </button>
+              {e.status !== "live" && (
+                <div className="flex flex-wrap gap-1.5">
+                  {e.status === "closed" && (
+                    <>
+                      <button onClick={() => reopenEvent(e, false)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)", color: "#22c55e" }}>
+                        ↺ Reopen 24h
+                      </button>
+                      <button onClick={() => reopenEvent(e, true)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+                        Reopen, no end time
+                      </button>
+                    </>
+                  )}
                   <button onClick={() => archiveEvent(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
                     📦 Archive
                   </button>

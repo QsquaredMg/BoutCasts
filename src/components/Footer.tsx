@@ -26,6 +26,9 @@ export default function Footer() {
           <Link href="/terms" className="hover:underline">
             Terms of Service
           </Link>
+          <Link href="/accessibility" className="hover:underline">
+            Accessibility
+          </Link>
           <Link href="/rules" className="hover:underline">
             Battle Rules
           </Link>

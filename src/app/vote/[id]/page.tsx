@@ -1,3 +1,4 @@
+import { cardMetadata } from "@/lib/og/cardRoute";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import LiveVoteBallot from "@/components/LiveVoteBallot";
@@ -20,19 +21,8 @@ export async function generateMetadata({
     return { title: "Live Vote", robots: { index: false } };
   }
 
-  const title = event.title;
-  const description = event.brand_name
-    ? `Presented by ${event.brand_name} — cast your vote, or start your own Bout, on BoutCasts.`
-    : "Cast your vote — or start your own Bout — on BoutCasts.";
-
-  return {
-    title,
-    description,
-    openGraph: { title, description },
-    twitter: { title, description },
-    // Private events never appear in search results.
-    ...(event.is_private ? { robots: { index: false, follow: false } } : {}),
-  };
+  // Private events never appear in search results.
+  return cardMetadata("livevote", id, event.title, event.is_private ? { robots: { index: false, follow: false } } : {});
 }
 
 export default async function VotePage({
