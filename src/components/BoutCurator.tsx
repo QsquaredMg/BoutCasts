@@ -839,9 +839,6 @@ export default function BoutCurator({
                         </select>
                         <ZonedDateTimeInput
                           value={editForm.closes_at}
-                          onChange={(e) => setEditForm((f) => ({ ...f, closes_at: e.target.value }))}
-                          className="rounded border border-neutral-300 px-3 py-2 text-sm"
-                          title="Voting closes at (admins can set any time)"
                           onChange={(v) => setEditForm((f) => ({ ...f, closes_at: v }))}
                           className="rounded border border-neutral-300 px-3 py-2 text-sm"
                           title="Voting closes at (admins have no time limit)"

@@ -293,31 +293,27 @@ export default function AdminLiveVoteManager({
                   <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>Admins can change status and end time at any stage, including reopening a closed vote.</p>
                 </div>
               )}
-              {
-                <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                   <button onClick={() => startEdit(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
                     ✏️ Edit
                   </button>
-              {e.status !== "live" && (
-                <div className="flex flex-wrap gap-1.5">
-                  {e.status === "closed" && (
-                    <>
-                      <button onClick={() => reopenEvent(e, false)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)", color: "#22c55e" }}>
-                        ↺ Reopen 24h
-                      </button>
-                      <button onClick={() => reopenEvent(e, true)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
-                        Reopen, no end time
-                      </button>
-                    </>
-                  )}
+                {e.status === "closed" && (
+                  <>
+                  <button onClick={() => reopenEvent(e, false)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)", color: "#22c55e" }}>
+                    ↺ Reopen 24h
+                  </button>
+                  <button onClick={() => reopenEvent(e, true)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
+                    Reopen, no end time
+                  </button>
+                  </>
+                )}
                   <button onClick={() => archiveEvent(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>
                     📦 Archive
                   </button>
                   <button onClick={() => deleteEvent(e)} disabled={savingId === e.id} className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)", color: "var(--danger)" }}>
                     Delete
                   </button>
-                </div>
-              }
+              </div>
               <label className="flex items-center gap-2 text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
                 <span>Show ads</span>
                 <input
