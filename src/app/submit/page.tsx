@@ -66,13 +66,8 @@ export default function SubmitPage() {
 
   const availableSubcategories = subcategories.filter((s) => s.category_id === categoryId);
 
-  // Keep the selected subcategory valid whenever the category changes (or
-  // the subcategory list loads) — clear it if it no longer applies.
-  useEffect(() => {
-    if (subcategoryId && !availableSubcategories.some((s) => s.id === subcategoryId)) {
-      setSubcategoryId("");
-    }
-  }, [categoryId, availableSubcategories, subcategoryId]);
+  // A subcategory only counts while it belongs to the chosen category.
+  const validSubcategoryId = availableSubcategories.some((s) => s.id === subcategoryId) ? subcategoryId : "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,7 +81,7 @@ export default function SubmitPage() {
       return;
     }
 
-    if (availableSubcategories.length > 0 && !subcategoryId) {
+    if (availableSubcategories.length > 0 && !validSubcategoryId) {
       setError("Please pick a subcategory so we can match you fairly.");
       setLoading(false);
       return;
@@ -119,7 +114,7 @@ export default function SubmitPage() {
     const { error } = await supabase.from("submissions").insert({
       user_id: user.id,
       category_id: categoryId,
-      subcategory_id: subcategoryId || null,
+      subcategory_id: validSubcategoryId || null,
       title,
       source_type: clip.sourceType,
       source_url: clip.sourceUrl,
@@ -208,7 +203,7 @@ export default function SubmitPage() {
           <div>
             <label className={labelClass} style={labelStyle}>Subcategory</label>
             <select
-              value={subcategoryId}
+              value={validSubcategoryId}
               onChange={(e) => setSubcategoryId(e.target.value)}
               className={inputClass}
               style={inputStyle}

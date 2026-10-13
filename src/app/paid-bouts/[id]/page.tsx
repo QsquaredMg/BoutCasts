@@ -45,7 +45,7 @@ export default async function PaidBoutPage({
   const prizeList = (prizes ?? []) as ManagerPrize[];
   const paidEntries = (Array.isArray(stats) ? stats[0]?.paid_entries : stats?.paid_entries) ?? 0;
   const deadline = new Date(bout.entry_deadline);
-  const deadlinePassed = Date.now() > deadline.getTime();
+  const deadlinePassed = new Date() > deadline;
 
   const { data: mine } = user
     ? await supabase.from("paid_bout_entries").select("status").eq("bout_id", id).eq("user_id", user.id).maybeSingle()

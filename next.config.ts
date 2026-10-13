@@ -23,6 +23,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/matchups", destination: "/discover?view=matchups", permanent: true },
+      // There is no showcase index page; send anyone who types it to Discover.
+      { source: "/showcase", destination: "/discover", permanent: false },
       {
         source: "/explore",
         has: [{ type: "query", key: "category", value: "(?<category>.+)" }],

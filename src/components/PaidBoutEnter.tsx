@@ -69,7 +69,7 @@ export default function PaidBoutEnter({
       <input className={field} style={{ borderColor: "var(--border)" }} type="url" placeholder="Link to your entry, https://… (optional)" value={url} onChange={(e) => setUrl(e.target.value)} />
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" className="mt-1" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-        <span>I've read the rules and the payout terms, and I understand the entry fee is refunded only if the bout is cancelled.</span>
+        <span>I&apos;ve read the rules and the payout terms, and I understand the entry fee is refunded only if the bout is cancelled.</span>
       </label>
       <button type="submit" disabled={busy || !ok} className="self-start rounded px-5 py-2 text-sm font-semibold text-white disabled:opacity-60" style={{ background: "var(--red)" }}>
         {busy ? "Opening checkout…" : `Pay ${money(feeCents)} and enter`}

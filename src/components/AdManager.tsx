@@ -91,7 +91,7 @@ export default function AdManager({
     setUploading(true);
 
     const ext = file.type.startsWith("image/") ? (file.type.split("/")[1] || "jpg").replace("jpeg", "jpg") : file.name.split(".").pop() || "bin";
-    const path = `${form.sponsor_id || "unassigned"}/${Date.now()}.${ext}`;
+    const path = `${form.sponsor_id || "unassigned"}/${new Date().getTime()}.${ext}`;
     const { error: uploadError } = await supabase.storage.from("ad-creatives").upload(path, file, {
       contentType: file.type,
     });

@@ -53,6 +53,8 @@ export default function ClipPlayer({
 
   useEffect(() => {
     if (!showingAd || !ad) return;
+    // reset the skip button each time an ad starts
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanSkip(false);
     const skipTimer = setTimeout(() => setCanSkip(true), SKIP_AFTER_MS);
     let endTimer: ReturnType<typeof setTimeout> | undefined;

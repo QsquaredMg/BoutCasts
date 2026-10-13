@@ -29,7 +29,7 @@ export default async function AdminAdsPage() {
         Ads
       </h2>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Upload sponsor ad creative, control where and when it fires, and see how it's performing.
+        Upload sponsor ad creative, control where and when it fires, and see how it&apos;s performing.
       </p>
       <AdManager
         sponsors={sponsors ?? []}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MAX_ENTRY_FEE_CENTS,
@@ -37,10 +37,7 @@ export default function PaidBoutForm({ isAdmin }: { isAdmin: boolean }) {
   const feeCents = toCents(fee);
   const prizeCents = prizes.map((p) => toCents(p));
   const prizeTotal = prizeCents.reduce((s, c) => s + (Number.isFinite(c) ? c : 0), 0);
-  const suggestedMin = useMemo(
-    () => (feeCents >= MIN_ENTRY_FEE_CENTS && prizeTotal > 0 ? minEntriesForPrizes(prizeTotal, feeCents) : null),
-    [feeCents, prizeTotal]
-  );
+  const suggestedMin = feeCents >= MIN_ENTRY_FEE_CENTS && prizeTotal > 0 ? minEntriesForPrizes(prizeTotal, feeCents) : null;
 
   const input = {
     title,

@@ -248,6 +248,8 @@ export default function RecapVideoPlayer({
   const total = bouts.length * PER_BOUT_MS;
 
   useEffect(() => {
+    // browser-only feature check, can't run during server render
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExportSupported(
       typeof window !== "undefined" &&
         !!HTMLCanvasElement.prototype.captureStream &&
@@ -284,7 +286,7 @@ export default function RecapVideoPlayer({
     const ctx = canvas?.getContext("2d");
     if (!ctx) return;
 
-    const now = performance.now();
+    const now = window.performance.now();
     const t = now - startRef.current;
     setElapsed(Math.min(t, total));
 
@@ -315,7 +317,7 @@ export default function RecapVideoPlayer({
   function play() {
     if (bouts.length === 0) return;
     setPlaying(true);
-    startRef.current = performance.now();
+    startRef.current = window.performance.now();
     stopLoop();
     rafRef.current = requestAnimationFrame(tick);
   }

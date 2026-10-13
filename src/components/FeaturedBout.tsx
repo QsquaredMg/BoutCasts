@@ -109,7 +109,7 @@ export default async function FeaturedBout({
   const votingOpen =
     bout.status !== "final" &&
     !awaitingOpponent &&
-    (!bout.closes_at || new Date(bout.closes_at).getTime() > Date.now());
+    (!bout.closes_at || new Date(bout.closes_at) > new Date());
 
   let nextBoutTitle: string | null = null;
   if (bout.next_bout_id) {
