@@ -670,15 +670,13 @@ export default function BoutCurator({
                             Mark prize fulfilled
                           </button>
                         )}
-                        {b.status === "final" && (
-                          <button
-                            onClick={() => archiveBout(b.id)}
-                            disabled={busyId === b.id}
-                            className="rounded border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
-                          >
-                            📦 Archive
-                          </button>
-                        )}
+                        <button
+                          onClick={() => archiveBout(b.id)}
+                          disabled={busyId === b.id}
+                          className="rounded border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                        >
+                          📦 Archive
+                        </button>
                         <button
                           onClick={() => deleteBout(b.id)}
                           disabled={busyId === b.id}
@@ -837,7 +835,7 @@ export default function BoutCurator({
                         >
                           <option value="upcoming">Upcoming</option>
                           <option value="live">Live</option>
-                          {editForm.status === "final" && <option value="final">Final</option>}
+                          <option value="final">Final</option>
                         </select>
                         <ZonedDateTimeInput
                           value={editForm.closes_at}
