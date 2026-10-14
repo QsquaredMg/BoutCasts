@@ -24,7 +24,7 @@ revoke all on function public.set_my_team(uuid) from public, anon;
 grant execute on function public.set_my_team(uuid) to authenticated;
 
 -- 2) Streaks count any play: matchup vote, showcase vote, prediction ----------
--- Streak days follow Central Time so an evening vote counts for that evening.
+-- Streak days are UTC days, same as the existing matchup-vote streak.
 create or replace function public.bump_streak(p_user uuid)
 returns void
 language plpgsql
@@ -32,7 +32,7 @@ security definer
 set search_path = public
 as $$
 declare
-  v_today date := (now() at time zone 'America/Chicago')::date;
+  v_today date := (now() at time zone 'utc')::date;
   v_last date;
   v_cur integer;
   v_new integer;
@@ -50,24 +50,7 @@ begin
 end $$;
 revoke all on function public.bump_streak(uuid) from public, anon, authenticated;
 
-create or replace function public.handle_vote_insert()
-returns trigger
-language plpgsql
-security definer
-set search_path to 'public'
-as $$
-declare v_vote_count integer;
-begin
-  if new.user_id is null then return new; end if;
-  perform public.award_points(new.user_id, 1, 'vote', new.bout_id);
-  select count(*) into v_vote_count from public.votes where user_id = new.user_id;
-  if v_vote_count = 1 then perform public.award_badge_if_new(new.user_id, 'first_vote');
-  elsif v_vote_count = 25 then perform public.award_badge_if_new(new.user_id, 'power_voter');
-  elsif v_vote_count = 100 then perform public.award_badge_if_new(new.user_id, 'century_voter');
-  end if;
-  perform public.bump_streak(new.user_id);
-  return new;
-end $$;
+-- (Matchup votes already update streaks in handle_vote_insert; this keeps the same UTC day so they agree.)
 
 create or replace function public.streak_after_insert()
 returns trigger
@@ -106,7 +89,7 @@ as $$
          count(*) as fans,
          coalesce(sum(p.points), 0)::bigint as points,
          round(coalesce(sum(p.points), 0)::numeric / count(*), 1) as points_per_fan,
-         coalesce(max(case when p.last_vote_date >= (now() at time zone 'America/Chicago')::date - 1
+         coalesce(max(case when p.last_vote_date >= (now() at time zone 'utc')::date - 1
                            then p.current_streak else 0 end), 0)::integer as best_streak
     from profiles p
     join team_directory t on t.id = p.favorite_team_id
