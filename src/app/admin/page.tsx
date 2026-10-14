@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -30,10 +31,20 @@ export default async function AdminDashboardPage() {
     supabase.from("pool_contributions").select("pool_id, amount"),
   ]);
 
+  // Unread support mail (quietly 0 if the inbox is not set up yet).
+  let unreadMail = 0;
+  try {
+    const { count } = await createAdminClient().from("inbox_messages").select("id", { count: "exact", head: true }).eq("direction", "in").is("read_at", null);
+    unreadMail = count ?? 0;
+  } catch {
+    unreadMail = 0;
+  }
+
   const totalRaised = (contributions ?? []).reduce((sum, c) => sum + c.amount, 0);
   const totalGoal = (pools ?? []).reduce((sum, p) => sum + p.goal_amount, 0);
 
   const cards: { label: string; value: number | string; href: string }[] = [
+    { label: "Unread support mail", value: unreadMail, href: "/admin/inbox" },
     { label: "Pending submissions", value: pendingSubmissions ?? 0, href: "/admin/moderation" },
     { label: "Open reports", value: openReports ?? 0, href: "/admin/moderation" },
     { label: "Live bouts", value: liveBouts ?? 0, href: "/admin/bouts" },
