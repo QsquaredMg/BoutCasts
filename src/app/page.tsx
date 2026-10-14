@@ -93,17 +93,19 @@ const theme: Theme = {
   paper: "#f4f6fb",
 };
 
-const PRODUCTS: { emoji: string; name: string; line: string; href: string }[] = [
-  { emoji: "🥊", name: "Bouts", line: "Head to head. One vote each.", href: "/matchups" },
-  { emoji: "🏆", name: "Competitions", line: "Run a bracket the crowd decides.", href: "/competitions/play" },
-  { emoji: "🔮", name: "Predictions", line: "Call the winner and the score.", href: "/predictions/play" },
-  { emoji: "🗳️", name: "Live Vote", line: "Elections, polls and live events.", href: "/host" },
-  { emoji: "🎬", name: "Showcases", line: "Many groups, one video, one winner.", href: "/showcase/play" },
-  { emoji: "🎙️", name: "Debates", line: "Pick a side and make your case.", href: "/debates/play" },
-  { emoji: "🧠", name: "Live Trivia", line: "Phones in, scores on the big screen.", href: "/trivia/play" },
-  { emoji: "💵", name: "Paid Bouts", line: "Entry-fee contests with prizes.", href: "/paid-bouts/play" },
-  { emoji: "🏫", name: "Schools", line: "Votes for campuses and leagues.", href: "/schools" },
-  { emoji: "📣", name: "Host an event", line: "Run any of these live in your room.", href: "/host" },
+const DOORS: { emoji: string; name: string; line: string; cta: string; href: string }[] = [
+  { emoji: "🗳️", name: "Vote", line: "Pick a side in a live matchup, bracket or event. One tap, no account for your first vote.", cta: "See what's live", href: "/matchups" },
+  { emoji: "📣", name: "Host", line: "Run a vote for your school, band, league or event. Share one link and watch the tally live.", cta: "Host a vote", href: "/host" },
+  { emoji: "🔮", name: "Predict", line: "Call the winner and the score with friends. Free to play, with leaderboards and tournament brackets.", cta: "Start predicting", href: "/predictions/play" },
+];
+
+const MORE: { name: string; href: string }[] = [
+  { name: "Competitions", href: "/competitions/play" },
+  { name: "Showcases", href: "/showcase/play" },
+  { name: "Debates", href: "/debates/play" },
+  { name: "Live Trivia", href: "/trivia/play" },
+  { name: "Paid Bouts", href: "/paid-bouts/play" },
+  { name: "Schools", href: "/schools" },
 ];
 
 export default async function Home() {
@@ -173,17 +175,24 @@ export default async function Home() {
       )}
 
       <section>
-        <h2 className="mb-1 text-[2rem] leading-none sm:text-[2.6rem]" style={ink}>Pick your game</h2>
-        <p className="mb-5 text-sm" style={{ color: "#4a5163" }}>Every way to vote, predict and compete on BoutCasts.</p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {PRODUCTS.map((p) => (
-            <Link key={p.name} href={p.href} className="bc-card flex flex-col gap-1 p-4 transition-transform hover:-translate-y-0.5" style={{ borderRadius: 22 }}>
-              <span className="text-2xl" aria-hidden>{p.emoji}</span>
-              <span className="text-lg leading-tight" style={{ ...ink, fontSize: "1.25rem" }}>{p.name}</span>
-              <span className="text-sm" style={{ color: "#4a5163" }}>{p.line}</span>
+        <h2 className="mb-1 text-[2rem] leading-none sm:text-[2.6rem]" style={ink}>Three ways in</h2>
+        <p className="mb-5 text-sm" style={{ color: "#4a5163" }}>Vote on it, host it, or predict it.</p>
+        <div className="grid gap-3 md:grid-cols-3">
+          {DOORS.map((d) => (
+            <Link key={d.name} href={d.href} className="bc-card flex flex-col gap-2 p-5 transition-transform hover:-translate-y-0.5" style={{ borderRadius: 22 }}>
+              <span className="text-3xl" aria-hidden>{d.emoji}</span>
+              <span className="leading-tight" style={{ ...ink, fontSize: "1.6rem" }}>{d.name}</span>
+              <span className="text-sm" style={{ color: "#4a5163" }}>{d.line}</span>
+              <span className="mt-auto pt-2 text-sm font-bold" style={{ color: "#c81f3c" }}>{d.cta} →</span>
             </Link>
           ))}
         </div>
+        <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm" style={{ color: "#4a5163" }}>
+          <span className="font-bold">More formats:</span>
+          {MORE.map((m) => (
+            <Link key={m.name} href={m.href} className="font-semibold underline-offset-2 hover:underline" style={{ color: "#0a0e1a" }}>{m.name}</Link>
+          ))}
+        </p>
       </section>
     </div>
   );
@@ -194,19 +203,19 @@ export default async function Home() {
       kicker={liveCount > 0 ? `${liveCount} live now` : "Live voting"}
       live
       title={["Who won?", "[[You decide.]]"]}
-      lede="Band battles, dance-offs, debates and halftime showdowns, decided by the crowd. Watch, vote and share your pick."
+      lede="The live voting platform for schools, bands, leagues and events. Put any showdown to the crowd, get a winner in minutes, and share the result."
       primary={{ label: "Watch & vote", href: firstBout ? `/bout/${firstBout.id}` : "/discover" }}
       secondary={{ label: myEvents > 0 ? `Your events (${myEvents})` : "Host a vote", href: myEvents > 0 ? "/live-vote" : "/host" }}
       fine={signedIn ? "No account needed for your first vote." : "No account needed for your first vote. Got a code? Join a private event at boutcasts.com/join."}
       visual={<VoteVisual />}
       midSlot={live}
       ticker={["Band battles", "Dance-offs", "Debates", "Halftime shows", "Class elections", "Talent shows", "Step shows", "Brackets", "Predictions"]}
-      stepsTitle="Vote in three taps"
-      stepsLede="No sign-up wall between you and your pick."
+      stepsTitle="How it works"
+      stepsLede="Four steps from link to winner. No sign-up wall before your first vote."
       steps={[
-        { title: "Watch", body: "Open a matchup or event and watch both sides." },
-        { title: "Vote", body: "Cast one fair vote. Your first one needs no account." },
-        { title: "Share", body: "Send your pick to friends so the crowd keeps growing." },
+        { title: "Open the link", body: "Tap a shared link or scan a code to see both sides." },
+        { title: "Vote once", body: "Cast your vote. Your first one needs no account." },
+        { title: "Share your pick", body: "Send it to friends so the crowd keeps growing." },
         { title: "See the result", body: "Winners advance automatically when voting closes." },
       ]}
       featuresTitle="One place for every vote"
@@ -216,7 +225,7 @@ export default async function Home() {
         { icon: "🏆", title: "Brackets that run themselves", body: "Winners advance automatically when each round's voting closes.", span: 3 },
         { icon: "🗳️", title: "Live Vote events", body: "Elections, halftime polls and talent shows with a live tally for the big screen.", span: 2 },
         { icon: "🔮", title: "Predictions", body: "Call winners and scores with friends and climb a leaderboard.", span: 2 },
-        { icon: "🔗", title: "Share cards", body: "Every link previews who is in it, what kind of event it is and when it starts and closes.", span: 2 },
+        { icon: "🛡️", title: "Fair by design", body: "One vote per account or device per matchup, with repeat-vote checks and a live tally organizers can watch.", span: 2 },
       ]}
       usesTitle="Built for"
       uses={[
@@ -230,7 +239,7 @@ export default async function Home() {
       faq={[
         { q: "Do I need an account to vote?", a: "Your first vote needs no account. Create one to keep voting, earn points and see your history." },
         { q: "Is it free?", a: "Voting is free. Hosting a vote is free to start; see the Host page for what paid plans add." },
-        { q: "How do you keep votes fair?", a: "One vote per person per matchup, with checks against repeat voting." },
+        { q: "How do you keep votes fair?", a: "Each signed-in account gets one vote per matchup, and guest votes are tied to the device they were cast on. We also check for repeat voting, and organizers can see the tally as it happens. Nothing is perfect, so for high-stakes events we recommend requiring sign-in." },
         { q: "I have a code from my school or event.", a: "Use Join a private event at boutcasts.com/join and enter the code." },
         { q: "Can I run my own?", a: "Yes. Start a Live Vote free, run a competition, or ask about showcases, debates and Paid Bouts." },
       ]}

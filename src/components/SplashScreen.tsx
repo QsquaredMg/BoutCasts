@@ -94,7 +94,7 @@ export default function SplashScreen() {
             </div>
           </div>
           <div className="text-center text-[13px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#a8b0c4" }}>
-            Counting the crowd…
+            Loading BoutCasts…
           </div>
         </div>
       </div>

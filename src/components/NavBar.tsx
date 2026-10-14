@@ -56,7 +56,7 @@ function tabs(profileHref: string): Tab[] {
     },
     {
       key: "me",
-      label: "Me",
+      label: "Profile",
       href: profileHref,
       icon: (a) => <UserIcon filled={a} />,
       match: (p) => startsWithAny(p, ME_PREFIXES),
@@ -223,14 +223,14 @@ export default function NavBar() {
                 className="rounded-full border px-3.5 py-1.5 text-sm font-bold"
                 style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--surface)" }}
               >
-                Join
+                Enter code
               </Link>
               <Link
                 href="/create"
                 className="hidden rounded-full px-4 py-1.5 text-sm font-bold text-white md:inline-block"
                 style={{ background: "var(--red)" }}
               >
-                + Create
+                Create
               </Link>
               {!loading && !user && (
                 <Link href="/login" className="bc-btn-solid rounded-full px-4 py-1.5 text-sm">
@@ -267,7 +267,7 @@ export default function NavBar() {
                   <MenuLink href="/sponsor">🤝 Brands &amp; sponsors</MenuLink>
                   {user && <MenuLink href="/live-vote">🗳️ My Live Votes</MenuLink>}
                 </MenuGroup>
-                <MenuGroup title="Me">
+                <MenuGroup title="Profile">
                   {user ? (
                     <>
                       <MenuLink href={profileHref}>👤 My profile</MenuLink>
