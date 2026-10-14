@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import GameCard from "@/components/GameCard";
 import PredLeaderboardTable from "@/components/PredLeaderboardTable";
+import TourneyLeaderboard from "@/components/TourneyLeaderboard";
 import WinnersGraphic from "@/components/WinnersGraphic";
 import PredHero from "@/components/PredHero";
 import ShareButton from "@/components/ShareButton";
@@ -14,7 +15,8 @@ import PredSponsorStrip from "@/components/PredSponsorStrip";
 import PredSponsorManager from "@/components/PredSponsorManager";
 import PredBrandingEditor from "@/components/PredBrandingEditor";
 import LocalTime from "@/components/LocalTime";
-import { GAME_FIELDS, SLATE_FIELDS, hasPassed, type BracketTeam, type LeaderRow, type PredGame, type PredSlate } from "@/lib/predictions/types";
+import { GAME_FIELDS, SLATE_FIELDS, hasPassed, type BracketTeam, type LeaderRow, type PredGame, type PredSlate, type TourneyRow } from "@/lib/predictions/types";
+import { roundLabel, roundPoints } from "@/lib/predictions/pricing";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ checkout?: string }> };
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -39,10 +41,11 @@ export default async function SlatePage({ params, searchParams }: Props) {
   if (!slateRow) notFound();
   const slate = slateRow as PredSlate;
   const isElim = slate.kind === "elimination";
+  const isTourney = slate.scoring_mode === "tourney";
 
   const [{ data: gameRows }, { data: lb }, { data: teamRows }, { data: me }, { data: sponsorRows }] = await Promise.all([
     supabase.from("pred_games").select(GAME_FIELDS).eq("slate_id", id).neq("status", "cancelled").order("starts_at"),
-    supabase.rpc("pred_leaderboard", { p_scope: "season", p_slate: id, p_limit: 25 }),
+    isTourney ? supabase.rpc("tourney_leaderboard", { p_slate: id, p_limit: 100 }) : supabase.rpc("pred_leaderboard", { p_scope: "season", p_slate: id, p_limit: 25 }),
     isElim ? supabase.from("pred_bracket_teams").select("id, seed, name, logo").eq("bracket_id", id).order("seed") : Promise.resolve({ data: [] }),
     user ? supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.rpc("get_pred_sponsors", { p_bracket: id }),
@@ -50,7 +53,10 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const presenter = ((sponsorRows ?? []) as { name: string; level: string }[]).find((x) => x.level === "title")?.name ?? null;
   const whiteLabel = slate.white_label && !!(slate.brand_name || slate.brand_logo_url);
   const games = (gameRows ?? []) as PredGame[];
-  const rows = (lb ?? []) as LeaderRow[];
+  const tourneyRows = isTourney ? ((lb ?? []) as TourneyRow[]) : [];
+  const rows: LeaderRow[] = isTourney
+    ? tourneyRows.map((r) => ({ user_id: r.user_id, username: r.username, avatar_url: r.avatar_url, points: Number(r.points), games: Number(r.wins) + Number(r.losses), winners: Number(r.wins), perfect: 0 }))
+    : ((lb ?? []) as LeaderRow[]);
   const teams = (teamRows ?? []) as BracketTeam[];
   const isOwner = !!user && (user.id === slate.created_by || !!me?.is_admin);
   const open = slate.status === "open" && (!slate.closes_at || !hasPassed(slate.closes_at));
@@ -58,6 +64,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const canPredict = isElim && open && beforeLock;
   const finals = games.filter((g) => g.status === "final").length;
   const allFinal = games.length > 0 && finals === games.length;
+  const totalRounds = Math.max(...games.map((g) => g.round ?? 1), 1);
 
   let myPicks: BracketPick[] = [];
   const mine: Record<string, { pred_home: number; pred_away: number; pts_total: number | null }> = {};
@@ -124,16 +131,32 @@ export default async function SlatePage({ params, searchParams }: Props) {
         </section>
       )}
 
+      {isTourney && (
+        <section className="bc-card mb-6 p-4 text-sm">
+          <h2 className="pt-h2 mb-2">How points work</h2>
+          <p className="mb-2" style={{ color: "var(--text-dim)" }}>
+            Every correct pick earns points, and later rounds are worth more. Wins and losses decide the standings. The championship score guess only breaks ties.
+          </p>
+          <p className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+            {Array.from({ length: totalRounds }, (_, i) => `${roundLabel(i + 1, totalRounds)}: ${roundPoints(i + 1)}`).join(" · ")}
+          </p>
+        </section>
+      )}
+
       <section className="mb-8">
         <h2 className="pt-h2 mb-3">Leaderboard</h2>
-        <PredLeaderboardTable rows={rows} meId={user?.id} />
+        {isTourney ? (
+          <TourneyLeaderboard rows={tourneyRows} meId={user?.id} champFinal={games.some((g) => g.round === totalRounds && g.status === "final")} />
+        ) : (
+          <PredLeaderboardTable rows={rows} meId={user?.id} />
+        )}
       </section>
 
       {rows.length > 0 && (
         <WinnersGraphic
           title={slate.title}
           subtitle={allFinal ? "Final winners" : `Leaders after ${finals} of ${games.length} games`}
-          winners={rows.slice(0, 10).map((r) => ({ name: r.username ?? "Player", points: Number(r.points), detail: `${r.games} games · ${r.perfect} perfect` }))}
+          winners={rows.slice(0, 10).map((r) => ({ name: r.username ?? "Player", points: Number(r.points), detail: isTourney ? `${r.winners}-${r.games - r.winners} record` : `${r.games} games · ${r.perfect} perfect` }))}
           brand={{ name: slate.brand_name, logo: slate.brand_logo_url, whiteLabel }}
           presenter={presenter}
           fileName={`winners-${slate.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}

@@ -29,7 +29,7 @@ export type PredSlate = {
   title: string;
   created_by: string;
   kind: "slate" | "elimination";
-  tier: "weekly" | "season" | "private";
+  tier: "weekly" | "season" | "private" | "tourney";
   status: "pending" | "open" | "closed";
   closes_at: string | null;
   locks_at: string | null;
@@ -40,11 +40,13 @@ export type PredSlate = {
   white_label: boolean;
   visibility: "public" | "private";
   invite_code: string | null;
+  scoring_mode: "classic" | "tourney";
+  entrant_cap: number | null;
 };
 
 export type BracketTeam = { id: string; seed: number; name: string; logo: string | null };
 
-export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label, visibility, invite_code";
+export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label, visibility, invite_code, scoring_mode, entrant_cap";
 
 export type PredPrediction = {
   id: string;
@@ -69,6 +71,19 @@ export type LeaderRow = {
   games: number;
   winners: number;
   perfect: number;
+};
+
+export type TourneyRow = {
+  user_id: string;
+  username: string | null;
+  avatar_url: string | null;
+  points: number;
+  wins: number;
+  losses: number;
+  max_points: number;
+  champ_diff: number | null;
+  margin_diff: number | null;
+  entered_at: string;
 };
 
 export const GAME_FIELDS =

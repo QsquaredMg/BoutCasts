@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
-import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
+import { BRACKET_PRICING, money, tourneyCents } from "@/lib/predictions/pricing";
 
-// Organizer pays to open a bracket ($10 for 8 days, $25 for the season),
-// or $15 to upgrade an open 8-day bracket to a season bracket.
+// Organizer pays to open a game slate ($10 for 8 days, $25 for the season), a private game ($5 each),
+// or a tournament bracket (by entrant limit). $15 upgrades an open 8-day slate to a season slate.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const bracketId = body?.bracketId;
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   const { data: bracket } = await supabase
     .from("pred_slates")
-    .select("id, title, created_by, status, tier")
+    .select("id, title, created_by, status, tier, entrant_cap")
     .eq("id", bracketId)
     .maybeSingle();
   if (!bracket || bracket.created_by !== userData.user.id) return NextResponse.json({ error: "Bracket not found" }, { status: 404 });
@@ -31,12 +31,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only a paid 8-day bracket can be upgraded" }, { status: 400 });
     }
     cents = BRACKET_PRICING.upgradeCents;
-    name = `Upgrade to season bracket (${money(cents)}) — ${bracket.title}`;
+    name = `Upgrade to season game slate (${money(cents)}) — ${bracket.title}`;
     kind = "pred_bracket_upgrade";
     tier = "season";
   } else {
     if (bracket.status !== "pending") return NextResponse.json({ error: "This bracket is already paid for" }, { status: 400 });
-    if (bracket.tier === "private") {
+    if (bracket.tier === "tourney") {
+      // Tournament bracket: one price by entrant limit, always derived from the saved bracket (never from the request).
+      const price = tourneyCents(bracket.entrant_cap);
+      if (price == null) return NextResponse.json({ error: "This bracket has no valid entrant limit" }, { status: 400 });
+      tier = "tourney";
+      cents = price;
+      name = `Tournament bracket (up to ${bracket.entrant_cap} entrants) — ${bracket.title}`;
+    } else if (bracket.tier === "private") {
       // Closed invite-only game: $5 per game, paid by the creator. Invitees play free.
       const { count } = await supabase.from("pred_games").select("id", { count: "exact", head: true }).eq("slate_id", bracket.id);
       const games = Math.max(count ?? 1, 1);
@@ -47,7 +54,7 @@ export async function POST(req: NextRequest) {
       const chosen = body?.tier === "season" ? "season" : body?.tier === "weekly" ? "weekly" : bracket.tier;
       tier = chosen;
       cents = chosen === "season" ? BRACKET_PRICING.seasonCents : BRACKET_PRICING.weeklyCents;
-      name = chosen === "season" ? `Season bracket — ${bracket.title}` : `8-day bracket — ${bracket.title}`;
+      name = chosen === "season" ? `Season game slate — ${bracket.title}` : `8-day game slate — ${bracket.title}`;
     }
     kind = "pred_bracket";
   }

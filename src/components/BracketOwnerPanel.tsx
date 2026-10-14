@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LocalTime from "@/components/LocalTime";
-import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
+import { BRACKET_PRICING, money, tourneyCents } from "@/lib/predictions/pricing";
 import type { PredSlate } from "@/lib/predictions/types";
 import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
 import { getZone } from "@/lib/time/pref";
@@ -17,6 +17,10 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
   const [msg, setMsg] = useState<string | null>(null);
   const [when, setWhen] = useState("");
   const isPrivate = slate.tier === "private";
+  const isTourney = slate.tier === "tourney";
+  const noun = slate.kind === "elimination" ? "bracket" : "slate";
+  const tourneyPrice = tourneyCents(slate.entrant_cap);
+  const hasInvite = (isPrivate || isTourney) && !!slate.invite_code;
   const privateCents = BRACKET_PRICING.privateGameCents * Math.max(gameCount, 1);
 
   // After checkout the Stripe webhook opens the bracket a moment later.
@@ -61,7 +65,7 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
 
   return (
     <div className="bc-card mb-6 p-5">
-      <h2 className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{isPrivate ? "Private game settings" : "Bracket settings"}</h2>
+      <h2 className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{isPrivate ? "Private game settings" : isTourney ? "Tournament settings" : slate.kind === "elimination" ? "Bracket settings" : "Slate settings"}</h2>
 
       {slate.status === "pending" && (
         <>
@@ -70,9 +74,15 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
           ) : (
             <>
               <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>
-                {isPrivate ? "This private game is saved but not open yet. Check out to get your invite code and link. Your invitees play free." : "This bracket is saved but not open yet. Players can't see it until you check out."}
+                {isTourney
+                  ? `Your tournament bracket is saved but not published yet. Publish it to let up to ${slate.entrant_cap?.toLocaleString() ?? ""} players enter${slate.invite_code ? " with your invite code" : ""}. Players always play free.`
+                  : isPrivate ? "This private game is saved but not open yet. Check out to get your invite code and link. Your invitees play free." : `This ${noun} is saved but not open yet. Players can't see it until you check out.`}
               </p>
-              {isPrivate ? (
+              {isTourney ? (
+                <button type="button" disabled={busy || tourneyPrice == null} onClick={() => pay("activate")} className="bc-btn-solid w-full rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-60">
+                  Publish · {tourneyPrice != null ? money(tourneyPrice) : "price unavailable"} · up to {slate.entrant_cap?.toLocaleString()} entrants
+                </button>
+              ) : isPrivate ? (
                 <button type="button" disabled={busy} onClick={() => pay("activate")} className="bc-btn-solid w-full rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-60">
                   {money(privateCents)} · {gameCount} {gameCount === 1 ? "game" : "games"} × {money(BRACKET_PRICING.privateGameCents)}
                 </button>
@@ -87,7 +97,7 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
               </div>
               )}
               {isAdmin && (
-                <button type="button" disabled={busy} onClick={() => rpc("admin_open_pred_bracket", { p_id: slate.id, p_tier: isPrivate ? "private" : "season" }, "Bracket opened (free).")} className={`${btn} mt-2 w-full`} style={border}>
+                <button type="button" disabled={busy} onClick={() => rpc("admin_open_pred_bracket", { p_id: slate.id, p_tier: isPrivate ? "private" : isTourney ? "tourney" : "season" }, "Bracket opened (free).")} className={`${btn} mt-2 w-full`} style={border}>
                   Admin: open for free
                 </button>
               )}
@@ -98,21 +108,23 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
 
       {slate.status === "open" && (
         <>
-          {isPrivate && slate.invite_code && <InviteBox slateId={slate.id} code={slate.invite_code} />}
+          {hasInvite && slate.invite_code && <InviteBox slateId={slate.id} code={slate.invite_code} />}
           <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>
-            {isPrivate ? (
+            {isTourney ? (
+              <>Tournament bracket for up to {slate.entrant_cap?.toLocaleString()} entrants{slate.invite_code ? ", invite-only" : ""}. It stays open until you close it. Enter each game&apos;s final score as it finishes and the leaderboard updates.</>
+            ) : isPrivate ? (
               <>Private game. Only people with your link or code can find it, and it stays out of public lists and leaderboards.</>
             ) : slate.tier === "weekly" ? (
-              <>8-day bracket. It closes automatically {slate.closes_at ? <LocalTime iso={slate.closes_at} /> : "after 8 days"}.</>
+              <>8-day {noun}. It closes automatically {slate.closes_at ? <LocalTime iso={slate.closes_at} /> : "after 8 days"}.</>
             ) : slate.closes_at ? (
-              <>Season bracket. It closes automatically <LocalTime iso={slate.closes_at} />.</>
+              <>Season {noun}. It closes automatically <LocalTime iso={slate.closes_at} />.</>
             ) : (
-              <>Season bracket. It stays open until you close it or set a close time.</>
+              <>Season {noun}. It stays open until you close it or set a close time.</>
             )}
           </p>
-          {isPrivate ? null : slate.tier === "weekly" ? (
+          {isPrivate || isTourney ? null : slate.tier === "weekly" ? (
             <button type="button" disabled={busy} onClick={() => pay("upgrade")} className="bc-btn-solid mb-2 w-full rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-60">
-              Upgrade to season bracket · {money(BRACKET_PRICING.upgradeCents)}
+              Upgrade to season {noun} · {money(BRACKET_PRICING.upgradeCents)}
             </button>
           ) : (
             <div className="mb-2 flex flex-wrap items-end gap-2">
@@ -130,12 +142,12 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
             type="button"
             disabled={busy}
             onClick={() => {
-              if (window.confirm("Close this bracket? Players can no longer make predictions in it.")) rpc("close_pred_bracket", { p_id: slate.id }, "Bracket closed.");
+              if (window.confirm(`Close this ${noun}? Players can no longer make predictions in it.`)) rpc("close_pred_bracket", { p_id: slate.id }, "Bracket closed.");
             }}
             className={btn}
             style={{ ...border, color: "var(--red)" }}
           >
-            Close bracket now
+            Close {noun} now
           </button>
         </>
       )}
@@ -143,11 +155,11 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
       {slate.status === "closed" && (
         <>
           <p className="mb-2 text-sm" style={{ color: "var(--text-dim)" }}>
-            This bracket is closed to new predictions. You can still enter final scores so everyone gets graded.
+            This {noun} is closed to new predictions. You can still enter final scores so everyone gets graded.
           </p>
           {slate.tier === "weekly" && (
             <button type="button" disabled={busy} onClick={() => pay("upgrade")} className={btn} style={border}>
-              Reopen as a season bracket · {money(BRACKET_PRICING.upgradeCents)}
+              Reopen as a season {noun} · {money(BRACKET_PRICING.upgradeCents)}
             </button>
           )}
           {isAdmin && (

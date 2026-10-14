@@ -5,36 +5,23 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LogoUploadField from "@/components/LogoUploadField";
 import TeamPicker from "@/components/TeamPicker";
-import { BRACKET_PRICING, money, roundLabel } from "@/lib/predictions/pricing";
+import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
 import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
 import { getZone } from "@/lib/time/pref";
 import { wallToIso } from "@/lib/time/zones";
 
-type Team = { name: string; logo: string };
 type Game = { home_name: string; home_logo: string; away_name: string; away_logo: string; starts_at: string; allow_draw: boolean };
 
-const blankTeam = (): Team => ({ name: "", logo: "" });
 const blankGame = (): Game => ({ home_name: "", home_logo: "", away_name: "", away_logo: "", starts_at: "", allow_draw: false });
-const rounds = (n: number) => Math.round(Math.log2(n));
 
 export default function PredBracketBuilder() {
-  const [kind, setKind] = useState<"elimination" | "slate">("elimination");
   const [tier, setTier] = useState<"weekly" | "season">("weekly");
   const [title, setTitle] = useState("");
-  const [size, setSize] = useState(8);
-  const [teams, setTeams] = useState<Team[]>(() => Array.from({ length: 8 }, blankTeam));
-  const [starts, setStarts] = useState<string[]>(["", "", ""]);
   const [games, setGames] = useState<Game[]>(() => [blankGame(), blankGame()]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dup, setDup] = useState<{ id: string; index?: number } | null>(null);
 
-  function changeSize(n: number) {
-    setSize(n);
-    setTeams((t) => Array.from({ length: n }, (_, i) => t[i] ?? blankTeam()));
-    setStarts((s) => Array.from({ length: rounds(n) }, (_, i) => s[i] ?? ""));
-  }
-  const setTeam = (i: number, patch: Partial<Team>) => setTeams((t) => t.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const setGame = (i: number, patch: Partial<Game>) => setGames((g) => g.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   async function submit(e: React.FormEvent) {
@@ -47,11 +34,11 @@ export default function PredBracketBuilder() {
       const iso = (v: string) => (v ? wallToIso(v, getZone()) : null);
       const { data, error: rpcErr } = await sb.rpc("create_pred_bracket", {
         p_title: title,
-        p_kind: kind,
+        p_kind: "slate",
         p_tier: tier,
-        p_teams: kind === "elimination" ? teams.map((t) => ({ name: t.name, logo: t.logo || null })) : null,
-        p_round_starts: kind === "elimination" ? starts.map(iso) : null,
-        p_games: kind === "slate" ? games.map((g) => ({ ...g, home_logo: g.home_logo || null, away_logo: g.away_logo || null, starts_at: iso(g.starts_at) })) : null,
+        p_teams: null,
+        p_round_starts: null,
+        p_games: games.map((g) => ({ ...g, home_logo: g.home_logo || null, away_logo: g.away_logo || null, starts_at: iso(g.starts_at) })),
       });
       if (rpcErr) {
         setError(rpcErr.message);
@@ -80,7 +67,6 @@ export default function PredBracketBuilder() {
 
   const field = "mt-1 h-11 w-full rounded-xl border bg-transparent px-3 text-sm";
   const border = { borderColor: "var(--border)" };
-  const k = rounds(size);
   const price = tier === "season" ? BRACKET_PRICING.seasonCents : BRACKET_PRICING.weeklyCents;
 
   return (
@@ -96,66 +82,24 @@ export default function PredBracketBuilder() {
       )}
 
       <fieldset className="bc-card p-4">
-        <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Type</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Choice active={kind === "elimination"} onClick={() => setKind("elimination")} title="Elimination bracket" body="4 to 32 teams. Players fill out the whole bracket before the first game; winners advance." />
-          <Choice active={kind === "slate"} onClick={() => setKind("slate")} title="Slate of games" body="Several separate games scheduled together, each predicted before it starts." />
-        </div>
-        <label className="mt-3 block text-xs font-bold">
-          Bracket name
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required minLength={3} maxLength={80} className={field} style={border} placeholder={kind === "elimination" ? "e.g. Fall Classic Tournament" : "e.g. Week 7 Friday Night Football"} />
+        <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Your slate</legend>
+        <label className="block text-xs font-bold">
+          Slate name
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required minLength={3} maxLength={80} className={field} style={border} placeholder="e.g. Week 7 Friday Night Football" />
         </label>
       </fieldset>
 
       <fieldset className="bc-card p-4">
         <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Plan</legend>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Choice active={tier === "weekly"} onClick={() => setTier("weekly")} title={`${money(BRACKET_PRICING.weeklyCents)} · open 8 days`} body="Opens when you pay and closes automatically after 8 days." />
+          <Choice active={tier === "weekly"} onClick={() => setTier("weekly")} title={`${money(BRACKET_PRICING.weeklyCents)} · open ${BRACKET_PRICING.weeklyDays} days`} body={`Opens when you pay and closes automatically after ${BRACKET_PRICING.weeklyDays} days.`} />
           <Choice active={tier === "season"} onClick={() => setTier("season")} title={`${money(BRACKET_PRICING.seasonCents)} · whole season`} body="Stays open all season. You close it, or set a time for it to close." />
         </div>
         <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>
-          Players always play free. You can upgrade an 8-day bracket to a season bracket later for {money(BRACKET_PRICING.upgradeCents)}.
+          Players always play free. You can upgrade an 8-day slate to a season slate later for {money(BRACKET_PRICING.upgradeCents)}.
         </p>
       </fieldset>
 
-      {kind === "elimination" ? (
-        <>
-          <fieldset className="bc-card p-4">
-            <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Teams</legend>
-            <label className="block text-xs font-bold">
-              Number of teams
-              <select value={size} onChange={(e) => changeSize(Number(e.target.value))} className={field} style={{ ...border, background: "var(--surface)" }}>
-                {[4, 8, 16, 32].map((n) => <option key={n} value={n}>{n} teams</option>)}
-              </select>
-            </label>
-            <p className="mb-2 mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Teams are matched in the order you list them: 1 vs 2, 3 vs 4, and so on.</p>
-            <div className="grid gap-3">
-              {teams.map((t, i) => (
-                <div key={i} className="rounded-xl border p-3" style={border}>
-                  <TeamPicker label="Pick a team" onPick={(p) => setTeam(i, { name: p.name, logo: p.logo })} />
-                  <label className="block text-xs font-bold">
-                    Team {i + 1}
-                    <input value={t.name} onChange={(e) => setTeam(i, { name: e.target.value })} required maxLength={40} className={field} style={border} />
-                  </label>
-                  <div className="mt-2"><LogoUploadField value={t.logo} onChange={(url) => setTeam(i, { logo: url })} folder="teams" compact /></div>
-                </div>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset className="bc-card p-4">
-            <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Round start times (your local time)</legend>
-            <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>
-              Everyone&apos;s bracket locks 15 minutes after round 1 starts. {tier === "weekly" ? "The final must start within 7 days." : ""}
-            </p>
-            {starts.map((s, i) => (
-              <label key={i} className="mb-2 block text-xs font-bold">
-                {roundLabel(i + 1, k)}
-                <ZonedDateTimeInput value={s} onChange={(v) => setStarts((a) => a.map((x, j) => (j === i ? v : x)))} required className={field} style={border} />
-              </label>
-            ))}
-          </fieldset>
-        </>
-      ) : (
         <fieldset className="bc-card p-4">
           <legend className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Games</legend>
           <div className="grid gap-3">
@@ -189,7 +133,6 @@ export default function PredBracketBuilder() {
             <button type="button" onClick={() => setGames((a) => [...a, blankGame()])} className="mt-3 rounded-full border px-4 py-2 text-sm font-semibold" style={border}>+ Add another game</button>
           )}
         </fieldset>
-      )}
 
       {error && <p role="alert" className="text-sm font-semibold" style={{ color: "var(--red)" }}>{error}</p>}
       <button type="submit" disabled={busy} className="bc-btn-solid rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60">

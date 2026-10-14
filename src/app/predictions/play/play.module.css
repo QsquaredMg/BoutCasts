@@ -130,12 +130,13 @@
 
 /* pricing */
 .tickets{display:grid;gap:22px;margin-top:48px}
-@media(min-width:900px){.tickets{grid-template-columns:repeat(3,1fr);align-items:stretch}}
+@media(min-width:700px){.tickets{grid-template-columns:repeat(2,1fr);align-items:stretch}}
+@media(min-width:1180px){.tickets{grid-template-columns:repeat(4,1fr)}}
 .tk{position:relative;background:#fff;border-radius:24px;padding:30px 26px 26px;display:flex;flex-direction:column;gap:10px;border:1.5px solid #dde2f0}
 .tk::before,.tk::after{content:"";position:absolute;top:104px;width:26px;height:26px;border-radius:50%;background:var(--paper);border:1.5px solid #dde2f0}
 .tk::before{left:-14px;clip-path:inset(0 0 0 50%)}.tk::after{right:-14px;clip-path:inset(0 50% 0 0)}
 .tkHot{background:var(--night);color:#fff;border-color:var(--gold);box-shadow:0 30px 60px -24px rgba(10,15,44,.7)}
-@media(min-width:900px){.tkHot{transform:translateY(-14px)}}
+@media(min-width:1180px){.tkHot{transform:translateY(-14px)}}
 .tkHot::before,.tkHot::after{border-color:var(--gold)}
 .tkTag{align-self:flex-start;background:var(--gold);color:var(--night);font-weight:800;font-size:.8rem;padding:5px 12px;border-radius:99px}
 .tk h3{font-family:var(--cond);text-transform:uppercase;font-weight:800;font-size:1.7rem;margin:0;line-height:1}

@@ -6,7 +6,7 @@ import PredHero from "@/components/PredHero";
 import PredLeaderboardTable from "@/components/PredLeaderboardTable";
 import { GAME_FIELDS, isLocked, type LeaderRow, type PredGame } from "@/lib/predictions/types";
 import { SCORING } from "@/lib/predictions/scoring";
-import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
+import PredPricing from "@/components/PredPricing";
 
 export const metadata: Metadata = {
   title: "Bout Predictions",
@@ -51,8 +51,9 @@ export default async function PredictionsPage() {
       >
         <div className="pt-cta">
           <Link href="/predictions/new" className="pt-gold">Start a free game</Link>
-          <Link href="/predictions/bracket/new" className="pt-ghost">Create a bracket</Link>
-          <Link href="/predictions/private/new" className="pt-ghost">🔒 Private game · {money(BRACKET_PRICING.privateGameCents)}</Link>
+          <Link href="/predictions/tournament/new" className="pt-ghost">🏆 Tournament bracket</Link>
+          <Link href="/predictions/bracket/new" className="pt-ghost">Game slate</Link>
+          <Link href="/predictions/private/new" className="pt-ghost">🔒 Private game</Link>
           <Link href="/predictions/join" className="pt-ghost">Have a code?</Link>
           <Link href="/predictions/leaderboard" className="pt-ghost">Leaderboard</Link>
           <Link href="/predictions/play" className="pt-ghost">How it works</Link>
@@ -60,9 +61,7 @@ export default async function PredictionsPage() {
       </PredHero>
 
       <div className="pt-body wide">
-      <p className="pt-info mb-8">
-        <strong>Players always play free.</strong> Organizers get one free single game every two weeks (open 24 hours). A closed, invite-only private game is <b>{money(BRACKET_PRICING.privateGameCents)}</b> per game. A bracket with many games costs <b>{money(BRACKET_PRICING.weeklyCents)}</b> and stays open 8 days, or <b>{money(BRACKET_PRICING.seasonCents)}</b> to stay open all season.
-      </p>
+      <PredPricing />
 
       <Section title="Open for picks" empty="No games are open right now. Create one to get your friends predicting!">
         {open.map((g) => <GameCard key={g.id} game={g} mine={mine[g.id]} />)}

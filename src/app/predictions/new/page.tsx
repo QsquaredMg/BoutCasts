@@ -39,8 +39,7 @@ export default async function NewGamePage({ searchParams }: { searchParams: Prom
       )}
       {!preset && !isAdmin && (
         <p className="pt-info mt-6">
-          Every account gets one free single game every two weeks, open for 24 hours. Need more games, an elimination bracket or a longer schedule?{" "}
-          <Link href="/predictions/bracket/new" className="font-bold underline" style={{ color: "#ffc531" }}>Create a bracket</Link>. Want it just for your group? <Link href="/predictions/private/new" className="font-bold underline" style={{ color: "#ffc531" }}>Make a private game for $5</Link>.
+          Every account gets one free single game every two weeks, open for 24 hours. Want a March Madness style tournament? <Link href="/predictions/tournament/new" className="font-bold underline" style={{ color: "#ffc531" }}>Build a tournament bracket</Link>. Several games on one leaderboard? <Link href="/predictions/bracket/new" className="font-bold underline" style={{ color: "#ffc531" }}>Build a game slate</Link>. Want it just for your group? <Link href="/predictions/private/new" className="font-bold underline" style={{ color: "#ffc531" }}>Make a private game for $5</Link>.
         </p>
       )}
       </div>

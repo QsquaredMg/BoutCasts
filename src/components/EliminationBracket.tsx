@@ -12,8 +12,8 @@ import type { BracketTeam, PredGame, PredSlate } from "@/lib/predictions/types";
 export type BracketPick = {
   game_id: string;
   team_id: string;
-  win_score: number;
-  lose_score: number;
+  win_score: number | null;
+  lose_score: number | null;
   pts_total: number | null;
 };
 
@@ -58,10 +58,12 @@ export default function EliminationBracket({
   const totalRounds = Math.max(...games.map((g) => g.round ?? 1), 1);
   const rounds = Array.from({ length: totalRounds }, (_, i) => i + 1);
   const pickByGame = new Map(myPicks.map((p) => [p.game_id, p]));
+  // Tournament brackets: wins and losses are the grade; only the championship score is asked for (it breaks ties).
+  const tour = slate.scoring_mode === "tourney";
 
   const [draft, setDraft] = useState<Draft>(() => {
     const d: Draft = {};
-    for (const p of myPicks) d[p.game_id] = { team: p.team_id, win: String(p.win_score), lose: String(p.lose_score) };
+    for (const p of myPicks) d[p.game_id] = { team: p.team_id, win: p.win_score == null ? "" : String(p.win_score), lose: p.lose_score == null ? "" : String(p.lose_score) };
     return d;
   });
   const [busy, setBusy] = useState(false);
@@ -73,6 +75,7 @@ export default function EliminationBracket({
 
   const complete = games.every((g) => {
     const d = draft[g.id];
+    if (tour && g.round !== totalRounds) return !!d?.team;
     const w = Number(d?.win), l = Number(d?.lose);
     return d?.team && d.win !== "" && d.lose !== "" && Number.isInteger(w) && Number.isInteger(l) && w > l && l >= 0;
   });
@@ -80,7 +83,10 @@ export default function EliminationBracket({
   async function save() {
     setBusy(true);
     setMsg(null);
-    const picks = games.map((g) => ({ game_id: g.id, team_id: draft[g.id].team, win_score: Number(draft[g.id].win), lose_score: Number(draft[g.id].lose) }));
+    const picks = games.map((g) => {
+      const scored = !tour || g.round === totalRounds;
+      return { game_id: g.id, team_id: draft[g.id].team, win_score: scored ? Number(draft[g.id].win) : null, lose_score: scored ? Number(draft[g.id].lose) : null };
+    });
     const { error } = await createClient().rpc("submit_bracket", { p_bracket: slate.id, p_picks: picks });
     setBusy(false);
     if (error) {
@@ -104,7 +110,10 @@ export default function EliminationBracket({
     <div className="mb-8">
       {canPredict && (
         <p className="mb-4 rounded-xl p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
-          Pick the winner of every game and the final score (winner&apos;s score first). Your later rounds follow from the winners you pick. Everything locks 15 minutes after the first game starts{slate.locks_at ? <> (<LocalTime iso={slate.locks_at} />)</> : null}.
+          {tour
+            ? <>Pick the winner of every game, then guess the championship score (winner&apos;s score first). Correct picks earn more points each round, and the championship score only breaks ties. </>
+            : <>Pick the winner of every game and the final score (winner&apos;s score first). Your later rounds follow from the winners you pick. </>}
+          Everything locks 15 minutes after the first game starts{slate.locks_at ? <> (<LocalTime iso={slate.locks_at} />)</> : null}.
         </p>
       )}
       {rounds.map((r) => (
@@ -134,7 +143,7 @@ export default function EliminationBracket({
                         );
                       })}
                     </div>
-                    {d?.team && (
+                    {d?.team && (!tour || r === totalRounds) && (
                       <div className="mt-3 flex items-end gap-2">
                         <label className="flex-1 text-xs font-bold">
                           Winner&apos;s score
@@ -162,7 +171,7 @@ export default function EliminationBracket({
                   </div>
                   {mine && (
                     <p className="mt-3 text-center text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
-                      Your pick: {teamById.get(mine.team_id)?.name ?? "Team"} {mine.win_score}–{mine.lose_score}
+                      Your pick: {teamById.get(mine.team_id)?.name ?? "Team"}{mine.win_score != null ? ` ${mine.win_score}–${mine.lose_score}` : ""}
                       {mine.pts_total != null ? ` · ${mine.pts_total} pts` : ""}
                     </p>
                   )}

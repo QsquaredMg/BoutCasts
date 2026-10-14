@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { cond } from "../font";
 import { SCORING } from "@/lib/predictions/scoring";
-import { BRACKET_PRICING, money } from "@/lib/predictions/pricing";
+import { BRACKET_PRICING, TOURNEY_TIERS, money } from "@/lib/predictions/pricing";
 import s from "./play.module.css";
 
 
@@ -35,7 +35,8 @@ const USES = [
 const FAQ = [
   { q: "Do players have to pay?", a: "No. Players always play free. Organizers get one free single game every two weeks." },
   { q: "How do I keep a game private?", a: `A private game is invite-only and costs ${money(BRACKET_PRICING.privateGameCents)} per game. Invitees join with a code and play free.` },
-  { q: "What about brackets?", a: `A bracket with many games is ${money(BRACKET_PRICING.weeklyCents)} and stays open ${BRACKET_PRICING.weeklyDays} days, or ${money(BRACKET_PRICING.seasonCents)} to stay open all season.` },
+  { q: "What if I want several games at once?", a: `A game slate puts many games on one leaderboard. It is ${money(BRACKET_PRICING.weeklyCents)} for ${BRACKET_PRICING.weeklyDays} days, or ${money(BRACKET_PRICING.seasonCents)} to stay open all season.` },
+  { q: "Can I run a March Madness style tournament?", a: `Yes. A tournament bracket (4 to 64 teams) is free to build, and you pay once when you publish: ${TOURNEY_TIERS.map((t) => `${money(t.cents)} for up to ${t.cap.toLocaleString()} entrants`).join(", ")}. Players fill out the whole bracket for free, and wins and losses decide the standings.` },
   { q: "When do picks lock?", a: "15 minutes after the game's start time." },
   { q: "Is this gambling?", a: "No. There is no money in play for players. It is points and bragging rights only." },
 ];
@@ -271,10 +272,16 @@ export default function PredictionsFunnelPage() {
               <Link href="/predictions/private/new" className={s.tkBtn}>Create a private game</Link>
             </div>
             <div className={s.tk}>
-              <h3>Bracket</h3>
-              <div className={s.price}>{money(BRACKET_PRICING.weeklyCents)}+</div>
-              <p>Many games, one leaderboard. {BRACKET_PRICING.weeklyDays} days, or {money(BRACKET_PRICING.seasonCents)} for the whole season.</p>
-              <Link href="/predictions/bracket/new" className={s.tkBtn}>Build a bracket</Link>
+              <h3>Game slate</h3>
+              <div className={s.price}>{money(BRACKET_PRICING.weeklyCents)}</div>
+              <p>Many games, one leaderboard. Open {BRACKET_PRICING.weeklyDays} days, or {money(BRACKET_PRICING.seasonCents)} for the whole season.</p>
+              <Link href="/predictions/bracket/new" className={s.tkBtn}>Build a slate</Link>
+            </div>
+            <div className={s.tk}>
+              <h3>Tournament</h3>
+              <div className={s.price}>{money(TOURNEY_TIERS[0].cents)}</div>
+              <p>A March Madness style bracket, up to 64 teams. Free to build. {money(TOURNEY_TIERS[0].cents)} for up to {TOURNEY_TIERS[0].cap} entrants, {money(TOURNEY_TIERS[1].cents)} for {TOURNEY_TIERS[1].cap}, {money(TOURNEY_TIERS[2].cents)} for {TOURNEY_TIERS[2].cap}, {money(TOURNEY_TIERS[3].cents)} for {TOURNEY_TIERS[3].cap.toLocaleString()}.</p>
+              <Link href="/predictions/tournament/new" className={s.tkBtn}>Build a bracket</Link>
             </div>
           </div>
         </div>
