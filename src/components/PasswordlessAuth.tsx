@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/authMessages";
 import { postLoginPath } from "@/lib/postLoginPath";
+import GoogleIdButton from "@/components/GoogleIdButton";
+import type { User } from "@supabase/supabase-js";
+
+// When set, Google sign-in runs on this site (Google's own button) instead of redirecting through Supabase.
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 type Providers = { google: boolean; apple: boolean };
 
@@ -49,6 +54,7 @@ export default function PasswordlessAuth({
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
+  const [gidFailed, setGidFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -78,6 +84,13 @@ export default function PasswordlessAuth({
       setBusy(false);
       setError(friendlyAuthError(err.message));
     }
+  }
+
+  async function googleDone(user: User) {
+    setBusy(true);
+    const dest = await postLoginPath(supabase, user, next, hasNext);
+    router.push(dest);
+    router.refresh();
   }
 
   async function sendCode(e?: React.FormEvent) {
@@ -131,7 +144,10 @@ export default function PasswordlessAuth({
 
       {showSocial && (
         <div className="flex flex-col gap-2">
-          {providers.google && (
+          {providers.google && GOOGLE_CLIENT_ID && !gidFailed && (
+            <GoogleIdButton clientId={GOOGLE_CLIENT_ID} onSignedIn={googleDone} onError={setError} onUnavailable={() => setGidFailed(true)} />
+          )}
+          {providers.google && (!GOOGLE_CLIENT_ID || gidFailed) && (
             <button type="button" onClick={() => social("google")} disabled={busy} className="flex items-center justify-center gap-2.5 rounded-full border py-2.5 text-sm font-bold disabled:opacity-60" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
               <GoogleMark /> Continue with Google
             </button>
