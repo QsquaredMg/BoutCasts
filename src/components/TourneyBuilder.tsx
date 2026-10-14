@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import TeamPicker from "@/components/TeamPicker";
 import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
 import { TOURNEY_TIERS, money, roundLabel, roundPoints } from "@/lib/predictions/pricing";
 import { getZone } from "@/lib/time/pref";
@@ -17,14 +18,16 @@ export default function TourneyBuilder() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [size, setSize] = useState<(typeof SIZES)[number]>(8);
-  const [teamText, setTeamText] = useState("");
+  const [slots, setSlots] = useState<{ name: string; logo: string }[]>(() => Array.from({ length: 8 }, () => ({ name: "", logo: "" })));
+  const [paste, setPaste] = useState("");
+  const [showPaste, setShowPaste] = useState(false);
   const [starts, setStarts] = useState<string[]>(["", "", ""]);
   const [cap, setCap] = useState<number>(TOURNEY_TIERS[1].cap);
   const [isPrivate, setIsPrivate] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const teams = useMemo(() => teamText.split("\n").map((t) => t.trim()).filter(Boolean), [teamText]);
+  const teams = useMemo(() => slots.map((t) => t.name.trim()).filter(Boolean), [slots]);
   const dupes = useMemo(() => {
     const seen = new Set<string>();
     const d = new Set<string>();
@@ -40,7 +43,19 @@ export default function TourneyBuilder() {
 
   function changeSize(n: (typeof SIZES)[number]) {
     setSize(n);
+    setSlots((a) => Array.from({ length: n }, (_, i) => a[i] ?? { name: "", logo: "" }));
     setStarts((s) => Array.from({ length: rounds(n) }, (_, i) => s[i] ?? ""));
+  }
+
+  function setSlot(i: number, v: Partial<{ name: string; logo: string }>) {
+    setSlots((a) => a.map((x, j) => (j === i ? { ...x, ...v } : x)));
+  }
+
+  function applyPaste() {
+    const names = paste.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, size);
+    setSlots((a) => a.map((x, i) => (names[i] !== undefined ? { name: names[i], logo: "" } : x)));
+    setPaste("");
+    setShowPaste(false);
   }
 
   async function submit(e: React.FormEvent) {
@@ -62,7 +77,7 @@ export default function TourneyBuilder() {
     try {
       const { data, error: rpcErr } = await createClient().rpc("create_pred_tourney", {
         p_title: title,
-        p_teams: teams.map((name) => ({ name })),
+        p_teams: slots.map((t) => ({ name: t.name.trim(), logo: t.logo || null })),
         p_round_starts: starts.map((s) => (s ? wallToIso(s, getZone()) : null)),
         p_cap: cap,
         p_private: isPrivate,
@@ -99,14 +114,40 @@ export default function TourneyBuilder() {
             {SIZES.map((n) => <option key={n} value={n}>{n} teams{n === 64 ? " (March Madness)" : ""}</option>)}
           </select>
         </label>
-        <label className="mt-3 block text-xs font-bold">
-          Teams, one per line ({teams.length} of {size})
-          <textarea value={teamText} onChange={(e) => setTeamText(e.target.value)} required rows={Math.min(Math.max(size, 6), 16)} className="mt-1 w-full rounded-xl border bg-transparent p-3 text-sm font-normal" style={border} placeholder={"Team A\nTeam B\nTeam C\nTeam D"} />
-        </label>
-        <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>
-          Teams are matched in the order you list them: line 1 plays line 2, line 3 plays line 4, and so on. Winners then meet in the next round in the same order.
-          For a seeded region, list it top to bottom as 1, 16, 8, 9, 5, 12, 4, 13, 6, 11, 3, 14, 7, 10, 2, 15, then continue with the next region.
+        <p className="mt-3 text-xs font-bold">Teams ({teams.length} of {size})</p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>
+          Pick from the team list (NCAA, NFL, NBA, MLB) to add the name and logo, or type your own. Each pair plays in Round 1: Game 1 is slots 1 and 2, Game 2 is slots 3 and 4, and winners then meet in the same order.
+          For a seeded region, fill it top to bottom as 1, 16, 8, 9, 5, 12, 4, 13, 6, 11, 3, 14, 7, 10, 2, 15, then the next region.
         </p>
+        <ol className="flex flex-col gap-2">
+          {slots.map((t, i) => (
+            <li key={i} className={i % 2 === 1 ? "mb-2" : ""}>
+              {i % 2 === 0 && <p className="mb-1 text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Game {i / 2 + 1}</p>}
+              <div className="flex items-center gap-2">
+                <span className="w-6 shrink-0 text-right text-xs font-bold" style={{ color: "var(--text-faint)" }}>{i + 1}</span>
+                {t.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.logo} alt="" width={32} height={32} className="h-8 w-8 shrink-0 object-contain" />
+                ) : (
+                  <span className="h-8 w-8 shrink-0 rounded-full" style={{ background: "var(--surface-2)" }} aria-hidden />
+                )}
+                <input value={t.name} onChange={(e) => setSlot(i, { name: e.target.value, ...(t.logo ? { logo: "" } : {}) })} maxLength={40} placeholder={`Team ${i + 1}`} aria-label={`Team ${i + 1}`} className="h-10 min-w-0 flex-1 rounded-xl border bg-transparent px-3 text-sm" style={border} />
+              </div>
+              <div className="ml-8 mt-1">
+                <TeamPicker label="Pick a team" onPick={(p) => setSlot(i, { name: p.name, logo: p.logo })} />
+              </div>
+            </li>
+          ))}
+        </ol>
+        <button type="button" onClick={() => setShowPaste((v) => !v)} className="mt-1 text-xs font-bold" style={{ color: "var(--blue)" }}>
+          {showPaste ? "Close" : "Paste a list of names instead"}
+        </button>
+        {showPaste && (
+          <div className="mt-2">
+            <textarea value={paste} onChange={(e) => setPaste(e.target.value)} rows={6} className="w-full rounded-xl border bg-transparent p-3 text-sm" style={border} placeholder={"One team per line, in bracket order"} />
+            <button type="button" onClick={applyPaste} className="mt-2 rounded-full border px-4 py-1.5 text-xs font-bold" style={border}>Fill the slots</button>
+          </div>
+        )}
       </fieldset>
 
       <fieldset className="bc-card p-4">
