@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { effectiveStreak } from "@/lib/streak";
 import Link from "next/link";
 import PushOptIn from "@/components/PushOptIn";
 import { notFound } from "next/navigation";
@@ -48,7 +49,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, points, current_streak, longest_streak, created_at, avatar_url")
+    .select("id, username, points, current_streak, longest_streak, last_vote_date, created_at, avatar_url")
     .eq("username", username)
     .maybeSingle();
 
@@ -209,7 +210,7 @@ export default async function ProfilePage({
       <div className="mb-8 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {[
           { v: profile.points ?? 0, l: "Points" },
-          { v: profile.current_streak ?? 0, l: "Streak" },
+          { v: effectiveStreak(profile.current_streak, profile.last_vote_date), l: "Streak" },
           { v: profile.longest_streak ?? 0, l: "Best streak" },
           { v: submissions.length, l: "Approved bouts" },
         ].map((stat) => (

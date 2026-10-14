@@ -31,6 +31,7 @@ type EventRow = {
   description: string | null;
   voter_mode: "account" | "open_link";
   status: EventStatus;
+  tier?: string | null;
   closes_at: string | null;
   brand_name: string | null;
   brand_logo_url: string | null;
@@ -46,6 +47,22 @@ type EventRow = {
   categories?: { name: string } | null;
   subcategories?: { name: string } | null;
 };
+
+type Snapshot = {
+  status: string;
+  closes_at: string | null;
+  tally: { option_id: string; votes: number }[];
+  super: { option_id: string; super_votes: number }[];
+};
+
+async function fetchSnapshot(eventId: string): Promise<Snapshot | null> {
+  try {
+    const res = await fetch(`/api/live-vote/${eventId}/tally`);
+    return res.ok ? ((await res.json()) as Snapshot) : null;
+  } catch {
+    return null;
+  }
+}
 
 type OptionRow = {
   id: string;
@@ -117,7 +134,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, shared_source_url, voter_mode, status, closes_at, brand_name, brand_logo_url, cover_image_url, is_private, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
+      .select("id, title, description, shared_source_url, voter_mode, status, tier, closes_at, brand_name, brand_logo_url, cover_image_url, is_private, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -214,8 +231,14 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [load]);
 
+  // Small events get every vote pushed live. Medium and large events (hundreds to tens of thousands of
+  // phones) would multiply every vote by every viewer, so they read one shared, cached tally instead.
+  const tier = event?.tier;
+  const bigEvent = tier === "medium" || tier === "large";
+  const eventLoaded = !!event;
   useEffect(() => {
-    const channel = supabase
+    if (!eventLoaded) return;
+    const channel = bigEvent ? null : supabase
       .channel(`live-vote-tally-${eventId}`)
       .on(
         "postgres_changes",
@@ -227,11 +250,19 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       )
       .subscribe();
 
-    // Safety net: if the realtime connection drops (spotty stadium Wi-Fi,
-    // a phone waking from sleep), re-sync the tally and event status every
-    // 10 seconds so the big screen never freezes on an old count.
+    // Big events: one shared, cached snapshot every 3 seconds (falls back to direct queries if it
+    // is unavailable). Small events: re-sync every 10 seconds in case realtime drops (spotty
+    // stadium Wi-Fi, a phone waking from sleep) so the big screen never freezes on an old count.
     const poll = setInterval(async () => {
       if (typeof document !== "undefined" && document.hidden) return;
+      if (bigEvent) {
+        const snap = await fetchSnapshot(eventId);
+        if (snap) {
+          applySnapshot(snap);
+          setResultsKey((k) => k + 1);
+          return;
+        }
+      }
       const { data: tallyRows } = await supabase.rpc("get_live_vote_tally", { p_event_id: eventId });
       if (tallyRows) {
         const nextTally: Record<string, number> = {};
@@ -253,18 +284,38 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
       if (statusRow) {
         setEvent((prev) => (prev ? { ...prev, status: statusRow.status, closes_at: statusRow.closes_at } : prev));
       }
-    }, 10_000);
+    }, bigEvent ? 3_000 : 10_000);
 
     return () => {
       clearInterval(poll);
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
+  }, [eventId, tier, eventLoaded]);
+
+  function applySnapshot(snap: Snapshot) {
+    const nextTally: Record<string, number> = {};
+    for (const r of snap.tally) nextTally[r.option_id] = r.votes;
+    setTally(nextTally);
+    if (snap.super.length) {
+      const next: Record<string, number> = {};
+      for (const r of snap.super) next[r.option_id] = r.super_votes;
+      setSuperTally(next);
+    }
+    setEvent((prev) => (prev ? { ...prev, status: snap.status as EventStatus, closes_at: snap.closes_at } : prev));
+  }
 
   // Re-sync counts right after this browser votes, instead of waiting for
   // the realtime feed or the 10-second poll.
   async function refreshTally() {
+    if (bigEvent) {
+      // One shared snapshot instead of a database count per vote cast.
+      const snap = await fetchSnapshot(eventId);
+      if (snap) {
+        applySnapshot(snap);
+        return;
+      }
+    }
     const { data: tallyRows } = await supabase.rpc("get_live_vote_tally", { p_event_id: eventId });
     if (tallyRows) {
       const nextTally: Record<string, number> = {};
