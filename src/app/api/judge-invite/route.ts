@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     .replace(new RegExp(escapeHtml(link).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), `<a href="${link}" style="color:#1b4fe4;font-weight:bold">${escapeHtml(link)}</a>`)
     .replace(/\n/g, "<br>")}</div>`;
 
-  const from = process.env.RESEND_FROM || "BoutCasts <judges@boutcasts.com>";
+  const from = process.env.RESEND_FROM || "BoutCasts <info@boutcasts.com>";
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
