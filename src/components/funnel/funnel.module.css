@@ -211,3 +211,8 @@
 @media (prefers-reduced-motion:reduce){
  .vCard,.vStamp,.tickTrack,.dot{animation:none!important}
 }
+
+.linkCard{text-decoration:none;color:inherit;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.card.linkCard:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.28)}
+.linkCard:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.go{margin-top:auto;font-weight:800;font-size:.92rem;letter-spacing:.02em;opacity:.85}

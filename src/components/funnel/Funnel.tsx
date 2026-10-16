@@ -40,9 +40,9 @@ export type FunnelProps = {
   steps: { title: string; body: string }[];
   featuresTitle: string;
   featuresLede: string;
-  features: { icon: string; title: string; body: string; span?: 2 | 3; hot?: boolean }[];
+  features: { icon: string; title: string; body: string; span?: 2 | 3; hot?: boolean; href?: string }[];
   usesTitle: string;
-  uses: { emoji: string; title: string; body: string }[];
+  uses: { emoji: string; title: string; body: string; href?: string }[];
   tiers?: {
     eyebrow: string;
     title: string;
@@ -142,13 +142,30 @@ export default function Funnel(p: FunnelProps) {
           <h2 className={s.secTitle}>{p.featuresTitle}</h2>
           <p className={s.secLede}>{p.featuresLede}</p>
           <div className={s.bento}>
-            {p.features.map((f) => (
-              <div key={f.title} className={`${s.card} ${f.span === 3 ? s.b3 : s.b2} ${f.hot ? s.cardHot : ""}`}>
-                <div className={s.icon}>{f.icon}</div>
-                <h3>{f.title}</h3>
-                <p>{f.body}</p>
-              </div>
-            ))}
+            {p.features.map((f) => {
+              const cls = `${s.card} ${f.span === 3 ? s.b3 : s.b2} ${f.hot ? s.cardHot : ""}`;
+              const inner = (
+                <>
+                  <div className={s.icon}>{f.icon}</div>
+                  <h3>{f.title}</h3>
+                  <p>{f.body}</p>
+                  {f.href && (
+                    <span className={s.go} aria-hidden="true">
+                      Open &rarr;
+                    </span>
+                  )}
+                </>
+              );
+              return f.href ? (
+                <Link key={f.title} href={f.href} className={`${cls} ${s.linkCard}`}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={f.title} className={cls}>
+                  {inner}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -158,17 +175,29 @@ export default function Funnel(p: FunnelProps) {
           <p className={s.eyebrow}>Built for</p>
           <h2 className={s.secTitle}>{p.usesTitle}</h2>
           <div className={s.uses}>
-            {p.uses.map((u, i) => (
-              <div key={u.title} className={`${s.use} ${s[`u${i % 6}`]}`}>
-                <span className={s.emoji} aria-hidden="true">
-                  {u.emoji}
-                </span>
-                <div>
-                  <h3>{u.title}</h3>
-                  <p style={{ marginTop: 10 }}>{u.body}</p>
+            {p.uses.map((u, i) => {
+              const cls = `${s.use} ${s[`u${i % 6}`]}`;
+              const inner = (
+                <>
+                  <span className={s.emoji} aria-hidden="true">
+                    {u.emoji}
+                  </span>
+                  <div>
+                    <h3>{u.title}</h3>
+                    <p style={{ marginTop: 10 }}>{u.body}</p>
+                  </div>
+                </>
+              );
+              return u.href ? (
+                <Link key={u.title} href={u.href} className={`${cls} ${s.linkCard}`}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={u.title} className={cls}>
+                  {inner}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

@@ -221,20 +221,20 @@ export default async function Home() {
       featuresTitle="One place for every vote"
       featuresLede="Fans get a simple ballot. Organizers get a link, a tally and fair rules."
       features={[
-        { icon: "🥊", title: "Head-to-head bouts", body: "Two sides, one winner, live percentages as the crowd votes.", span: 3, hot: true },
-        { icon: "🏆", title: "Brackets that run themselves", body: "Winners advance automatically when each round's voting closes.", span: 3 },
-        { icon: "🗳️", title: "Live Vote events", body: "Elections, halftime polls and talent shows with a live tally for the big screen.", span: 2 },
-        { icon: "🔮", title: "Predictions", body: "Call winners and scores with friends and climb a leaderboard.", span: 2 },
-        { icon: "🛡️", title: "Fair by design", body: "One vote per account or device per matchup, with repeat-vote checks and a live tally organizers can watch.", span: 2 },
+        { icon: "🥊", title: "Head-to-head bouts", body: "Two sides, one winner, live percentages as the crowd votes.", span: 3, hot: true, href: "/discover?view=matchups" },
+        { icon: "🏆", title: "Brackets that run themselves", body: "Winners advance automatically when each round's voting closes.", span: 3, href: "/discover" },
+        { icon: "🗳️", title: "Live Vote events", body: "Elections, halftime polls and talent shows with a live tally for the big screen.", span: 2, href: "/discover?view=events" },
+        { icon: "🔮", title: "Predictions", body: "Call winners and scores with friends and climb a leaderboard.", span: 2, href: "/predictions/play" },
+        { icon: "🛡️", title: "Fair by design", body: "One vote per account or device per matchup, with repeat-vote checks and a live tally organizers can watch.", span: 2, href: "/how-it-works" },
       ]}
       usesTitle="Built for"
       uses={[
-        { emoji: "🎺", title: "Bands and halftime shows", body: "Settle the battle with a real crowd vote." },
-        { emoji: "🏫", title: "Schools", body: "Class elections and homecoming courts." },
-        { emoji: "💃", title: "Dance and step shows", body: "Let the crowd pick the champion." },
-        { emoji: "🎤", title: "Talent shows", body: "One link, one fair vote each." },
-        { emoji: "🏟️", title: "Leagues and venues", body: "Fan polls and bracket challenges." },
-        { emoji: "🎙️", title: "Creators", body: "Put the hot take to a vote." },
+        { emoji: "🎺", title: "Bands and halftime shows", body: "Settle the battle with a real crowd vote.", href: "/discover?view=matchups" },
+        { emoji: "🏫", title: "Schools", body: "Class elections and homecoming courts.", href: "/schools" },
+        { emoji: "💃", title: "Dance and step shows", body: "Let the crowd pick the champion.", href: "/competitions/play" },
+        { emoji: "🎤", title: "Talent shows", body: "One link, one fair vote each.", href: "/showcase/play" },
+        { emoji: "🏟️", title: "Leagues and venues", body: "Fan polls and bracket challenges.", href: "/predictions/play" },
+        { emoji: "🎙️", title: "Creators", body: "Put the hot take to a vote.", href: "/create" },
       ]}
       faq={[
         { q: "Do I need an account to vote?", a: "Your first vote needs no account. Create one to keep voting, earn points and see your history." },
