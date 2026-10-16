@@ -100,10 +100,10 @@ const DOORS: { emoji: string; name: string; line: string; cta: string; href: str
 ];
 
 const MORE: { name: string; href: string }[] = [
+  { name: "Live Trivia", href: "/trivia/play" },
   { name: "Competitions", href: "/competitions/play" },
   { name: "Showcases", href: "/showcase/play" },
   { name: "Debates", href: "/debates/play" },
-  { name: "Live Trivia", href: "/trivia/play" },
   { name: "Paid Bouts", href: "/paid-bouts/play" },
   { name: "Schools", href: "/schools" },
 ];
