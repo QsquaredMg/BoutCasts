@@ -67,7 +67,7 @@ async function sendInviteEmail(opts: { to: string; subject: string; text: string
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM || "BoutCasts <judges@boutcasts.com>",
+      from: process.env.RESEND_FROM || "BoutCasts <info@boutcasts.com>",
       to: [opts.to],
       subject: opts.subject,
       text: opts.text,
