@@ -217,7 +217,7 @@ async function predictionLaunchDrafts(db: Db, since: string): Promise<SocialDraf
   return out;
 }
 
-/** New head-to-head voting brackets that haven't started decided any bouts yet. */
+/** Head-to-head voting brackets whose first round is live and has no decided bouts yet. */
 async function boutBracketLaunchDrafts(db: Db, since: string): Promise<SocialDraft[]> {
   const { data: bs } = await db
     .from("bouts")
@@ -231,6 +231,7 @@ async function boutBracketLaunchDrafts(db: Db, since: string): Promise<SocialDra
     const first = Math.min(...list.map((b) => b.round_number ?? 1));
     const r1 = list.filter((b) => (b.round_number ?? 1) === first && !isTbd(b.competitor_a_name) && !isTbd(b.competitor_b_name));
     if (!r1.length) continue;
+    if (!r1.some((b) => b.status === "live")) continue; // voting isn't open yet; draft once round 1 goes live
     const games: LaunchGame[] = r1.map((b) => ({ home: b.competitor_b_name as string, away: b.competitor_a_name as string, startsAt: null }));
     const title = list.find((b) => b.title?.trim())?.title?.trim() || "Tournament bracket";
     const path = `/bracket/${key}`;
