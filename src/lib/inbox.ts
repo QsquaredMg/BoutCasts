@@ -58,3 +58,14 @@ export function replySubject(subject: string | null | undefined): string {
   const s = (subject ?? "").trim() || "(no subject)";
   return /^re:/i.test(s) ? s : `Re: ${s}`;
 }
+
+/** Addresses the admin inbox can send from. Both are verified on the boutcasts.com Resend domain. */
+export const INBOX_SENDERS = [
+  { key: "support", address: "support@boutcasts.com", from: "BoutCasts Support <support@boutcasts.com>" },
+  { key: "info", address: "info@boutcasts.com", from: "BoutCasts <info@boutcasts.com>" },
+] as const;
+export type InboxSenderKey = (typeof INBOX_SENDERS)[number]["key"];
+
+export function senderFor(key: string | null | undefined) {
+  return INBOX_SENDERS.find((s) => s.key === key) ?? INBOX_SENDERS[0];
+}

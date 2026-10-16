@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { displayName, type InboxMessage } from "@/lib/inbox";
+import { bareAddress, displayName, type InboxMessage } from "@/lib/inbox";
 import InboxThreadActions from "@/components/admin/InboxThreadActions";
+import InboxCompose from "@/components/admin/InboxCompose";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function AdminInboxPage({ searchParams }: { searchParams: P
           {list.map((m) => (
             <li key={m.id} className="bc-card p-4" style={m.direction === "out" ? { background: "var(--surface-2)" } : undefined}>
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-xs" style={{ color: "var(--text-faint)" }}>
-                <span className="font-bold" style={{ color: "var(--text)" }}>{m.direction === "out" ? "You (support)" : displayName(m.from_addr)}</span>
+                <span className="font-bold" style={{ color: "var(--text)" }}>{m.direction === "out" ? `You (${bareAddress(m.from_addr)})` : displayName(m.from_addr)}</span>
                 <span>{when(m.received_at)}</span>
               </div>
               {m.direction === "in" && m.from_addr && (
@@ -99,7 +100,8 @@ export default async function AdminInboxPage({ searchParams }: { searchParams: P
   return (
     <div>
       <h2 className="mb-1 text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Inbox</h2>
-      <p className="mb-4 text-sm" style={{ color: "var(--text-faint)" }}>Mail sent to the BoutCasts support address. Replies go out from the same address.</p>
+      <p className="mb-4 text-sm" style={{ color: "var(--text-faint)" }}>Mail sent to the BoutCasts support address. Send replies or new email from support@ or info@.</p>
+      <InboxCompose />
       <div className="mb-4 flex gap-2">
         {(["open", "done", "all"] as const).map((k) => (
           <Link key={k} href={k === "open" ? "/admin/inbox" : `/admin/inbox?f=${k}`} className="rounded-full px-4 py-1.5 text-sm font-bold capitalize" style={filter === k ? { background: "var(--blue)", color: "#fff" } : { background: "var(--surface-2)", color: "var(--text-dim)" }}>

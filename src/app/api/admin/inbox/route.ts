@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { bareAddress, replySubject } from "@/lib/inbox";
+import { bareAddress, replySubject, senderFor } from "@/lib/inbox";
 
 export const runtime = "nodejs";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// Admin-only actions on the support inbox: mark a thread read, open/close it, or send a reply.
+// Admin-only actions on the inbox: mark a thread read, open/close it, send a reply, or write a new email.
+// Mail can go out from support@ or info@ (chosen with `from`).
 export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: u } = await supabase.auth.getUser();
@@ -15,10 +17,38 @@ export async function POST(req: Request) {
   const { data: prof } = await supabase.from("profiles").select("is_admin").eq("id", u.user.id).maybeSingle();
   if (!prof?.is_admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
-  const body = (await req.json().catch(() => null)) as { action?: string; threadId?: string; text?: string } | null;
+  const body = (await req.json().catch(() => null)) as { action?: string; threadId?: string; text?: string; from?: string; to?: string; subject?: string } | null;
   const threadId = body?.threadId;
-  if (!body?.action || !threadId || threadId.length > 998) return NextResponse.json({ error: "Bad request" }, { status: 400 });
   const db = createAdminClient();
+
+  if (body?.action === "compose") {
+    const to = (body.to ?? "").trim();
+    const subject = (body.subject ?? "").trim().slice(0, 200);
+    const text = (body.text ?? "").trim();
+    if (!EMAIL_RE.test(to) || !subject || !text || text.length > 20000) return NextResponse.json({ error: "Add a valid To address, a subject and a message." }, { status: 400 });
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: "Email sending is not configured." }, { status: 501 });
+    const sender = senderFor(body.from);
+    const send = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: sender.from, to: [to], reply_to: sender.address, subject, text, html: `<div style="white-space:pre-wrap;font-family:sans-serif">${esc(text)}</div>` }),
+    });
+    if (!send.ok) {
+      console.error("inbox compose failed", send.status, (await send.text()).slice(0, 300));
+      return NextResponse.json({ error: "The email could not be sent. Check the Resend settings." }, { status: 502 });
+    }
+    const sent = (await send.json().catch(() => ({}))) as { id?: string };
+    const newThread = `compose-${sent.id ?? crypto.randomUUID()}`;
+    await db.from("inbox_messages").insert({
+      thread_id: newThread, direction: "out", resend_id: sent.id ?? null, from_addr: sender.from, to_addrs: [to], subject, text_body: text,
+      sent_by: u.user.id, read_at: new Date().toISOString(),
+    });
+    await db.from("inbox_threads").upsert({ thread_id: newThread, status: "done", updated_at: new Date().toISOString() }, { onConflict: "thread_id" });
+    return NextResponse.json({ ok: true, threadId: newThread });
+  }
+
+  if (!body?.action || !threadId || threadId.length > 998) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   if (body.action === "read") {
     await db.from("inbox_messages").update({ read_at: new Date().toISOString() }).eq("thread_id", threadId).eq("direction", "in").is("read_at", null);
@@ -41,7 +71,7 @@ export async function POST(req: Request) {
   if (!last?.from_addr) return NextResponse.json({ error: "Nothing to reply to." }, { status: 404 });
   const to = bareAddress(last.from_addr);
   const ids = (msgs ?? []).map((m) => m.message_id).filter((x): x is string => !!x);
-  const from = process.env.RESEND_SUPPORT_FROM || "BoutCasts Support <support@boutcasts.com>";
+  const from = body.from ? senderFor(body.from).from : process.env.RESEND_SUPPORT_FROM || senderFor("support").from;
   const subject = replySubject(last.subject);
 
   const headers: Record<string, string> = {};
