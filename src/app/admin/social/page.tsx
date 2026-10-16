@@ -17,8 +17,8 @@ export default async function AdminSocialPage() {
     <div>
       <h1 className="mb-1 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Social posts</h1>
       <p className="mb-4 text-sm" style={{ color: "var(--text-dim)" }}>
-        Finished bouts, brackets, live votes, prediction slates and trivia games show up here with a result card and a top-10 caption.
-        Approve one to post it to the BoutCasts Facebook Page and Instagram.
+        New prediction games, brackets and bouts show up here as launch posts, and finished ones as result posts, each with a graphic and caption.
+        Schools in the game are tagged on Instagram automatically. Approve one to post it to the BoutCasts Facebook Page and Instagram.
       </p>
       <SocialQueue
         initial={(posts ?? []) as QueueRow[]}
