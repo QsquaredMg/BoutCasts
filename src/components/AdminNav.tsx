@@ -16,6 +16,7 @@ const ADMIN_LINKS = [
   { href: "/admin/event-sponsorships", label: "Event Sponsors" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/live-vote", label: "Live Vote" },
+  { href: "/trivia", label: "Trivia" },
   { href: "/admin/inbox", label: "Inbox" },
   { href: "/admin/notifications", label: "Notifications" },
   { href: "/admin/social", label: "Social" },
