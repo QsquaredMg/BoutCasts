@@ -10,8 +10,8 @@ export type QueueRow = {
 type Mode = "off" | "approve" | "auto";
 
 const MODES: { key: Mode; label: string; hint: string }[] = [
-  { key: "approve", label: "Approve first", hint: "Results wait here for your OK." },
-  { key: "auto", label: "Fully automatic", hint: "Results post by themselves within an hour." },
+  { key: "approve", label: "Approve first", hint: "Posts wait here for your OK." },
+  { key: "auto", label: "Fully automatic", hint: "Posts go out by themselves within an hour." },
   { key: "off", label: "Paused", hint: "Nothing is queued or posted." },
 ];
 
@@ -63,7 +63,7 @@ export default function SocialQueue({ initial, mode: initialMode, facebookReady,
         {msg && <p role="status" className="mt-2 text-sm font-semibold">{msg}</p>}
       </div>
 
-      {rows.length === 0 && <p className="text-sm" style={{ color: "var(--text-faint)" }}>Nothing queued yet. Finished results appear here within an hour.</p>}
+      {rows.length === 0 && <p className="text-sm" style={{ color: "var(--text-faint)" }}>Nothing queued yet. New games, brackets and finished results appear here within an hour.</p>}
 
       {rows.map((r) => {
         const open = r.status === "pending" || r.status === "failed" || r.status === "partial";

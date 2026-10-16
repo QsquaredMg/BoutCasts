@@ -10,6 +10,9 @@ const HEAD: Record<SocialDraft["kind"], string> = {
   trivia: "🧠 TRIVIA RESULTS",
   bout_launch: "🔥 NEW BOUT",
   paidbout_launch: "💰 NEW PAID BOUT",
+  predictions_launch: "🔮 NEW PICK'EM",
+  predbracket_launch: "🏆 NEW BRACKET",
+  bracket_launch: "🏆 NEW BRACKET",
 };
 
 function body(d: SocialDraft, link: string) {

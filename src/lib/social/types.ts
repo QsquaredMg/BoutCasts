@@ -1,4 +1,10 @@
-export type SocialKind = "bout" | "bracket" | "livevote" | "predictions" | "trivia" | "bout_launch" | "paidbout_launch";
+export type SocialKind =
+  | "bout" | "bracket" | "livevote" | "predictions" | "trivia"
+  | "bout_launch" | "paidbout_launch"
+  | "predictions_launch" | "predbracket_launch" | "bracket_launch";
+
+/** Launch posts that invite people to make picks (they get the "Make your picks" graphic). */
+export const PICK_LAUNCH_KINDS: SocialKind[] = ["predictions_launch", "predbracket_launch", "bracket_launch"];
 
 export type TopRow = { rank: number; name: string; score: string };
 
@@ -14,6 +20,8 @@ export type SocialDraft = {
   path: string;
   /** Text scanned for school names to tag (titles, competitor names, descriptions). */
   mentionText?: string;
+  /** Exact team names to tag (e.g. every team in a prediction game). Preferred over mentionText when known. */
+  mentionNames?: string[];
   /** Ready-made captions (launch posts); otherwise built from the result. */
   captions?: { facebook: string; instagram: string };
 };

@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildCaptions } from "./caption";
-import { boutLaunch, paidBoutLaunch } from "./launchCaption";
-import { findSchoolTags, schoolLines } from "./schools";
+import { boutLaunch, bracketLaunch, paidBoutLaunch, predictionsLaunch, type LaunchGame } from "./launchCaption";
+import { findSchoolTags, findSchoolTagsByNames, schoolLines } from "./schools";
+import { LOCK_GRACE_MS } from "@/lib/predictions/types";
 import type { SocialDraft, TopRow } from "./types";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -174,6 +175,76 @@ async function paidBoutLaunchDrafts(db: Db, since: string): Promise<SocialDraft[
   return out;
 }
 
+const isTbd = (n: string | null | undefined) => !n || /^(tbd|bye|winner|loser)\b/i.test(n.trim());
+const shortWhen = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", minute: "2-digit" }) : "TBA";
+
+const matchupRows = (games: LaunchGame[]): TopRow[] =>
+  games.slice(0, 10).map((g, i) => ({ rank: i + 1, name: `${g.away} vs ${g.home}`, score: shortWhen(g.startsAt) }));
+
+/** New public prediction games and prediction brackets. Private and white-label games are never posted. */
+async function predictionLaunchDrafts(db: Db, since: string): Promise<SocialDraft[]> {
+  const { data: slates } = await db
+    .from("pred_slates")
+    .select("id, title, kind, bracket_size, white_label")
+    .eq("status", "open").eq("visibility", "public").eq("white_label", false).is("archived_at", null)
+    .or(`paid_at.gte.${since},and(paid_at.is.null,created_at.gte.${since})`)
+    .limit(20);
+  const out: SocialDraft[] = [];
+  for (const s of slates ?? []) {
+    const { data: rows } = await db
+      .from("pred_games")
+      .select("home_name, away_name, starts_at, round, status")
+      .eq("slate_id", s.id).eq("is_private", false).neq("status", "cancelled").order("starts_at").limit(200);
+    const elim = s.kind === "elimination";
+    const all = (rows ?? []).filter((g) => !(isTbd(g.home_name) || isTbd(g.away_name)) || !elim);
+    const round1 = elim ? all.filter((g) => (g.round ?? 1) === 1) : all;
+    const games: LaunchGame[] = round1.map((g) => ({ home: g.home_name as string, away: g.away_name as string, startsAt: g.starts_at as string | null }));
+    if (!games.length) continue;
+    const upcoming = games.find((g) => g.startsAt && new Date(g.startsAt).getTime() > Date.now());
+    if (!upcoming) continue; // already underway, nothing left to pick
+    const firstLock = upcoming.startsAt ? new Date(new Date(upcoming.startsAt).getTime() + LOCK_GRACE_MS).toISOString() : null;
+    const path = `/predictions/slate/${s.id}`;
+    out.push({
+      kind: elim ? "predbracket_launch" : "predictions_launch", source_id: s.id, title: s.title, winner: null, detail: null,
+      top10: matchupRows(games), path,
+      mentionNames: games.flatMap((g) => [g.away, g.home]),
+      captions: elim
+        ? bracketLaunch({ id: s.id, title: s.title, teams: s.bracket_size, games, firstLock, path })
+        : predictionsLaunch({ id: s.id, title: s.title, games, total: games.length, firstLock, path }),
+    });
+  }
+  return out;
+}
+
+/** Head-to-head voting brackets whose first round is live and has no decided bouts yet. */
+async function boutBracketLaunchDrafts(db: Db, since: string): Promise<SocialDraft[]> {
+  const { data: bs } = await db
+    .from("bouts")
+    .select("bracket_key, title, round_number, status, competitor_a_name, competitor_b_name")
+    .not("bracket_key", "is", null).is("deleted_at", null).gte("created_at", since).limit(400);
+  const byKey = new Map<string, NonNullable<typeof bs>>();
+  for (const b of bs ?? []) byKey.set(b.bracket_key as string, [...(byKey.get(b.bracket_key as string) ?? []), b]);
+  const out: SocialDraft[] = [];
+  for (const [key, list] of byKey) {
+    if (list.some((b) => b.status === "final")) continue;
+    const first = Math.min(...list.map((b) => b.round_number ?? 1));
+    const r1 = list.filter((b) => (b.round_number ?? 1) === first && !isTbd(b.competitor_a_name) && !isTbd(b.competitor_b_name));
+    if (!r1.length) continue;
+    if (!r1.some((b) => b.status === "live")) continue; // voting isn't open yet; draft once round 1 goes live
+    const games: LaunchGame[] = r1.map((b) => ({ home: b.competitor_b_name as string, away: b.competitor_a_name as string, startsAt: null }));
+    const title = list.find((b) => b.title?.trim())?.title?.trim() || "Tournament bracket";
+    const path = `/bracket/${key}`;
+    out.push({
+      kind: "bracket_launch", source_id: key, title, winner: null, detail: null,
+      top10: matchupRows(games), path,
+      mentionNames: games.flatMap((g) => [g.away, g.home]),
+      captions: bracketLaunch({ id: key, title, teams: r1.length * 2, games, firstLock: null, path, mode: "votes" }),
+    });
+  }
+  return out;
+}
+
 /** Finds newly finished results and queues them. Safe to run repeatedly: each result is queued once. */
 export async function queueFinishedResults(db: Db): Promise<number> {
   const { data: settings } = await db.from("social_settings").select("mode, hashtags").eq("id", 1).maybeSingle();
@@ -183,7 +254,7 @@ export async function queueFinishedResults(db: Db): Promise<number> {
 
   const drafts = (
     await Promise.all([
-      boutLaunchDrafts(db, recent), paidBoutLaunchDrafts(db, recent), boutDrafts(db, recent), bracketDrafts(db, recent), liveVoteDrafts(db, recent), predictionDrafts(db, week), triviaDrafts(db, week),
+      boutLaunchDrafts(db, recent), paidBoutLaunchDrafts(db, recent), predictionLaunchDrafts(db, recent), boutBracketLaunchDrafts(db, recent), boutDrafts(db, recent), bracketDrafts(db, recent), liveVoteDrafts(db, recent), predictionDrafts(db, week), triviaDrafts(db, week),
     ].map((p) => p.catch((e) => { console.error("social collect failed", (e as Error).message); return [] as SocialDraft[]; })))
   ).flat();
 
@@ -192,11 +263,13 @@ export async function queueFinishedResults(db: Db): Promise<number> {
     const { data: exists } = await db.from("social_posts").select("id").eq("kind", d.kind).eq("source_id", d.source_id).maybeSingle();
     if (exists) continue;
     const base = d.captions ?? buildCaptions(d, settings.hashtags);
-    const tags = schoolLines(await findSchoolTags(db, d.mentionText ?? d.title));
+    const found = d.mentionNames?.length ? await findSchoolTagsByNames(db, d.mentionNames, 8) : await findSchoolTags(db, d.mentionText ?? d.title);
+    const tags = schoolLines(found);
+    const extra = d.kind === "predictions_launch" ? " #PickEm #Predictions" : d.kind === "predbracket_launch" || d.kind === "bracket_launch" ? " #Bracket #Brackets" : "";
     const withTags = (cap: string, line: string) => (line ? `${cap}\n\n${line}` : cap);
     const cap = {
-      facebook: d.captions ? withTags(`${base.facebook}\n\n${settings.hashtags}`, tags.facebook) : withTags(base.facebook, tags.facebook),
-      instagram: (d.captions ? withTags(`${base.instagram}\n\n${settings.hashtags}`, tags.instagram) : withTags(base.instagram, tags.instagram)).slice(0, 2200),
+      facebook: d.captions ? withTags(`${base.facebook}\n\n${settings.hashtags}${extra}`, tags.facebook) : withTags(base.facebook, tags.facebook),
+      instagram: (d.captions ? withTags(`${base.instagram}\n\n${settings.hashtags}${extra}`, tags.instagram) : withTags(base.instagram, tags.instagram)).slice(0, 2200),
     };
     const { error } = await db.from("social_posts").insert({
       kind: d.kind, source_id: d.source_id, title: d.title, winner: d.winner, top10: d.top10,
