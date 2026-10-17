@@ -23,7 +23,7 @@ export const CARD_LABEL: Record<CardType, string> = {
 };
 
 const THEME: Record<CardType, { bg: string; accent: string }> = {
-  predictions: { bg: "linear-gradient(135deg, #0b1a4a 0%, #1b4fe4 100%)", accent: "#ffd36b" },
+  predictions: { bg: "linear-gradient(160deg, #060f2e 0%, #0a1a52 55%, #0d2a8a 100%)", accent: "#ffd36b" },
   bout: { bg: "linear-gradient(160deg, #1c1d28 0%, #0a0b10 78%)", accent: "#ff5a6e" },
   bracket: { bg: "linear-gradient(160deg, #1c1d28 0%, #0a0b10 78%)", accent: "#ffd36b" },
   livevote: { bg: "linear-gradient(160deg, #4a0f1a 0%, #1a0509 80%)", accent: "#f0c35a" },
@@ -36,8 +36,15 @@ const THEME: Record<CardType, { bg: string; accent: string }> = {
 
 export type Contender = { name: string; img: string | null; color?: string };
 
+/** One matchup in a pick'em slate card. */
+export type GameRow = { away: Contender; home: Contender };
+
 export type CardData = {
   type: CardType;
+  /** Matchups listed on a pick'em card (replaces the single head to head). */
+  games?: GameRow[];
+  /** Games beyond the ones listed. */
+  gamesMore?: number;
   /** Small line above the contenders, e.g. a category or "Private game". */
   kicker?: string | null;
   /** The event's own name (room, bracket or topic title). */
@@ -59,6 +66,19 @@ export type CardData = {
   /** Invitation line at the bottom of the portrait graphic. */
   cta?: string;
 };
+
+// The built-in font only ships a regular weight, which looks thin on a phone. Load a heavy
+// weight once per server instance; if the fetch fails the card just renders with the default.
+let boldFont: ArrayBuffer | null = null;
+export async function warmBoldFont() {
+  if (boldFont) return;
+  try {
+    const r = await fetch("https://cdn.jsdelivr.net/fontsource/fonts/inter@5.0.8/latin-800-normal.woff");
+    if (r.ok) boldFont = await r.arrayBuffer();
+  } catch {
+    /* default font */
+  }
+}
 
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -128,12 +148,72 @@ function Avatar({ c, box, font, max, round }: { c: Contender; box: number; font:
 
 function WhenRow({ label, ms, big, accent }: { label: string; ms: number; big: boolean; accent: string }) {
   const z = threeZones(ms);
-  return (
-    <div style={{ display: "flex", flexDirection: big ? "column" : "row", alignItems: "center", justifyContent: "center", marginTop: big ? 14 : 6 }}>
-      <div style={{ display: "flex", fontSize: big ? 26 : 18, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: accent, marginRight: big ? 0 : 14, marginBottom: big ? 4 : 0 }}>
-        {label}
+  const [first, ...rest] = z.line.split(" · ");
+  if (!big) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 6 }}>
+        <div style={{ display: "flex", fontSize: 18, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: accent, marginRight: 14 }}>{label}</div>
+        <div style={{ display: "flex", fontSize: 24, fontWeight: 800, color: "#ffffff" }}>{`${z.day} · ${z.line}`}</div>
       </div>
-      <div style={{ display: "flex", fontSize: big ? 36 : 24, fontWeight: 800, color: "#ffffff" }}>{`${z.day} · ${z.line}`}</div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginTop: 18 }}>
+      <div style={{ display: "flex", fontSize: 28, fontWeight: 800, letterSpacing: 3, textTransform: "uppercase", color: accent, marginBottom: 6 }}>{label}</div>
+      <div style={{ display: "flex", fontSize: 50, fontWeight: 800, color: "#ffffff" }}>{`${z.day} · ${first}`}</div>
+      <div style={{ display: "flex", fontSize: 32, fontWeight: 700, color: "rgba(255,255,255,.92)", marginTop: 2 }}>{rest.join(" · ")}</div>
+    </div>
+  );
+}
+
+function TeamChip({ c, size, font, align, width }: { c: Contender; size: number; font: number; align: "left" | "right"; width: number }) {
+  const logo = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: size, height: size, borderRadius: size * 0.2, background: c.img ? "#ffffff" : "#e9edf7", overflow: "hidden", flexShrink: 0 }}>
+      {c.img ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={c.img} alt="" width={size} height={size} style={{ objectFit: "cover", width: size, height: size }} />
+      ) : (
+        <div style={{ display: "flex", fontSize: size * 0.4, fontWeight: 800, color: "#0b1a4a" }}>{initials(c.name)}</div>
+      )}
+    </div>
+  );
+  const name = (
+    <div style={{ display: "flex", alignItems: "center", width: width - size - 14, fontSize: font, fontWeight: 800, color: "#ffffff", lineHeight: 1.1, justifyContent: align === "left" ? "flex-start" : "flex-end", textAlign: align }}>
+      {clip(c.name, 26)}
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", width, alignItems: "center", justifyContent: align === "left" ? "flex-start" : "flex-end" }}>
+      {align === "left" ? <>{logo}<div style={{ display: "flex", width: 14 }} />{name}</> : <>{name}<div style={{ display: "flex", width: 14 }} />{logo}</>}
+    </div>
+  );
+}
+
+function GamesList({ games, more, og, accent }: { games: GameRow[]; more?: number; og: boolean; accent: string }) {
+  const max = og ? 3 : 5;
+  const shown = games.slice(0, max);
+  const extra = (more ?? 0) + (games.length - shown.length);
+  const size = og ? 52 : 72;
+  const font = og ? 24 : 32;
+  const side = og ? 440 : 438;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", width: og ? 1000 : 1000, marginTop: og ? 8 : 20 }}>
+      {shown.map((g, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex", alignItems: "center", padding: og ? "6px 18px" : "8px 20px", height: og ? 66 : 104, overflow: "hidden", marginTop: i ? (og ? 8 : 12) : 0,
+            borderRadius: og ? 16 : 24, background: "rgba(255,255,255,.12)", border: "2px solid rgba(255,255,255,.25)",
+          }}
+        >
+          <TeamChip c={g.away} size={size} font={font} align="left" width={side} />
+          <div style={{ display: "flex", fontSize: og ? 18 : 28, fontWeight: 800, color: accent, margin: og ? "0 12px" : "0 18px" }}>AT</div>
+          <TeamChip c={g.home} size={size} font={font} align="right" width={side} />
+        </div>
+      ))}
+      {extra > 0 && (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: og ? 8 : 16, fontSize: og ? 22 : 34, fontWeight: 800, color: accent }}>{`+ ${extra} more game${extra === 1 ? "" : "s"}`}</div>
+      )}
     </div>
   );
 }
@@ -154,7 +234,7 @@ export function renderCard(d: CardData, variant: "og" | "story") {
         style={{
           width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center",
           justifyContent: "space-between", padding: og ? "22px 56px" : "64px 40px",
-          background: th.bg, color: "#ffffff", fontFamily: "sans-serif",
+          background: th.bg, color: "#ffffff", fontFamily: boldFont ? "Inter" : "sans-serif",
         }}
       >
         <div style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
@@ -178,6 +258,7 @@ export function renderCard(d: CardData, variant: "og" | "story") {
               {clip(d.kicker, 60)}
             </div>
           )}
+          {d.games && d.games.length > 0 && <GamesList games={d.games} more={d.gamesMore} og={og} accent={th.accent} />}
           {n > 0 && (
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "center", width: w - 100 }}>
               {d.contenders.map((c, i) => (
@@ -204,7 +285,7 @@ export function renderCard(d: CardData, variant: "og" | "story") {
           {d.title && (
             <div
               style={{
-                display: "flex", marginTop: n > 0 ? (og ? 12 : 36) : 0, fontSize: n > 0 ? (og ? 28 : 46) : (og ? 56 : 80), fontWeight: 800,
+                display: "flex", marginTop: n > 0 || d.games?.length ? (og ? 12 : 30) : 0, fontSize: n > 0 || d.games?.length ? (og ? 30 : 46) : (og ? 56 : 80), fontWeight: 800,
                 textAlign: "center", justifyContent: "center", maxWidth: w - 120, lineHeight: 1.15,
               }}
             >
@@ -219,7 +300,7 @@ export function renderCard(d: CardData, variant: "og" | "story") {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
-          {d.startMs ? <WhenRow label={d.startLabel ?? "Starts"} ms={d.startMs} big={!og} accent={th.accent} /> : null}
+          {d.startMs && !d.games?.length ? <WhenRow label={d.startLabel ?? "Starts"} ms={d.startMs} big={!og} accent={th.accent} /> : null}
           {d.closeMs ? (
             <WhenRow label={d.closeLabel} ms={d.closeMs} big={!og} accent={th.accent} />
           ) : (
@@ -231,14 +312,14 @@ export function renderCard(d: CardData, variant: "og" | "story") {
             </div>
           )}
           {!og && (
-            <div style={{ display: "flex", fontSize: 30, fontWeight: 600, marginTop: 24, color: "rgba(255,255,255,.85)", textAlign: "center", justifyContent: "center" }}>
+            <div style={{ display: "flex", fontSize: 36, fontWeight: 800, marginTop: 26, color: "#ffffff", textAlign: "center", justifyContent: "center" }}>
               {d.cta ?? "Join in at boutcasts.com"}
             </div>
           )}
         </div>
       </div>
     ),
-    { width: w, height: h },
+    { width: w, height: h, ...(boldFont ? { fonts: [{ name: "Inter", data: boldFont, weight: 800 as const, style: "normal" as const }] } : {}) },
   );
 }
 
