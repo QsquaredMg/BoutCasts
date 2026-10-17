@@ -14,11 +14,21 @@ const rows = (list: { name: string; score: string }[]): TopRow[] =>
 
 type Db = SupabaseClient;
 
+/** Social posts are only made for admin-curated content. A slate counts when an admin created it. */
+async function adminCreatedSlates<T extends { id: string; created_by: string | null }>(db: Db, slates: T[]): Promise<T[]> {
+  const ids = [...new Set(slates.map((s) => s.created_by).filter((x): x is string => !!x))];
+  if (!ids.length) return [];
+  const { data } = await db.from("profiles").select("id").in("id", ids).eq("is_admin", true);
+  const ok = new Set((data ?? []).map((r) => r.id as string));
+  return slates.filter((s) => s.created_by && ok.has(s.created_by));
+}
+
 async function boutDrafts(db: Db, since: string): Promise<SocialDraft[]> {
   const { data: bouts } = await db
     .from("bouts")
     .select("id, title, winner_side, competitor_a_name, competitor_b_name, competitor_a_submission_id, competitor_b_submission_id, bout_mode")
     .eq("status", "final")
+    .eq("created_by_admin", true)
     .is("deleted_at", null)
     .is("bracket_key", null)
     .not("winner_side", "is", null)
@@ -44,7 +54,7 @@ async function boutDrafts(db: Db, since: string): Promise<SocialDraft[]> {
 
 async function bracketDrafts(db: Db, since: string): Promise<SocialDraft[]> {
   const { data: recent } = await db
-    .from("bouts").select("bracket_key").not("bracket_key", "is", null).eq("status", "final").is("deleted_at", null).gte("closes_at", since).limit(200);
+    .from("bouts").select("bracket_key").not("bracket_key", "is", null).eq("created_by_admin", true).eq("status", "final").is("deleted_at", null).gte("closes_at", since).limit(200);
   const keys = [...new Set((recent ?? []).map((r) => r.bracket_key as string))];
   const out: SocialDraft[] = [];
   for (const key of keys) {
@@ -103,9 +113,9 @@ async function liveVoteDrafts(db: Db, since: string): Promise<SocialDraft[]> {
 
 async function predictionDrafts(db: Db, since: string): Promise<SocialDraft[]> {
   const { data: slates } = await db
-    .from("pred_slates").select("id, title").eq("status", "closed").eq("visibility", "public").gte("created_at", since).limit(10);
+    .from("pred_slates").select("id, title, created_by").eq("status", "closed").eq("visibility", "public").gte("created_at", since).limit(10);
   const out: SocialDraft[] = [];
-  for (const s of slates ?? []) {
+  for (const s of await adminCreatedSlates(db, slates ?? [])) {
     const { data: lb } = await db.rpc("pred_leaderboard", { p_scope: "season", p_slate: s.id, p_limit: 10 });
     const list = (lb ?? []) as { username: string | null; points: number | string }[];
     if (!list.length) continue;
@@ -156,7 +166,7 @@ async function paidBoutLaunchDrafts(db: Db, since: string): Promise<SocialDraft[
   const { data: pbs } = await db
     .from("paid_bouts")
     .select("id, title, description, entry_fee_cents, entry_deadline, max_entries, paid_bout_prizes(place, amount_cents), paid_bout_entries(status)")
-    .eq("status", "open").eq("invite_only", false)
+    .eq("status", "open").eq("invite_only", false).eq("created_by_admin", true)
     .or(`reviewed_at.gte.${since},and(reviewed_at.is.null,created_at.gte.${since})`).limit(20);
   const out: SocialDraft[] = [];
   for (const p of pbs ?? []) {
@@ -182,16 +192,16 @@ const shortWhen = (iso: string | null) =>
 const matchupRows = (games: LaunchGame[]): TopRow[] =>
   games.slice(0, 10).map((g, i) => ({ rank: i + 1, name: `${g.away} vs ${g.home}`, score: shortWhen(g.startsAt) }));
 
-/** New public prediction games and prediction brackets. Private and white-label games are never posted. */
+/** New admin-created public prediction games and brackets. Private and white-label games are never posted. */
 async function predictionLaunchDrafts(db: Db, since: string): Promise<SocialDraft[]> {
   const { data: slates } = await db
     .from("pred_slates")
-    .select("id, title, kind, bracket_size, white_label")
+    .select("id, title, kind, bracket_size, white_label, created_by")
     .eq("status", "open").eq("visibility", "public").eq("white_label", false).is("archived_at", null)
     .or(`paid_at.gte.${since},and(paid_at.is.null,created_at.gte.${since})`)
     .limit(20);
   const out: SocialDraft[] = [];
-  for (const s of slates ?? []) {
+  for (const s of await adminCreatedSlates(db, slates ?? [])) {
     const { data: rows } = await db
       .from("pred_games")
       .select("home_name, away_name, starts_at, round, status")
@@ -222,7 +232,7 @@ async function boutBracketLaunchDrafts(db: Db, since: string): Promise<SocialDra
   const { data: bs } = await db
     .from("bouts")
     .select("bracket_key, title, round_number, status, competitor_a_name, competitor_b_name")
-    .not("bracket_key", "is", null).is("deleted_at", null).gte("created_at", since).limit(400);
+    .not("bracket_key", "is", null).eq("created_by_admin", true).is("deleted_at", null).gte("created_at", since).limit(400);
   const byKey = new Map<string, NonNullable<typeof bs>>();
   for (const b of bs ?? []) byKey.set(b.bracket_key as string, [...(byKey.get(b.bracket_key as string) ?? []), b]);
   const out: SocialDraft[] = [];
