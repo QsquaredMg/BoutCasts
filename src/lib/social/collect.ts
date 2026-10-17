@@ -227,6 +227,41 @@ async function predictionLaunchDrafts(db: Db, since: string): Promise<SocialDraf
   return out;
 }
 
+/**
+ * Standalone pick'em games (not part of a slate), the ones listed under "Open for picks" on /predictions.
+ * Admin-created public games are grouped by the day they are played, one post per day.
+ */
+async function standaloneGameLaunchDrafts(db: Db, since: string): Promise<SocialDraft[]> {
+  const { data: rows } = await db
+    .from("pred_games")
+    .select("home_name, away_name, starts_at, created_by")
+    .is("slate_id", null).is("round", null).eq("is_private", false).eq("status", "scheduled").is("archived_at", null)
+    .gt("starts_at", new Date().toISOString()).gte("created_at", since).order("starts_at").limit(100);
+  const list = (rows ?? []).filter((g) => !isTbd(g.home_name) && !isTbd(g.away_name));
+  const admins = await adminCreatedSlates(db, list.map((g, i) => ({ id: String(i), created_by: g.created_by as string | null })));
+  const ok = new Set(admins.map((a) => Number(a.id)));
+  const byDay = new Map<string, LaunchGame[]>();
+  list.forEach((g, i) => {
+    if (!ok.has(i) || !g.starts_at) return;
+    const day = new Date(g.starts_at as string).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+    byDay.set(day, [...(byDay.get(day) ?? []), { home: g.home_name as string, away: g.away_name as string, startsAt: g.starts_at as string }]);
+  });
+  const out: SocialDraft[] = [];
+  for (const [day, games] of byDay) {
+    const first = new Date(games[0].startsAt as string);
+    const label = new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long" });
+    const title = `${label} Pick'em · ${new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}`;
+    const firstLock = new Date(first.getTime() + LOCK_GRACE_MS).toISOString();
+    out.push({
+      kind: "predictions_launch", source_id: `games-${day}`, title, winner: null, detail: null,
+      top10: matchupRows(games), path: "/predictions",
+      mentionNames: games.flatMap((g) => [g.away, g.home]),
+      captions: predictionsLaunch({ id: `games-${day}`, title, games, total: games.length, firstLock, path: "/predictions" }),
+    });
+  }
+  return out;
+}
+
 /** Head-to-head voting brackets whose first round is live and has no decided bouts yet. */
 async function boutBracketLaunchDrafts(db: Db, since: string): Promise<SocialDraft[]> {
   const { data: bs } = await db
@@ -264,7 +299,7 @@ export async function queueFinishedResults(db: Db): Promise<number> {
 
   const drafts = (
     await Promise.all([
-      boutLaunchDrafts(db, recent), paidBoutLaunchDrafts(db, recent), predictionLaunchDrafts(db, recent), boutBracketLaunchDrafts(db, recent), boutDrafts(db, recent), bracketDrafts(db, recent), liveVoteDrafts(db, recent), predictionDrafts(db, week), triviaDrafts(db, week),
+      boutLaunchDrafts(db, recent), paidBoutLaunchDrafts(db, recent), predictionLaunchDrafts(db, recent), standaloneGameLaunchDrafts(db, recent), boutBracketLaunchDrafts(db, recent), boutDrafts(db, recent), bracketDrafts(db, recent), liveVoteDrafts(db, recent), predictionDrafts(db, week), triviaDrafts(db, week),
     ].map((p) => p.catch((e) => { console.error("social collect failed", (e as Error).message); return [] as SocialDraft[]; })))
   ).flat();
 
