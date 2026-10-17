@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logoDataUrl, loadBoutSponsor } from "@/lib/og/sponsor";
-import { videoThumb, type CardData, type CardType, type Contender } from "@/lib/og/shareCard";
+import { videoThumb, warmBoldFont, type CardData, type CardType, type Contender } from "@/lib/og/shareCard";
 import { LOCK_GRACE_MS } from "@/lib/predictions/types";
 
 // Loads what each kind of share card needs. Every loader returns null when the thing
@@ -57,22 +57,32 @@ export async function loadPredSlateCard(supabase: SupabaseClient, id: string, im
   if (!UUID.test(id)) return null;
   const { data: s } = await supabase.from("pred_slates").select("title, visibility, kind, brand_name, brand_logo_url").eq("id", id).maybeSingle();
   if (!s) return null;
-  const { data: games } = await supabase
+  const { data: games, count } = await supabase
     .from("pred_games")
-    .select("home_name, away_name, home_logo, away_logo, starts_at")
+    .select("home_name, away_name, home_logo, away_logo, starts_at", { count: "exact" })
     .eq("slate_id", id)
     .neq("status", "cancelled")
     .order("starts_at")
-    .limit(1);
+    .limit(5);
   const g = games?.[0];
-  const [h, a, brand] = await Promise.all([L(g?.home_logo), L(g?.away_logo), L(s.brand_logo_url)]);
+  await warmBoldFont();
+  const listed = games ?? [];
+  const rows = await Promise.all(
+    listed.map(async (x) => ({
+      away: { name: x.away_name, img: await L(x.away_logo) },
+      home: { name: x.home_name, img: await L(x.home_logo) },
+    })),
+  );
+  const brand = await L(s.brand_logo_url);
   const start = ms(g?.starts_at);
   const close = start === null ? null : start + LOCK_GRACE_MS;
   return {
     type: "predictions",
     kicker: `${s.visibility === "private" ? "🔒 Private · " : ""}${s.kind === "elimination" ? "Bracket" : "Weekly pick'em"}`,
     title: s.title,
-    contenders: g ? [{ name: g.home_name, img: h }, { name: g.away_name, img: a }] : [],
+    contenders: [],
+    games: rows,
+    gamesMore: Math.max(0, (count ?? rows.length) - rows.length),
     startMs: start,
     startLabel: "First game time",
     closeMs: close,
