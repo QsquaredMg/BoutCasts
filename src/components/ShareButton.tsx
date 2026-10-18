@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { logShare, type ShareTarget } from "@/lib/shareLog";
 
 type Network =
@@ -86,6 +87,7 @@ export default function ShareButton({
   const [copied, setCopied] = useState(false);
   const [note, setNote] = useState("");
   const [canNative, setCanNative] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
 
@@ -94,6 +96,7 @@ export default function ShareButton({
   useEffect(() => {
     // navigator isn't available during server render
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
     setCanNative(typeof navigator !== "undefined" && typeof navigator.share === "function");
   }, []);
 
@@ -221,7 +224,12 @@ export default function ShareButton({
     );
   }
 
-  const tile = "flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-xs font-semibold";
+  // Colors are explicit on purpose: pages with a dark header (like Bout Predictions) restyle every
+// button inside it, which used to leave this sheet's labels pale on white. The sheet is also
+// rendered on document.body so no page styling can reach it.
+const INK = "#0a0e1a";
+const tile = "flex min-h-[88px] flex-col items-center justify-center gap-1.5 rounded-2xl border-2 px-1 py-3 text-sm font-bold active:scale-[0.98]";
+const tileStyle = { borderColor: "#d5ddf0", background: "#f4f6fb", color: INK } as const;
 
   return (
     <div className="relative">
@@ -239,9 +247,10 @@ export default function ShareButton({
       >
         {copied ? "Link copied!" : label}
       </button>
-      {open && (
+      {open && mounted && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center"
+          className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
+          style={{ background: "rgba(5,8,24,.72)" }}
           onClick={close}
         >
           <div
@@ -250,17 +259,17 @@ export default function ShareButton({
             aria-modal="true"
             aria-label="Share"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl border p-4"
-            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text)" }}
+            className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl p-5 shadow-2xl sm:rounded-3xl"
+            style={{ background: "#ffffff", color: INK, paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-extrabold">Share</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-black" style={{ color: INK }}>Share</h2>
               <button
                 type="button"
                 onClick={close}
                 aria-label="Close share menu"
-                className="min-h-[44px] min-w-[44px] rounded-full text-lg"
-                style={{ color: "var(--text-dim)" }}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-xl font-bold"
+                style={{ background: "#e9edf7", color: INK }}
               >
                 ✕
               </button>
@@ -269,48 +278,34 @@ export default function ShareButton({
               <button
                 type="button"
                 onClick={nativeShare}
-                className="bc-btn-solid mb-3 flex min-h-[44px] w-full items-center justify-center rounded-full px-4 text-sm font-bold"
+                className="mb-4 flex min-h-[56px] w-full items-center justify-center rounded-full px-4 text-base font-extrabold"
+                style={{ background: "#1b4fe4", color: "#ffffff" }}
               >
                 📲 Share with an app on this device
               </button>
             )}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
               {NETWORKS.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => toNetwork(n.id)}
-                  className={tile}
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <span aria-hidden className="text-xl">{n.icon}</span>
+                <button key={n.id} type="button" onClick={() => toNetwork(n.id)} className={tile} style={tileStyle}>
+                  <span aria-hidden className="text-3xl leading-none">{n.icon}</span>
                   {n.label}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={forInstagramTikTok}
-                className={`${tile} col-span-2`}
-                style={{ borderColor: "var(--border)" }}
-              >
-                <span aria-hidden className="text-xl">📸</span>
+              <button type="button" onClick={forInstagramTikTok} className={`${tile} col-span-2`} style={tileStyle}>
+                <span aria-hidden className="text-3xl leading-none">📸</span>
                 Instagram / TikTok
               </button>
-              <button
-                type="button"
-                onClick={copyLink}
-                className={`${tile} col-span-2`}
-                style={{ borderColor: "var(--border)" }}
-              >
-                <span aria-hidden className="text-xl">🔗</span>
+              <button type="button" onClick={copyLink} className={`${tile} col-span-3 sm:col-span-4`} style={{ ...tileStyle, background: "#0a0f2c", borderColor: "#0a0f2c", color: "#ffffff", minHeight: 64 }}>
+                <span aria-hidden className="text-2xl leading-none">🔗</span>
                 Copy link
               </button>
             </div>
-            <p className="mt-3 min-h-[1.25rem] text-xs" role="status" style={{ color: "var(--text-dim)" }}>
+            <p className="mt-3 min-h-[1.25rem] text-sm font-semibold" role="status" style={{ color: "#3a4256" }}>
               {note}
             </p>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
