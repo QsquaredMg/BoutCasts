@@ -5,6 +5,9 @@ import { cond } from "../font";
 import { SCORING } from "@/lib/predictions/scoring";
 import { BRACKET_PRICING, TOURNEY_TIERS, money } from "@/lib/predictions/pricing";
 import s from "./play.module.css";
+import { createClient } from "@/lib/supabase/server";
+import GameCard from "@/components/GameCard";
+import { GAME_FIELDS, isLocked, type PredGame } from "@/lib/predictions/types";
 
 
 export const metadata: Metadata = {
@@ -50,7 +53,21 @@ const PEOPLE = [
 
 const bar = (v: number): CSSProperties => ({ width: `${(v / SCORING.perfect) * 100}%` });
 
-export default function PredictionsFunnelPage() {
+export default async function PredictionsFunnelPage() {
+  // Live predictions: public games open for picks, plus games that have started and are not final yet.
+  const supabase = await createClient();
+  const { data: gameRows } = await supabase
+    .from("pred_games")
+    .select(GAME_FIELDS)
+    .eq("status", "scheduled")
+    .eq("is_private", false)
+    .is("round", null)
+    .order("starts_at", { ascending: true })
+    .limit(40);
+  const all = (gameRows ?? []) as PredGame[];
+  const open = all.filter((g) => !isLocked(g)).slice(0, 6);
+  const inProgress = all.filter((g) => isLocked(g)).slice(-3);
+
   return (
     <div className={`${s.root} ${cond.variable}`}>
       {/* HERO */}
@@ -103,6 +120,27 @@ export default function PredictionsFunnelPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* LIVE PREDICTIONS */}
+      <section className={`${s.sec} ${s.paper}`} style={{ paddingTop: 56, paddingBottom: 56 }}>
+        <div className={s.wrap}>
+          <h2 className={s.secTitle}>Live predictions</h2>
+          <p className={s.secLede}>Pick the winner and the score before the game starts. Free to play.</p>
+          {open.length + inProgress.length === 0 ? (
+            <p className="bc-card mt-6 p-5 text-sm" style={{ color: "var(--text-dim)" }}>
+              No games are open right now. <Link href="/predictions/new" className="font-bold underline">Start one</Link> and send the link to your friends.
+            </p>
+          ) : (
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              {inProgress.map((g) => <GameCard key={g.id} game={g} />)}
+              {open.map((g) => <GameCard key={g.id} game={g} />)}
+            </div>
+          )}
+          <p className="mt-6">
+            <Link href="/predictions" className="text-sm font-bold underline" style={{ color: "var(--blue)" }}>See all games and the leaderboard →</Link>
+          </p>
         </div>
       </section>
 
