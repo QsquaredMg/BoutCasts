@@ -43,12 +43,13 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const isElim = slate.kind === "elimination";
   const isTourney = slate.scoring_mode === "tourney";
 
-  const [{ data: gameRows }, { data: lb }, { data: teamRows }, { data: me }, { data: sponsorRows }] = await Promise.all([
+  const [{ data: gameRows }, { data: lb }, { data: teamRows }, { data: me }, { data: sponsorRows }, { data: entrantStand }] = await Promise.all([
     supabase.from("pred_games").select(GAME_FIELDS).eq("slate_id", id).neq("status", "cancelled").order("starts_at"),
     isTourney ? supabase.rpc("tourney_leaderboard", { p_slate: id, p_limit: 100 }) : supabase.rpc("pred_leaderboard", { p_scope: "season", p_slate: id, p_limit: 25 }),
     isElim ? supabase.from("pred_bracket_teams").select("id, seed, name, logo").eq("bracket_id", id).order("seed") : Promise.resolve({ data: [] }),
     user ? supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.rpc("get_pred_sponsors", { p_bracket: id }),
+    isTourney || isElim ? Promise.resolve({ data: [] }) : supabase.rpc("pred_entrant_standings", { p_slate: id }),
   ]);
   const presenter = ((sponsorRows ?? []) as { name: string; level: string }[]).find((x) => x.level === "title")?.name ?? null;
   const whiteLabel = slate.white_label && !!(slate.brand_name || slate.brand_logo_url);
@@ -56,7 +57,14 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const tourneyRows = isTourney ? ((lb ?? []) as TourneyRow[]) : [];
   const rows: LeaderRow[] = isTourney
     ? tourneyRows.map((r) => ({ user_id: r.user_id, username: r.username, avatar_url: r.avatar_url, points: Number(r.points), games: Number(r.wins) + Number(r.losses), winners: Number(r.wins), perfect: 0 }))
-    : ((lb ?? []) as LeaderRow[]);
+    : [
+        ...((lb ?? []) as LeaderRow[]),
+        // People the organizer entered picks for, ranked alongside signed-in players.
+        ...((entrantStand ?? []) as { entrant_name: string; points: number; games: number; winners: number; perfect: number }[]).map((e): LeaderRow => ({
+          user_id: `entrant:${e.entrant_name.toLowerCase()}`, display_name: e.entrant_name, username: null, avatar_url: null,
+          points: Number(e.points), games: Number(e.games), winners: Number(e.winners), perfect: Number(e.perfect),
+        })),
+      ].sort((a, b) => Number(b.points) - Number(a.points) || Number(b.perfect) - Number(a.perfect) || Number(b.winners) - Number(a.winners));
   const teams = (teamRows ?? []) as BracketTeam[];
   const isOwner = !!user && (user.id === slate.created_by || !!me?.is_admin);
   const open = slate.status === "open" && (!slate.closes_at || !hasPassed(slate.closes_at));
@@ -156,7 +164,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
         <WinnersGraphic
           title={slate.title}
           subtitle={allFinal ? "Final winners" : `Leaders after ${finals} of ${games.length} games`}
-          winners={rows.slice(0, 10).map((r) => ({ name: r.username ?? "Player", points: Number(r.points), detail: isTourney ? `${r.winners}-${r.games - r.winners} record` : `${r.games} games · ${r.perfect} perfect` }))}
+          winners={rows.slice(0, 10).map((r) => ({ name: r.username ?? r.display_name ?? "Player", points: Number(r.points), detail: isTourney ? `${r.winners}-${r.games - r.winners} record` : `${r.games} games · ${r.perfect} perfect` }))}
           brand={{ name: slate.brand_name, logo: slate.brand_logo_url, whiteLabel }}
           presenter={presenter}
           fileName={`winners-${slate.title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}

@@ -37,7 +37,7 @@ const THEME: Record<CardType, { bg: string; accent: string }> = {
 export type Contender = { name: string; img: string | null; color?: string };
 
 /** One matchup in a pick'em slate card. */
-export type GameRow = { away: Contender; home: Contender };
+export type GameRow = { away: Contender; home: Contender; /** Final score once the game is graded. */ score?: { away: number; home: number } | null };
 
 export type CardData = {
   type: CardType;
@@ -63,6 +63,8 @@ export type CardData = {
   pct?: [number, number] | null;
   /** Index of the winner (0 or 1). */
   winner?: 0 | 1 | null;
+  /** Final score for a head to head, in the same order as `contenders`. Shown instead of the start and close times. */
+  finalScore?: [number, number] | null;
   /** Invitation line at the bottom of the portrait graphic. */
   cta?: string;
 };
@@ -112,7 +114,7 @@ export function whenSentence(d: Pick<CardData, "startMs" | "startLabel" | "close
 /** Title and description for a page's link preview, built from the same card data. */
 export function cardMeta(d: CardData, headline: string) {
   const label = CARD_LABEL[d.type];
-  const when = whenSentence(d);
+  const when = d.finalScore && d.contenders.length === 2 ? `Final: ${d.contenders[0].name} ${d.finalScore[0]}, ${d.contenders[1].name} ${d.finalScore[1]}` : whenSentence(d);
   return { title: `${headline} · ${label}`, description: `${label}${d.kicker ? ` · ${d.kicker}` : ""}.${when ? ` ${when}.` : ""} On BoutCasts.` };
 }
 
@@ -207,7 +209,11 @@ function GamesList({ games, more, og, accent }: { games: GameRow[]; more?: numbe
           }}
         >
           <TeamChip c={g.away} size={size} font={font} align="left" width={side} />
-          <div style={{ display: "flex", fontSize: og ? 18 : 28, fontWeight: 800, color: accent, margin: og ? "0 12px" : "0 18px" }}>AT</div>
+          {g.score ? (
+            <div style={{ display: "flex", fontSize: og ? 26 : 40, fontWeight: 900, color: "#ffd36b", margin: og ? "0 12px" : "0 14px", whiteSpace: "nowrap" }}>{`${g.score.away}–${g.score.home}`}</div>
+          ) : (
+            <div style={{ display: "flex", fontSize: og ? 18 : 28, fontWeight: 800, color: accent, margin: og ? "0 12px" : "0 18px" }}>AT</div>
+          )}
           <TeamChip c={g.home} size={size} font={font} align="right" width={side} />
         </div>
       ))}
@@ -224,7 +230,7 @@ export function renderCard(d: CardData, variant: "og" | "story") {
   const h = og ? 630 : 1350;
   const th = THEME[d.type];
   const n = d.contenders.length;
-  const box = n <= 2 ? (d.pct ? (og ? 140 : 280) : (og ? 170 : 300)) : n === 3 ? (og ? 140 : 250) : (og ? 110 : 200);
+  const box = n <= 2 ? (d.pct || d.finalScore ? (og ? 140 : 280) : (og ? 170 : 300)) : n === 3 ? (og ? 140 : 250) : (og ? 110 : 200);
   const nameFont = og ? (n > 2 ? 22 : d.pct ? 26 : 32) : (n > 2 ? 34 : 46);
   const two = n === 2;
 
@@ -264,11 +270,16 @@ export function renderCard(d: CardData, variant: "og" | "story") {
               {d.contenders.map((c, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start" }}>
                   {two && i === 1 && (
-                    <div style={{ display: "flex", fontSize: og ? 56 : 84, fontWeight: 900, margin: og ? "0 22px" : "0 6px", marginTop: box / 2 - (og ? 34 : 50) }}>VS</div>
+                    <div style={{ display: "flex", fontSize: d.finalScore ? (og ? 30 : 44) : (og ? 56 : 84), fontWeight: 900, margin: og ? "0 22px" : "0 6px", marginTop: box / 2 - (og ? 34 : 50), color: d.finalScore ? "#ffd36b" : "#ffffff" }}>{d.finalScore ? "FINAL" : "VS"}</div>
                   )}
                   {!two && i > 0 && <div style={{ display: "flex", width: og ? 14 : 12 }} />}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                     <Avatar c={c} box={box} font={nameFont} max={n > 2 ? 20 : 32} />
+                    {d.finalScore && two && (
+                      <div style={{ display: "flex", marginTop: 6, fontSize: og ? 64 : 110, fontWeight: 900, color: d.winner === i ? "#ffd36b" : "#ffffff" }}>
+                        {`${d.finalScore[i]}${d.winner === i ? " 🏆" : ""}`}
+                      </div>
+                    )}
                     {d.pct && two && (
                       <div style={{ display: "flex", marginTop: 6, fontSize: og ? 34 : 60, fontWeight: 900, color: d.winner === i ? "#ffd36b" : "#ffffff" }}>
                         {`${d.pct[i]}%${d.winner === i ? " 🏆" : ""}`}
@@ -319,7 +330,12 @@ export function renderCard(d: CardData, variant: "og" | "story") {
         </div>
       </div>
     ),
-    { width: w, height: h, ...(boldFont ? { fonts: [{ name: "Inter", data: boldFont, weight: 800 as const, style: "normal" as const }] } : {}) },
+    {
+      width: w,
+      height: h,
+      // Pick'em cards change when the game is graded, so don't let browsers or the CDN keep the old picture for a year.
+      ...(d.type === "predictions" ? { headers: { "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300" } } : {}),
+      ...(boldFont ? { fonts: [{ name: "Inter", data: boldFont, weight: 800 as const, style: "normal" as const }] } : {}) },
   );
 }
 

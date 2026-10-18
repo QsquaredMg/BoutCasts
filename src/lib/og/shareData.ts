@@ -33,13 +33,28 @@ export async function loadPredGameCard(supabase: SupabaseClient, id: string, img
   if (!UUID.test(id)) return null;
   const { data: g } = await supabase
     .from("pred_games")
-    .select("home_name, away_name, home_logo, away_logo, starts_at, is_private, status")
+    .select("home_name, away_name, home_logo, away_logo, starts_at, is_private, status, home_score, away_score")
     .eq("id", id)
     .maybeSingle();
   if (!g) return null;
   const [h, a] = await Promise.all([L(g.home_logo), L(g.away_logo)]);
   const start = ms(g.starts_at);
   const close = start === null ? null : start + LOCK_GRACE_MS;
+  const scored = g.status === "final" && typeof g.home_score === "number" && typeof g.away_score === "number";
+  if (scored) {
+    // Graded: show the final score instead of the start and pick-close times.
+    return {
+      type: "predictions",
+      kicker: g.is_private ? "🔒 Private game" : null,
+      contenders: [{ name: g.home_name, img: h }, { name: g.away_name, img: a }],
+      finalScore: [g.home_score, g.away_score],
+      winner: g.home_score === g.away_score ? null : g.home_score > g.away_score ? 0 : 1,
+      startMs: null,
+      closeMs: null,
+      closeLabel: "Final score",
+      cta: "See how the picks landed at boutcasts.com/predictions",
+    };
+  }
   return {
     type: "predictions",
     kicker: g.is_private ? "🔒 Private game" : null,
@@ -59,7 +74,7 @@ export async function loadPredSlateCard(supabase: SupabaseClient, id: string, im
   if (!s) return null;
   const { data: games, count } = await supabase
     .from("pred_games")
-    .select("home_name, away_name, home_logo, away_logo, starts_at", { count: "exact" })
+    .select("home_name, away_name, home_logo, away_logo, starts_at, status, home_score, away_score", { count: "exact" })
     .eq("slate_id", id)
     .neq("status", "cancelled")
     .order("starts_at")
@@ -71,8 +86,10 @@ export async function loadPredSlateCard(supabase: SupabaseClient, id: string, im
     listed.map(async (x) => ({
       away: { name: x.away_name, img: await L(x.away_logo) },
       home: { name: x.home_name, img: await L(x.home_logo) },
+      score: x.status === "final" && typeof x.home_score === "number" && typeof x.away_score === "number" ? { away: x.away_score, home: x.home_score } : null,
     })),
   );
+  const allFinal = rows.length > 0 && rows.length === (count ?? rows.length) && rows.every((r) => r.score);
   const brand = await L(s.brand_logo_url);
   const start = ms(g?.starts_at);
   const close = start === null ? null : start + LOCK_GRACE_MS;
@@ -85,8 +102,8 @@ export async function loadPredSlateCard(supabase: SupabaseClient, id: string, im
     gamesMore: Math.max(0, (count ?? rows.length) - rows.length),
     startMs: start,
     startLabel: "First game time",
-    closeMs: close,
-    closeLabel: past(close) ? "First picks closed" : "First picks close",
+    closeMs: allFinal ? null : close,
+    closeLabel: allFinal ? "Final scores" : past(close) ? "First picks closed" : "First picks close",
     sponsor: s.brand_name ? { name: s.brand_name, logo: brand } : null,
     cta: "Make your picks at boutcasts.com/predictions",
   };

@@ -18,7 +18,7 @@ export default function PredLeaderboardTable({ rows, meId }: { rows: LeaderRow[]
             {r.username ? (
               <Link href={`/profile/${encodeURIComponent(r.username)}`} className="block truncate text-sm font-bold">{r.username}</Link>
             ) : (
-              <span className="block truncate text-sm font-bold">Player</span>
+              <span className="block truncate text-sm font-bold">{r.display_name ?? "Player"}</span>
             )}
             <span className="text-xs" style={{ color: "var(--text-faint)" }}>
               {r.games} {r.games === 1 ? "game" : "games"} · {r.winners} winners · {r.perfect} perfect

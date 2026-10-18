@@ -13,6 +13,7 @@ import CrowdSummary from "@/components/CrowdSummary";
 import CrowdGraphic from "@/components/CrowdGraphic";
 import type { CrowdStats } from "@/lib/predictions/crowd";
 import ShareButton from "@/components/ShareButton";
+import EntrantPicksPanel from "@/components/EntrantPicksPanel";
 import { GAME_FIELDS, hasPassed, isLocked, type PredGame, type PredPrediction } from "@/lib/predictions/types";
 
 type Props = { params: Promise<{ id: string }> };
@@ -43,6 +44,10 @@ export default async function GamePage({ params }: Props) {
     game.slate_id ? supabase.from("pred_slates").select("id, title, brand_name, brand_logo_url, white_label").eq("id", game.slate_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const all = (picks ?? []) as PredPrediction[];
+  // Picks the organizer entered on behalf of a group. Hidden by the database until picks close, except from the organizer.
+  type Entrant = { id: string; entrant_name: string; pred_home: number; pred_away: number; pts_total: number | null };
+  const { data: entrantRows } = await supabase.from("pred_entrant_picks").select("id, entrant_name, pred_home, pred_away, pts_total").eq("game_id", id).order("entrant_name").limit(300);
+  const entrants = (entrantRows ?? []) as Entrant[];
   const mine = all.find((p) => p.user_id === user?.id) ?? null;
   const crowdRes = game.round === null && game.status !== "cancelled" && isLocked(game) ? await supabase.rpc("pred_crowd_stats", { p_game: id }) : null;
   const crowd = (crowdRes?.data ?? null) as CrowdStats | null;
@@ -70,11 +75,19 @@ export default async function GamePage({ params }: Props) {
     : null;
   const final = game.status === "final";
   const graded = all.filter((p) => p.pts_total != null);
-  const winners = graded.slice(0, 10).map((p) => ({
-    name: names[p.user_id] ?? "Player",
-    points: p.pts_total as number,
-    detail: `Picked ${p.pred_home}–${p.pred_away}`,
-  }));
+  const gradedEntrants = entrants.filter((e) => e.pts_total != null);
+  const winners = [
+    ...graded.map((p) => ({ name: names[p.user_id] ?? "Player", points: p.pts_total as number, detail: `Picked ${p.pred_home}–${p.pred_away}` })),
+    ...gradedEntrants.map((e) => ({ name: e.entrant_name, points: e.pts_total as number, detail: `Picked ${e.pred_home}–${e.pred_away}` })),
+  ]
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 10);
+  const everyone = [
+    ...all.map((p) => ({ key: p.id, name: names[p.user_id] ?? "Player", pred_home: p.pred_home, pred_away: p.pred_away, pts: p.pts_total })),
+    ...entrants.map((e) => ({ key: e.id, name: e.entrant_name, pred_home: e.pred_home, pred_away: e.pred_away, pts: e.pts_total })),
+  ].sort((a, b) => (b.pts ?? -1) - (a.pts ?? -1));
+  // Organizers can enter group picks until picks close; admins until the game is final.
+  const canEnterGroup = canManage && game.status !== "cancelled" && !final && (!!me?.is_admin || !locked);
 
   const statusLabel = game.status === "cancelled" ? "Cancelled" : final ? "Final" : locked ? "In progress" : hasPassed(game.starts_at) ? "Started, picks still open" : "Starts";
   return (
@@ -102,7 +115,7 @@ export default async function GamePage({ params }: Props) {
             <PredTeam name={game.away_name} logo={game.away_logo} size={84} />
           </div>
           <div className="mt-6 flex justify-center">
-            <ShareButton imageUrl={`/predictions/${game.id}/vs`} title={`${game.home_name} vs ${game.away_name}`} text={`${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
+            <ShareButton imageUrl={`/predictions/${game.id}/vs`} title={`${game.home_name} vs ${game.away_name}`} text={final && game.home_score != null && game.away_score != null ? `Final: ${game.home_name} ${game.home_score}, ${game.away_name} ${game.away_score}. See how the picks landed on BoutCasts!` : `${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
           </div>
         </div>
       </header>
@@ -148,7 +161,13 @@ export default async function GamePage({ params }: Props) {
 
       {canManage && <div className="mb-5"><GameAdminPanel game={game} isAdmin={!!me?.is_admin} /></div>}
 
-      {final && graded.length > 0 && (
+      {canEnterGroup && (
+        <div className="mb-5">
+          <EntrantPicksPanel gameId={game.id} home={game.home_name} away={game.away_name} existing={entrants.map((e) => ({ id: e.id, entrant_name: e.entrant_name, pred_home: e.pred_home, pred_away: e.pred_away }))} />
+        </div>
+      )}
+
+      {final && winners.length > 0 && (
         <div className="mb-5">
           <WinnersGraphic
             title={`${game.home_name} ${game.home_score} – ${game.away_score} ${game.away_name}`}
@@ -187,15 +206,15 @@ export default async function GamePage({ params }: Props) {
         )
       ) : null}
 
-      {locked && all.length > 0 && (
+      {locked && everyone.length > 0 && (
         <section className="mb-5">
-          <h2 className="pt-h2 mb-3">Everyone&apos;s picks ({all.length})</h2>
+          <h2 className="pt-h2 mb-3">Everyone&apos;s picks ({everyone.length})</h2>
           <ul className="bc-card divide-y overflow-hidden">
-            {all.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderColor: "var(--border)" }}>
-                <span className="min-w-0 truncate font-bold">{names[p.user_id] ?? "Player"}</span>
+            {everyone.map((p) => (
+              <li key={p.key} className="flex items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderColor: "var(--border)" }}>
+                <span className="min-w-0 truncate font-bold">{p.name}</span>
                 <span className="tabular-nums" style={{ color: "var(--text-dim)" }}>{p.pred_home} – {p.pred_away}</span>
-                <span className="w-14 text-right font-black tabular-nums">{p.pts_total != null ? `${p.pts_total} pts` : ""}</span>
+                <span className="w-14 text-right font-black tabular-nums">{p.pts != null ? `${p.pts} pts` : ""}</span>
               </li>
             ))}
           </ul>

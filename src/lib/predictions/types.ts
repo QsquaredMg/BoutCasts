@@ -65,6 +65,8 @@ export type PredPrediction = {
 
 export type LeaderRow = {
   user_id: string;
+  /** Set for people the organizer entered picks for (they have no account). */
+  display_name?: string | null;
   username: string | null;
   avatar_url: string | null;
   points: number;
