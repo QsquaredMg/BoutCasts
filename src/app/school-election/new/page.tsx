@@ -1,0 +1,204 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import SignInCard from "@/components/SignInCard";
+import { createClient } from "@/lib/supabase/client";
+import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+
+type Cand = { key: string; name: string; description: string };
+type RaceDraft = { key: string; title: string; candidates: Cand[] };
+
+const k = () => Math.random().toString(36).slice(2);
+const newCand = (): Cand => ({ key: k(), name: "", description: "" });
+const newRace = (): RaceDraft => ({ key: k(), title: "", candidates: [newCand(), newCand()] });
+const dollars = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+
+export default function NewSchoolElectionPage() {
+  const router = useRouter();
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [title, setTitle] = useState("");
+  const [school, setSchool] = useState("");
+  const [tier, setTier] = useState<LiveVoteTier>("small");
+  const [kiosks, setKiosks] = useState(1);
+  const [days, setDays] = useState(1);
+  const [pin, setPin] = useState("");
+  const [races, setRaces] = useState<RaceDraft[]>([{ ...newRace(), title: "President" }]);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+  }, []);
+
+  const price = schoolElectionPriceCents(tier, kiosks, days);
+  const input = "w-full rounded-[10px] border px-3 py-2.5 text-sm";
+  const inputStyle = { borderColor: "var(--border)", background: "var(--surface)" } as const;
+
+  function patchRace(key: string, fn: (r: RaceDraft) => RaceDraft) {
+    setRaces((rs) => rs.map((r) => (r.key === key ? fn(r) : r)));
+  }
+
+  async function submit() {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/school-election", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          schoolName: school,
+          tier,
+          kiosks,
+          days,
+          pin,
+          races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description })) })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't create the election.");
+      router.push(`/school-election/${data.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't create the election.");
+      setBusy(false);
+    }
+  }
+
+  if (signedIn === null) return <div className="mx-auto max-w-3xl px-5 py-10 text-sm">Loading…</div>;
+  if (!signedIn) {
+    return (
+      <SignInCard
+        eyebrow="School elections"
+        title="Sign in to run a school election"
+        body="Set up a ballot, load your roster and run voting from iPads at a booth."
+        next="/school-election/new"
+      />
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl px-5 py-8">
+      <h1 className="text-3xl font-extrabold">New school election</h1>
+      <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>
+        One ballot with several offices. Students vote at a kiosk (an iPad at a booth) with a code a teacher hands them. Results stay hidden until voting closes.
+      </p>
+
+      <section className="mt-6 grid gap-3">
+        <label className="grid gap-1 text-sm font-semibold">
+          Election name
+          <input className={input} style={inputStyle} value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Student council 2026" />
+        </label>
+        <label className="grid gap-1 text-sm font-semibold">
+          School name (optional)
+          <input className={input} style={inputStyle} value={school} maxLength={120} onChange={(e) => setSchool(e.target.value)} placeholder="JC High School" />
+        </label>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Size</h2>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {SCHOOL_ELECTION.tiers.map((t) => {
+            const cfg = LIVE_VOTE_TIERS[t];
+            const active = tier === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTier(t)}
+                className="rounded-[10px] border px-3 py-2.5 text-left"
+                style={{ borderColor: active ? "var(--red)" : "var(--border)", background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)" }}
+              >
+                <p className="text-sm font-bold">{cfg.label} · {dollars(cfg.priceCents)}</p>
+                <p className="text-xs" style={{ color: "var(--text-faint)" }}>Up to {cfg.voteCap.toLocaleString()} students</p>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>The price includes 1 kiosk and the first day of voting.</p>
+      </section>
+
+      <section className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div>
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Kiosks (iPads)</h2>
+          <div className="flex gap-2">
+            {Array.from({ length: SCHOOL_ELECTION.maxKiosks }, (_, i) => i + 1).map((n) => (
+              <button key={n} type="button" onClick={() => setKiosks(n)} className="flex-1 rounded-[10px] border px-3 py-2 text-sm font-bold"
+                style={{ borderColor: kiosks === n ? "var(--red)" : "var(--border)", background: kiosks === n ? "var(--red-soft, var(--surface-2))" : "var(--surface)" }}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>First kiosk included, +{dollars(SCHOOL_ELECTION.extraKioskCents)} for each extra.</p>
+        </div>
+        <div>
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Days of voting</h2>
+          <div className="flex gap-2">
+            {Array.from({ length: SCHOOL_ELECTION.maxDays }, (_, i) => i + 1).map((n) => (
+              <button key={n} type="button" onClick={() => setDays(n)} className="flex-1 rounded-[10px] border px-3 py-2 text-sm font-bold"
+                style={{ borderColor: days === n ? "var(--red)" : "var(--border)", background: days === n ? "var(--red-soft, var(--surface-2))" : "var(--surface)" }}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>First day included, +{dollars(SCHOOL_ELECTION.extraDayCents)} for each extra.</p>
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Offices and candidates</h2>
+        <div className="grid gap-4">
+          {races.map((r, ri) => (
+            <div key={r.key} className="rounded-xl border p-3.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <div className="flex gap-2">
+                <input className={input} style={inputStyle} value={r.title} maxLength={120} placeholder={`Office ${ri + 1} (e.g. President)`} onChange={(e) => patchRace(r.key, (x) => ({ ...x, title: e.target.value }))} />
+                {races.length > 1 && (
+                  <button type="button" className="rounded-full border px-3 text-xs font-bold" style={{ borderColor: "var(--border)" }} onClick={() => setRaces((rs) => rs.filter((x) => x.key !== r.key))}>Remove</button>
+                )}
+              </div>
+              <div className="mt-2 grid gap-2">
+                {r.candidates.map((c, ci) => (
+                  <div key={c.key} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+                    <input className={input} style={inputStyle} value={c.name} maxLength={80} placeholder={`Candidate ${ci + 1}`} onChange={(e) => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, name: e.target.value } : y)) }))} />
+                    <input className={input} style={inputStyle} value={c.description} maxLength={200} placeholder="Platform line (optional)" onChange={(e) => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, description: e.target.value } : y)) }))} />
+                    {r.candidates.length > 2 && (
+                      <button type="button" className="rounded-full border px-3 text-xs font-bold" style={{ borderColor: "var(--border)" }} onClick={() => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.filter((y) => y.key !== c.key) }))}>×</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {r.candidates.length < 12 && (
+                <button type="button" className="mt-2 text-xs font-bold underline" onClick={() => patchRace(r.key, (x) => ({ ...x, candidates: [...x.candidates, newCand()] }))}>+ Add candidate</button>
+              )}
+            </div>
+          ))}
+        </div>
+        {races.length < 12 && (
+          <button type="button" className="mt-3 rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }} onClick={() => setRaces((rs) => [...rs, newRace()])}>+ Add another office</button>
+        )}
+      </section>
+
+      <section className="mt-6">
+        <label className="grid gap-1 text-sm font-semibold">
+          Teacher PIN (6 digits)
+          <input className={`${input} max-w-[200px] tracking-[0.3em]`} style={inputStyle} inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••••" />
+        </label>
+        <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>Used on a kiosk to clear a lockout or leave kiosk mode. Keep it with the teachers, not the students.</p>
+      </section>
+
+      <div className="mt-8 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+        <p className="text-lg font-extrabold">Total {dollars(price)}</p>
+        <p className="text-xs" style={{ color: "var(--text-faint)" }}>
+          {LIVE_VOTE_TIERS[tier].label} {dollars(LIVE_VOTE_TIERS[tier].priceCents)}
+          {kiosks > 1 && ` + ${kiosks - 1} extra kiosk${kiosks > 2 ? "s" : ""} ${dollars((kiosks - 1) * SCHOOL_ELECTION.extraKioskCents)}`}
+          {days > 1 && ` + ${days - 1} extra day${days > 2 ? "s" : ""} ${dollars((days - 1) * SCHOOL_ELECTION.extraDayCents)}`}
+          . You pay after adding the roster.
+        </p>
+        {error && <p className="mt-2 text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
+        <button onClick={submit} disabled={busy} className="bc-btn-solid mt-3 rounded-full px-6 py-3 text-sm font-bold disabled:opacity-60">
+          {busy ? "Creating…" : "Create election"}
+        </button>
+      </div>
+    </div>
+  );
+}
