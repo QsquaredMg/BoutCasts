@@ -8,7 +8,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const owner = await requireElectionOwner(id);
   if ("error" in owner) return owner.error;
-  const { admin, election, user } = owner;
+  const { admin, election, user, isAdmin } = owner;
+  const body = await req.json().catch(() => null);
   if (election.status !== "draft") return NextResponse.json({ error: "This election is already paid for." }, { status: 400 });
 
   const { count } = await admin.from("election_voters").select("id", { count: "exact", head: true }).eq("election_id", id);
@@ -22,6 +23,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ...(election.days > 1 ? [{ name: "Extra day of voting", cents: SCHOOL_ELECTION.extraDayCents, qty: election.days - 1 }] : []),
   ];
   if (lines.reduce((s, l) => s + l.cents * l.qty, 0) !== total) return NextResponse.json({ error: "Pricing mismatch. Please contact support." }, { status: 500 });
+
+  if (body?.comp === true) {
+    // Platform admin opens a school's election without a charge (grants, pilots, partner schools).
+    if (!isAdmin) return NextResponse.json({ error: "Only a BoutCasts admin can do that." }, { status: 403 });
+    const { error } = await admin.rpc("apply_school_election_payment", { p_election_id: id, p_session_id: "admin" });
+    if (error) return NextResponse.json({ error: "Couldn't open voting. Please try again." }, { status: 500 });
+    return NextResponse.json({ url: `/school-election/${id}?checkout=success` });
+  }
 
   if (total === 0) {
     // Free election: no card needed, open voting right away.

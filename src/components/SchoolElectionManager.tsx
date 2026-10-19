@@ -6,6 +6,7 @@ import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
+  viewerIsAdmin?: boolean;
   election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number };
@@ -95,6 +96,12 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
     if (r?.url) window.location.assign(r.url);
   }
 
+  async function comp() {
+    if (!confirm("Open voting with no charge? Use for partner schools, grants and pilots.")) return;
+    const r = await call("comp", `/api/school-election/${id}/checkout`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ comp: true }) });
+    if (r?.url) window.location.assign(r.url);
+  }
+
   async function pair() {
     const r = await call("kiosk", `/api/school-election/${id}/kiosks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     if (r) {
@@ -144,6 +151,9 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           <button onClick={pay} disabled={busy !== null || turnout.total === 0} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-50">
             {busy === "pay" ? "Starting…" : e.price_cents === 0 ? "Open voting (free)" : `Pay ${money(e.price_cents)} and open voting`}
           </button>
+          {data.viewerIsAdmin && e.price_cents > 0 && (
+            <button onClick={comp} disabled={busy !== null || turnout.total === 0} className="ml-2 rounded-full border px-5 py-2.5 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Open with no charge (admin)</button>
+          )}
           {turnout.total === 0 && <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Add at least one student first.</p>}
         </div>
       )}

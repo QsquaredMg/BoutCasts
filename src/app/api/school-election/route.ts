@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  if (tier === "free") {
+  const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
+  if (tier === "free" && !me?.is_admin) {
     // Same pacing as Free live votes: 5 per 30 days.
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
     const { count } = await admin.from("school_elections").select("id", { count: "exact", head: true }).eq("organizer_id", auth.user.id).eq("tier", "free").gte("created_at", since);

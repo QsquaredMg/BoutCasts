@@ -85,11 +85,10 @@ export async function requireElectionOwner(id: string) {
   const admin = createAdminClient();
   const { data: election } = await admin.from("school_elections").select("*").eq("id", id).maybeSingle();
   if (!election) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
-  if (election.organizer_id !== auth.user.id) {
-    const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
-    if (!me?.is_admin) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
-  }
-  return { admin, election: election as ElectionRow, user: auth.user } as const;
+  const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
+  const isAdmin = !!me?.is_admin;
+  if (election.organizer_id !== auth.user.id && !isAdmin) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
+  return { admin, election: election as ElectionRow, user: auth.user, isAdmin } as const;
 }
 
 // Whether the election is open for voting right now.

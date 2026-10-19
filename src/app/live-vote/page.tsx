@@ -53,6 +53,7 @@ export default function LiveVoteEventsPage() {
         .from("live_vote_events")
         .select("id, title, status, tier, voter_mode, created_at, closes_at, is_private, access_code")
         .eq("organizer_id", user.id)
+        .is("election_id", null)
         .order("created_at", { ascending: false });
 
       setEvents(data ?? []);

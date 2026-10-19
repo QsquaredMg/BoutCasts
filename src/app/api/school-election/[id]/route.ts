@@ -6,7 +6,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const owner = await requireElectionOwner(id);
   if ("error" in owner) return owner.error;
-  const { admin, election } = owner;
+  const { admin, election, isAdmin } = owner;
 
   const [{ data: races }, { data: kiosks }, { count: total }, { count: voted }] = await Promise.all([
     admin.from("live_vote_events").select("id, title, election_sort").eq("election_id", id).order("election_sort"),
@@ -34,6 +34,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   void _pin;
   return NextResponse.json({
     election: safe,
+    viewerIsAdmin: isAdmin,
     closed,
     turnout: { total: total ?? 0, voted: voted ?? 0 },
     kiosks: kiosks ?? [],

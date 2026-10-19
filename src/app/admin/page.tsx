@@ -40,6 +40,15 @@ export default async function AdminDashboardPage() {
     unreadMail = 0;
   }
 
+  // School kiosk elections that are open right now (quietly 0 until the kiosk SQL has been run).
+  let liveElections = 0;
+  try {
+    const { count } = await createAdminClient().from("school_elections").select("id", { count: "exact", head: true }).eq("status", "live").gt("closes_at", new Date().toISOString());
+    liveElections = count ?? 0;
+  } catch {
+    liveElections = 0;
+  }
+
   const totalRaised = (contributions ?? []).reduce((sum, c) => sum + c.amount, 0);
   const totalGoal = (pools ?? []).reduce((sum, p) => sum + p.goal_amount, 0);
 
@@ -51,6 +60,7 @@ export default async function AdminDashboardPage() {
     { label: "Pending sponsor applications", value: pendingSponsorApps ?? 0, href: "/admin/sponsors" },
     { label: "Pending instrumentals", value: pendingInstrumentals ?? 0, href: "/admin/instrumentals" },
     { label: "Unfulfilled sponsor prizes", value: unfulfilledSponsorPrizes ?? 0, href: "/admin/bouts" },
+    { label: "Live school elections", value: liveElections, href: "/admin/school-elections" },
     { label: "Total users", value: totalUsers ?? 0, href: "/admin/users" },
     {
       label: "Prize pools raised / goal",
