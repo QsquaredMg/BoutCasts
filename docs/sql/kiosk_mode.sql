@@ -37,6 +37,15 @@ create table if not exists public.school_elections (
 create index if not exists school_elections_organizer_idx on public.school_elections (organizer_id, created_at desc);
 alter table public.school_elections enable row level security;
 
+-- Look and feel chosen at setup, applied to every page of the election (organizer, booth desk, kiosk, winners graphic).
+alter table public.school_elections
+  add column if not exists brand_logo_url text,
+  add column if not exists cover_image_url text,
+  add column if not exists brand_color text check (brand_color is null or brand_color ~ '^#[0-9a-fA-F]{6}$'),
+  add column if not exists brand_bg_color text check (brand_bg_color is null or brand_bg_color ~ '^#[0-9a-fA-F]{6}$'),
+  add column if not exists brand_bg_image_url text,
+  add column if not exists show_tally boolean not null default true;
+
 alter table public.live_vote_events
   add column if not exists election_id uuid references public.school_elections(id) on delete cascade,
   add column if not exists election_sort integer not null default 0;

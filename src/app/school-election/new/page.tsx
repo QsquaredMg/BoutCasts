@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SignInCard from "@/components/SignInCard";
+import ImageField from "@/components/ImageField";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
@@ -23,6 +24,12 @@ export default function NewSchoolElectionPage() {
   const [kiosks, setKiosks] = useState(1);
   const [days, setDays] = useState(1);
   const [pin, setPin] = useState("");
+  const [logo, setLogo] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [accent, setAccent] = useState<string | null>(null);
+  const [bgColor, setBgColor] = useState<string | null>(null);
+  const [showTally, setShowTally] = useState(true);
   const [races, setRaces] = useState<RaceDraft[]>([{ ...newRace(), title: "President" }]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,6 +60,12 @@ export default function NewSchoolElectionPage() {
           kiosks,
           days,
           pin,
+          brandLogoUrl: logo,
+          coverImageUrl: banner,
+          brandBgImageUrl: bgImage,
+          brandColor: accent,
+          brandBgColor: bgColor,
+          showTally,
           races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description })) })),
         }),
       });
@@ -92,6 +105,28 @@ export default function NewSchoolElectionPage() {
         <label className="grid gap-1 text-sm font-semibold">
           School name (optional)
           <input className={input} style={inputStyle} value={school} maxLength={120} onChange={(e) => setSchool(e.target.value)} placeholder="JC High School" />
+        </label>
+      </section>
+
+      <section className="mt-6 grid gap-3">
+        <p className="text-sm font-bold">Your school&apos;s look</p>
+        <p className="-mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Used on every page of this election: the organizer pages, the booth desk, the iPad kiosk and the winners graphic.</p>
+        <div className="grid gap-1 text-sm font-semibold">School logo<ImageField value={logo} onChange={setLogo} label="logo" /></div>
+        <div className="grid gap-1 text-sm font-semibold">Banner<ImageField value={banner} onChange={setBanner} label="banner" wide /></div>
+        <div className="grid gap-1 text-sm font-semibold">Background photo (optional)<ImageField value={bgImage} onChange={setBgImage} label="background photo" wide /></div>
+        <div className="grid grid-cols-2 gap-3">
+          {([["School color", accent, setAccent, "#2352E8"], ["Page background", bgColor, setBgColor, "#f6f4ef"]] as const).map(([label, value, set, fb]) => (
+            <label key={label} className="grid gap-1 text-sm font-semibold">{label}
+              <span className="flex items-center gap-2">
+                <input type="color" value={value ?? fb} onChange={(e) => set(e.target.value)} className="h-10 w-12 cursor-pointer rounded-md border" style={{ borderColor: "var(--border)" }} />
+                {value ? <button type="button" onClick={() => set(null)} className="text-xs font-semibold" style={{ color: "var(--text-faint)" }}>Reset</button> : <span className="text-xs font-normal" style={{ color: "var(--text-faint)" }}>Default</span>}
+              </span>
+            </label>
+          ))}
+        </div>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" checked={showTally} onChange={(e) => setShowTally(e.target.checked)} className="mt-1" />
+          <span><span className="font-semibold">Show vote counts in the results.</span> <span style={{ color: "var(--text-faint)" }}>Turn off to show only the winners.</span></span>
         </label>
       </section>
 

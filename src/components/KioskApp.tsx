@@ -1,10 +1,12 @@
 "use client";
 
+import { roomThemeVars } from "@/lib/liveVoteEvents/roomTheme";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Opt = { id: string; name: string; description: string | null; image_url: string | null };
 type Race = { race_id: string; title: string; options: Opt[] };
-type Status = { label: string; title: string; school: string | null; state: "open" | "not_started" | "closed"; locked: boolean };
+type Brand = { logo: string | null; banner: string | null; color: string | null; bg: string | null; bgImage: string | null };
+type Status = { label: string; title: string; school: string | null; brand: Brand; state: "open" | "not_started" | "closed"; locked: boolean };
 type Step = "welcome" | "ballot" | "review" | "sending" | "done" | "pin";
 
 const IDLE_MS = 90_000;
@@ -147,7 +149,11 @@ export default function KioskApp({ token }: { token: string }) {
   }
 
   const shell = "fixed inset-0 z-[100] flex flex-col overflow-auto";
-  const style = { background: "var(--bg, #0B1020)", color: "var(--text, #fff)" } as const;
+  const b = status?.brand;
+  const themed = roomThemeVars(b?.color ?? null, b?.bg ?? null, b?.bgImage ?? null) as React.CSSProperties;
+  // School colors when set at setup; otherwise the BoutCasts navy.
+  const style: React.CSSProperties = b?.bg || b?.bgImage ? { color: "#0B1020", ...themed } : { background: "#0B1020", color: "#fff", ...themed };
+  const accentBtn: React.CSSProperties = { background: "var(--red, #2352E8)", color: "#fff" };
   const card = { background: "var(--surface, #151b30)", borderColor: "var(--border, #2a3355)" } as const;
   const big = "rounded-2xl px-8 py-5 text-2xl font-extrabold disabled:opacity-40";
   const input = "w-full rounded-xl border px-5 py-4 text-2xl";
@@ -156,9 +162,17 @@ export default function KioskApp({ token }: { token: string }) {
   if (!status) return <div className={shell} style={style}><p className="m-auto text-xl">Loading…</p></div>;
 
   const header = (
-    <div className="px-8 pt-6 text-center">
-      {status.school && <p className="text-sm font-bold uppercase tracking-widest opacity-70">{status.school}</p>}
-      <h1 className="text-3xl font-extrabold">{status.title}</h1>
+    <div className="text-center">
+      {b?.banner && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={b.banner} alt="" className="h-28 w-full object-cover" />
+      )}
+      {b?.logo && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={b.logo} alt="" className="mx-auto mt-4 h-16 w-16 rounded-xl object-contain" />
+      )}
+      {status.school && <p className="px-8 pt-3 text-sm font-bold uppercase tracking-widest opacity-70">{status.school}</p>}
+      <h1 className="px-8 pt-1 text-3xl font-extrabold">{status.title}</h1>
     </div>
   );
   const pinLink = (
@@ -174,7 +188,7 @@ export default function KioskApp({ token }: { token: string }) {
           <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" type="password" autoComplete="off" className={`${input} text-center tracking-[0.5em]`} style={card} aria-label="Teacher PIN" />
           {pinMsg && <p className="mt-3 text-sm">{pinMsg}</p>}
           <div className="mt-4 grid gap-3">
-            <button disabled={busy || pin.length !== 6} onClick={() => pinSubmit("unlock")} className={`${big} bg-[#2352E8] text-white`}>Unlock kiosk</button>
+            <button disabled={busy || pin.length !== 6} onClick={() => pinSubmit("unlock")} className={big} style={accentBtn}>Unlock kiosk</button>
             <button disabled={busy || pin.length !== 6} onClick={() => pinSubmit("exit")} className="rounded-xl border px-4 py-3 font-bold disabled:opacity-40" style={card}>Confirm teacher to exit</button>
             <button onClick={reset} className="text-sm underline">Back</button>
           </div>
@@ -216,8 +230,8 @@ export default function KioskApp({ token }: { token: string }) {
               <label className="grid gap-1 text-sm font-bold">Your full name
                 <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" autoCorrect="off" className={input} style={card} />
               </label>
-              {msg && <p className="text-center text-lg font-bold text-[#FFC72C]" role="alert">{msg}</p>}
-              <button type="submit" disabled={busy || !code.trim() || !name.trim()} className={`${big} bg-[#2352E8] text-white`}>{busy ? "Checking…" : "Start voting"}</button>
+              {msg && <p className="text-center text-lg font-bold text-[var(--red,#FFC72C)]" role="alert">{msg}</p>}
+              <button type="submit" disabled={busy || !code.trim() || !name.trim()} className={big} style={accentBtn}>{busy ? "Checking…" : "Start voting"}</button>
             </form>
           )}
           {blocked && msg && <p className="mt-3 text-center">{msg}</p>}
@@ -234,7 +248,7 @@ export default function KioskApp({ token }: { token: string }) {
         {header}
         <div className="mx-auto w-full max-w-2xl px-6 py-6">
           <h2 className="mb-3 text-2xl font-extrabold">Review your ballot, {voter.split(" ")[0]}</h2>
-          {msg && <p className="mb-3 rounded-xl border p-3 font-bold text-[#FFC72C]" style={card} role="alert">{msg}</p>}
+          {msg && <p className="mb-3 rounded-xl border p-3 font-bold text-[var(--red,#FFC72C)]" style={card} role="alert">{msg}</p>}
           <ul className="grid gap-2">
             {races.map((r, i) => {
               const o = r.options.find((x) => x.id === choices[r.race_id]);
@@ -247,7 +261,7 @@ export default function KioskApp({ token }: { token: string }) {
             })}
           </ul>
           <p className="mt-3 text-sm opacity-70">Once you submit, you can&apos;t change your votes.</p>
-          <button onClick={() => { setMsg(null); submit(); }} className={`${big} mt-4 w-full bg-[#FFC72C] text-[#0B1020]`}>Submit my ballot</button>
+          <button onClick={() => { setMsg(null); submit(); }} className={`${big} mt-4 w-full`} style={accentBtn}>Submit my ballot</button>
         </div>
         {pinLink}
       </div>
@@ -268,7 +282,7 @@ export default function KioskApp({ token }: { token: string }) {
           {race.options.map((o) => {
             const on = pick === o.id;
             return (
-              <button key={o.id} onClick={() => setChoices((c) => ({ ...c, [race.race_id]: on ? null : o.id }))} aria-pressed={on} className="rounded-2xl border-2 px-5 py-4 text-left" style={{ ...card, borderColor: on ? "#FFC72C" : card.borderColor, background: on ? "#1d2a5c" : card.background }}>
+              <button key={o.id} onClick={() => setChoices((c) => ({ ...c, [race.race_id]: on ? null : o.id }))} aria-pressed={on} className="rounded-2xl border-2 px-5 py-4 text-left" style={{ ...card, borderColor: on ? "var(--red, #FFC72C)" : card.borderColor, background: on ? "var(--red-soft, #1d2a5c)" : card.background }}>
                 <span className="text-2xl font-extrabold">{on ? "✓ " : ""}{o.name}</span>
                 {o.description && <span className="mt-1 block text-base opacity-80">{o.description}</span>}
               </button>
@@ -278,7 +292,7 @@ export default function KioskApp({ token }: { token: string }) {
         <p className="mt-2 text-sm opacity-70">Tap again to clear. You can skip this office.</p>
         <div className="mt-4 flex gap-3">
           {idx > 0 && <button onClick={() => setIdx(idx - 1)} className="rounded-2xl border px-6 py-4 text-xl font-bold" style={card}>Back</button>}
-          <button onClick={() => (lastRace ? setStep("review") : setIdx(idx + 1))} className={`${big} flex-1 bg-[#2352E8] text-white`}>{lastRace ? "Review ballot" : pick ? "Next" : "Skip"}</button>
+          <button onClick={() => (lastRace ? setStep("review") : setIdx(idx + 1))} className={`${big} flex-1`} style={accentBtn}>{lastRace ? "Review ballot" : pick ? "Next" : "Skip"}</button>
         </div>
       </div>
       {pinLink}

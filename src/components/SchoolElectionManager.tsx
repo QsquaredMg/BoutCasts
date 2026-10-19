@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
 
-type Option = { id: string; name: string; description: string | null; votes: number | null };
+type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
-  election: { id: string; title: string; school_name: string | null; tier: "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -199,16 +199,19 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           </>
         ) : (
           <div className="mt-2 grid gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <a href={`/api/school-election/${id}/graphic`} target="_blank" rel="noreferrer" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">View winners graphic</a>
+              <a href={`/api/school-election/${id}/graphic`} download="winners.png" className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Download</a>
+            </div>
             {races.map((r) => {
               const total = r.options.reduce((s, o) => s + (o.votes ?? 0), 0);
-              const top = Math.max(...r.options.map((o) => o.votes ?? 0));
               return (
                 <div key={r.id}>
-                  <p className="text-sm font-bold">{r.title} <span className="font-normal" style={{ color: "var(--text-faint)" }}>({total} vote{total === 1 ? "" : "s"})</span></p>
+                  <p className="text-sm font-bold">{r.title}</p>
                   {r.options.map((o) => (
                     <div key={o.id} className="mt-1.5">
-                      <div className="flex justify-between text-sm"><span className={o.votes === top && top > 0 ? "font-bold" : ""}>{o.name}{o.votes === top && top > 0 ? " ★" : ""}</span><span>{o.votes ?? 0}</span></div>
-                      <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}><div className="h-2 rounded-full" style={{ width: `${total ? ((o.votes ?? 0) / total) * 100 : 0}%`, background: "var(--red)" }} /></div>
+                      <div className="flex justify-between text-sm"><span className={o.winner ? "font-bold" : ""}>{o.name}{o.winner ? " ★ Winner" : ""}</span>{o.votes != null && <span>{o.votes}</span>}</div>
+                      {o.votes != null && <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}><div className="h-2 rounded-full" style={{ width: `${total ? (o.votes / total) * 100 : 0}%`, background: "var(--red)" }} /></div>}
                     </div>
                   ))}
                 </div>

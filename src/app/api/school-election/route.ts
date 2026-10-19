@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { isHexColor } from "@/lib/liveVoteEvents/roomTheme";
 import { hashPin } from "@/lib/schoolElection";
 
 // Create a school election (a draft): its races, candidates, size, kiosks and days. Paying activates it.
@@ -23,6 +24,15 @@ export async function POST(req: NextRequest) {
   const kiosks = Number(body.kiosks);
   const days = Number(body.days);
   const pin = typeof body.pin === "string" ? body.pin : "";
+  const httpsUrl = (v: unknown) => (typeof v === "string" && /^https:\/\/[^\s"'()\\]{1,600}$/i.test(v) ? v : null);
+  const brand = {
+    brand_logo_url: httpsUrl(body.brandLogoUrl),
+    cover_image_url: httpsUrl(body.coverImageUrl),
+    brand_bg_image_url: httpsUrl(body.brandBgImageUrl),
+    brand_color: isHexColor(body.brandColor) ? body.brandColor : null,
+    brand_bg_color: isHexColor(body.brandBgColor) ? body.brandBgColor : null,
+  };
+  const showTally = body.showTally !== false;
   const races: Race[] = Array.isArray(body.races) ? body.races : [];
 
   if (!title) return NextResponse.json({ error: "Give the election a name." }, { status: 400 });
@@ -55,6 +65,8 @@ export async function POST(req: NextRequest) {
       days,
       price_cents: schoolElectionPriceCents(tier, kiosks, days),
       exit_pin_hash: hashPin(pin),
+      show_tally: showTally,
+      ...brand,
     })
     .select("id")
     .single();
@@ -82,6 +94,7 @@ export async function POST(req: NextRequest) {
           election_id: election.id,
           election_sort: i,
           brand_name: schoolName,
+          ...brand,
         })
         .select("id")
         .single();

@@ -68,6 +68,12 @@ export type ElectionRow = {
   status: "draft" | "live" | "closed";
   starts_at: string | null;
   closes_at: string | null;
+  brand_logo_url: string | null;
+  cover_image_url: string | null;
+  brand_color: string | null;
+  brand_bg_color: string | null;
+  brand_bg_image_url: string | null;
+  show_tally: boolean;
 };
 
 // Signed-in organizer (or admin) who owns the election, else an error response to return.
@@ -89,4 +95,26 @@ export async function requireElectionOwner(id: string) {
 // Whether the election is open for voting right now.
 export function isOpen(e: Pick<ElectionRow, "status" | "closes_at">): boolean {
   return e.status === "live" && !!e.closes_at && new Date(e.closes_at) > new Date();
+}
+
+export type ElectionBrand = {
+  title: string;
+  school_name: string | null;
+  brand_logo_url: string | null;
+  cover_image_url: string | null;
+  brand_color: string | null;
+  brand_bg_color: string | null;
+  brand_bg_image_url: string | null;
+};
+
+/** The school's look, safe to show anywhere (no PIN, no roster). */
+export async function getElectionBrand(id: string): Promise<ElectionBrand | null> {
+  if (!UUID.test(id)) return null;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { data } = await createAdminClient()
+    .from("school_elections")
+    .select("title, school_name, brand_logo_url, cover_image_url, brand_color, brand_bg_color, brand_bg_image_url")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as ElectionBrand | null) ?? null;
 }

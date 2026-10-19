@@ -1,3 +1,4 @@
+import ElectionBrandFrame from "@/components/ElectionBrandFrame";
 import SchoolElectionManager from "@/components/SchoolElectionManager";
 
 export default async function SchoolElectionPage({
@@ -10,8 +11,10 @@ export default async function SchoolElectionPage({
   const { id } = await params;
   const { checkout } = await searchParams;
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8">
-      <SchoolElectionManager id={id} checkout={checkout ?? null} />
-    </div>
+    <ElectionBrandFrame id={id}>
+      <div className="mx-auto max-w-3xl px-5 py-8">
+        <SchoolElectionManager id={id} checkout={checkout ?? null} />
+      </div>
+    </ElectionBrandFrame>
   );
 }

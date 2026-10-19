@@ -42,7 +42,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       title: r.title,
       options: (options ?? [])
         .filter((o) => o.event_id === r.id)
-        .map((o) => ({ id: o.id, name: o.name, description: o.description, votes: closed ? (tallies[o.id] ?? 0) : null })),
+        .map((o, _i, all) => {
+          const n = closed ? (tallies[o.id] ?? 0) : null;
+          const top = closed ? Math.max(...all.map((x) => tallies[x.id] ?? 0)) : 0;
+          return {
+            id: o.id,
+            name: o.name,
+            description: o.description,
+            // The tally is optional: when the school turned it off, only the winner is shown.
+            votes: closed && election.show_tally ? n : null,
+            winner: closed && top > 0 && n === top,
+          };
+        }),
     })),
   });
 }
