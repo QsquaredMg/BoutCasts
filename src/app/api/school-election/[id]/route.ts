@@ -23,6 +23,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   // Results are only read once voting is over. Before that the database returns nothing anyway.
   const tallies: Record<string, number> = {};
+  // Platform admins can peek at an open-ended poll or test ballot while it is still running.
+  const interim = !closed && isAdmin && election.open_ended;
+  if (interim) {
+    for (const rid of raceIds) {
+      const { data } = await admin.from("live_votes").select("option_id").eq("event_id", rid).limit(100000);
+      for (const row of data ?? []) tallies[row.option_id] = (tallies[row.option_id] ?? 0) + 1;
+    }
+  }
   if (closed) {
     for (const rid of raceIds) {
       const { data } = await admin.rpc("get_live_vote_tally", { p_event_id: rid });
@@ -35,6 +43,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json({
     election: safe,
     viewerIsAdmin: isAdmin,
+    interim,
     closed,
     turnout: { total: total ?? 0, voted: voted ?? 0 },
     kiosks: kiosks ?? [],
@@ -44,14 +53,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       options: (options ?? [])
         .filter((o) => o.event_id === r.id)
         .map((o, _i, all) => {
-          const n = closed ? (tallies[o.id] ?? 0) : null;
-          const top = closed ? Math.max(...all.map((x) => tallies[x.id] ?? 0)) : 0;
+          const n = closed || interim ? (tallies[o.id] ?? 0) : null;
+          const top = closed || interim ? Math.max(...all.map((x) => tallies[x.id] ?? 0)) : 0;
           return {
             id: o.id,
             name: o.name,
             description: o.description,
             // The tally is optional: when the school turned it off, only the winner is shown.
-            votes: closed && election.show_tally ? n : null,
+            votes: (closed && election.show_tally) || interim ? n : null,
             winner: closed && top > 0 && n === top,
           };
         }),

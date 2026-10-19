@@ -8,7 +8,7 @@ export default async function AdminSchoolElectionsPage() {
   const admin = createAdminClient();
   const { data: elections } = await admin
     .from("school_elections")
-    .select("id, title, school_name, tier, kiosks, days, price_cents, status, closes_at, created_at, organizer_id, stripe_checkout_session_id")
+    .select("id, title, school_name, tier, kiosks, days, price_cents, status, closes_at, created_at, organizer_id, stripe_checkout_session_id, open_ended")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -57,11 +57,11 @@ export default async function AdminSchoolElectionsPage() {
                     <p className="text-xs" style={{ color: "var(--text-faint)" }}>{e.school_name ?? "No school name"} · {new Date(e.created_at).toLocaleDateString()}</p>
                   </td>
                   <td>{user.get(e.organizer_id) ?? "—"}</td>
-                  <td className="capitalize">{e.tier}, {e.days}d</td>
+                  <td className="capitalize">{e.tier}, {e.open_ended ? "no end" : `${e.days}d`}</td>
                   <td>{kioskCount.get(e.id) ?? 0} of {e.kiosks}</td>
                   <td>{money(e.price_cents)}{e.stripe_checkout_session_id === "admin" ? " (comp)" : ""}</td>
                   <td>{t.voted} / {t.total}</td>
-                  <td>{status}{status === "Live" && e.closes_at ? ` · ends ${new Date(e.closes_at).toLocaleString()}` : ""}</td>
+                  <td>{status}{status === "Live" && e.open_ended ? " · open until closed" : status === "Live" && e.closes_at ? ` · ends ${new Date(e.closes_at).toLocaleString()}` : ""}</td>
                   <td className="text-right"><Link href={`/school-election/${e.id}`} className="font-bold underline">Open</Link></td>
                 </tr>
               );

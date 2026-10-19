@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       price_cents: schoolElectionPriceCents(tier, kiosks, days),
       exit_pin_hash: hashPin(pin),
       show_tally: showTally,
+      open_ended: body.openEnded === true && !!me?.is_admin,
       ...brand,
     })
     .select("id")

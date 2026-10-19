@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   if (!kiosk) return NextResponse.json({ ok: false }, { status: 404 });
   const { data: el } = await admin.from("school_elections").select("title, school_name, status, closes_at, brand_logo_url, cover_image_url, brand_color, brand_bg_color, brand_bg_image_url").eq("id", kiosk.election_id).maybeSingle();
   if (!el) return NextResponse.json({ ok: false }, { status: 404 });
-  const open = el.status === "live" && !!el.closes_at && new Date(el.closes_at) > new Date();
+  const open = el.status === "live" && (el.closes_at == null || new Date(el.closes_at) > new Date());
   return NextResponse.json(
     {
       ok: true,

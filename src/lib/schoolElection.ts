@@ -74,6 +74,7 @@ export type ElectionRow = {
   brand_bg_color: string | null;
   brand_bg_image_url: string | null;
   show_tally: boolean;
+  open_ended: boolean;
 };
 
 // Signed-in organizer (or admin) who owns the election, else an error response to return.
@@ -93,7 +94,7 @@ export async function requireElectionOwner(id: string) {
 
 // Whether the election is open for voting right now.
 export function isOpen(e: Pick<ElectionRow, "status" | "closes_at">): boolean {
-  return e.status === "live" && !!e.closes_at && new Date(e.closes_at) > new Date();
+  return e.status === "live" && (e.closes_at == null || new Date(e.closes_at) > new Date());
 }
 
 /** Same normal form the database uses for the name check. */
