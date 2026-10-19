@@ -83,6 +83,26 @@ export const TIME_ADDON = {
   maxDays: 14,
 };
 
+// School election kiosk mode: several offices on one ballot, a roster of students with codes, and
+// up to maxKiosks iPads at a booth. The first kiosk and the first day are included in the base
+// price (the size tier price); each extra kiosk and each extra day is charged on top.
+// Keep in sync with docs/sql/kiosk_mode.sql (kiosks 1-3, days 1-3).
+export const SCHOOL_ELECTION = {
+  tiers: ["free", "small", "medium", "large"] as LiveVoteTier[],
+  maxKiosks: 3,
+  maxDays: 3,
+  extraKioskCents: 2500,
+  extraDayCents: 15000,
+};
+
+export function schoolElectionPriceCents(tier: LiveVoteTier, kiosks: number, days: number): number {
+  return (
+    LIVE_VOTE_TIERS[tier].priceCents +
+    Math.max(0, kiosks - 1) * SCHOOL_ELECTION.extraKioskCents +
+    Math.max(0, days - 1) * SCHOOL_ELECTION.extraDayCents
+  );
+}
+
 // Super Votes: organizer unlocks per event; fans buy packs to boost a
 // contestant. Organizer earns organizerShare (75%) of final collections, less
 // any applicable fees.

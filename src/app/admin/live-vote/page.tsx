@@ -12,6 +12,7 @@ export default async function AdminLiveVotePage() {
     .from("live_vote_events")
     .select("id, title, description, status, tier, price_cents, ads_enabled, created_at, organizer_id, closes_at")
     .is("archived_at", null)
+    .is("election_id", null)
     .order("created_at", { ascending: false });
 
   const organizerIds = Array.from(new Set((events ?? []).map((e) => e.organizer_id).filter(Boolean)));

@@ -227,6 +227,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    if (metadata.kind === "school_election") {
+      if (!metadata.election_id) {
+        console.error("Stripe webhook: bad school_election metadata", metadata);
+        return NextResponse.json({ error: "Invalid school_election metadata" }, { status: 400 });
+      }
+      const admin = createAdminClient();
+      // Idempotent: only a draft election goes live, so a repeated delivery does nothing.
+      const { error } = await admin.rpc("apply_school_election_payment", {
+        p_election_id: metadata.election_id,
+        p_session_id: session.id,
+      });
+      if (error) {
+        console.error("Stripe webhook: failed to start school election", error);
+        return NextResponse.json({ error: "Failed to start school election" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
     if (metadata.kind === "time_addon") {
       const days = Number(metadata.days);
       if (!metadata.event_id || !Number.isInteger(days) || days <= 0) {
