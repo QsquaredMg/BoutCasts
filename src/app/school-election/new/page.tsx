@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SignInCard from "@/components/SignInCard";
 import ImageField from "@/components/ImageField";
+import FileUploadPicker from "@/components/FileUploadPicker";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
-type Cand = { key: string; name: string; description: string };
+type Cand = { key: string; name: string; description: string; photoUrl: string | null; videoUrl: string | null; videoSeconds: number | null };
 type RaceDraft = { key: string; title: string; candidates: Cand[] };
 
 const k = () => Math.random().toString(36).slice(2);
-const newCand = (): Cand => ({ key: k(), name: "", description: "" });
+const newCand = (): Cand => ({ key: k(), name: "", description: "", photoUrl: null, videoUrl: null, videoSeconds: null });
 const newRace = (): RaceDraft => ({ key: k(), title: "", candidates: [newCand(), newCand()] });
 const dollars = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
@@ -66,7 +67,7 @@ export default function NewSchoolElectionPage() {
           brandColor: accent,
           brandBgColor: bgColor,
           showTally,
-          races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description })) })),
+          races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds })) })),
         }),
       });
       const data = await res.json();
@@ -132,7 +133,7 @@ export default function NewSchoolElectionPage() {
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Size</h2>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-4">
           {SCHOOL_ELECTION.tiers.map((t) => {
             const cfg = LIVE_VOTE_TIERS[t];
             const active = tier === t;
@@ -144,13 +145,13 @@ export default function NewSchoolElectionPage() {
                 className="rounded-[10px] border px-3 py-2.5 text-left"
                 style={{ borderColor: active ? "var(--red)" : "var(--border)", background: active ? "var(--red-soft, var(--surface-2))" : "var(--surface)" }}
               >
-                <p className="text-sm font-bold">{cfg.label} · {dollars(cfg.priceCents)}</p>
+                <p className="text-sm font-bold">{cfg.label} · {cfg.priceCents ? dollars(cfg.priceCents) : "Free"}</p>
                 <p className="text-xs" style={{ color: "var(--text-faint)" }}>Up to {cfg.voteCap.toLocaleString()} students</p>
               </button>
             );
           })}
         </div>
-        <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>The price includes 1 kiosk and the first day of voting.</p>
+        <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>The price includes 1 kiosk and the first day of voting. A Free election runs 12 hours.</p>
       </section>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -199,6 +200,20 @@ export default function NewSchoolElectionPage() {
                     {r.candidates.length > 2 && (
                       <button type="button" className="rounded-full border px-3 text-xs font-bold" style={{ borderColor: "var(--border)" }} onClick={() => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.filter((y) => y.key !== c.key) }))}>×</button>
                     )}
+                    <div className="grid gap-2 sm:col-span-3 sm:grid-cols-2">
+                      <div className="grid gap-1 text-xs font-semibold">Photo
+                        <ImageField value={c.photoUrl} onChange={(u) => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, photoUrl: u } : y)) }))} label="candidate photo" />
+                      </div>
+                      <div className="grid gap-1 text-xs font-semibold">Speech video (optional, up to 2 minutes)
+                        {c.videoUrl ? (
+                          <span className="flex items-center gap-2 font-normal">Video added
+                            <button type="button" className="underline" onClick={() => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, videoUrl: null, videoSeconds: null } : y)) }))}>Remove</button>
+                          </span>
+                        ) : (
+                          <FileUploadPicker mediaOnly maxSeconds={120} onUploaded={(u, secs) => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, videoUrl: u, videoSeconds: secs ?? null } : y)) }))} />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

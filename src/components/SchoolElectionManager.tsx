@@ -6,7 +6,7 @@ import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
-  election: { id: string; title: string; school_name: string | null; tier: "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -37,6 +37,17 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   const [paste, setPaste] = useState("");
   const [newLink, setNewLink] = useState<{ label: string; url: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [staff, setStaff] = useState<{ id: string; label: string }[]>([]);
+  const [staffName, setStaffName] = useState("");
+  const [newStaff, setNewStaff] = useState<{ label: string; code: string } | null>(null);
+  const loadStaff = useCallback(async () => {
+    const res = await fetch(`/api/school-election/${id}/staff`, { cache: "no-store" });
+    if (res.ok) setStaff((await res.json()).staff);
+  }, [id]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadStaff();
+  }, [loadStaff]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/school-election/${id}`, { cache: "no-store" });
@@ -118,7 +129,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>{e.school_name ?? "School election"} · {status}</p>
         <h1 className="text-3xl font-extrabold">{e.title}</h1>
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-          {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {e.kiosks} kiosk{e.kiosks === 1 ? "" : "s"} · {e.days} day{e.days === 1 ? "" : "s"} · {money(e.price_cents)}
+          {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {e.kiosks} kiosk{e.kiosks === 1 ? "" : "s"} · {e.tier === "free" && e.days === 1 ? "12 hours" : `${e.days} day${e.days === 1 ? "" : "s"}`} · {e.price_cents ? money(e.price_cents) : "Free"}
           {e.closes_at && !closed && ` · closes ${new Date(e.closes_at).toLocaleString()}`}
         </p>
       </div>
@@ -129,9 +140,9 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
       {e.status === "draft" && (
         <div className="rounded-xl border p-4" style={box}>
           <p className="font-bold">Ready to start?</p>
-          <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>Add your student roster below, then pay {money(e.price_cents)} to open voting for {e.days} day{e.days === 1 ? "" : "s"}. Pair your iPads before or after paying.</p>
+          <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>Add your student roster below, then {e.price_cents === 0 ? "open voting" : `pay ${money(e.price_cents)} to open voting`} for {e.days} day{e.days === 1 ? "" : "s"}. Pair your iPads before or after paying.</p>
           <button onClick={pay} disabled={busy !== null || turnout.total === 0} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-50">
-            {busy === "pay" ? "Starting checkout…" : `Pay ${money(e.price_cents)} and open voting`}
+            {busy === "pay" ? "Starting…" : e.price_cents === 0 ? "Open voting (free)" : `Pay ${money(e.price_cents)} and open voting`}
           </button>
           {turnout.total === 0 && <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Add at least one student first.</p>}
         </div>
@@ -166,7 +177,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
 
       <div className="rounded-xl border p-4" style={box}>
         <p className="font-bold">Kiosks ({kiosks.length} of {e.kiosks})</p>
-        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Open a kiosk link on an iPad, then turn on Guided Access (Settings, Accessibility) so students can&apos;t leave the page. A hotspot works if school Wi-Fi is slow.</p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Open a kiosk link on an iPad, then turn on Guided Access (Settings, Accessibility) so students can&apos;t leave the page. A hotspot works if school Wi-Fi is slow. Before voting starts, have a teacher tap Teacher, enter the PIN and choose Get ready for offline on each iPad so students can still vote if the Wi-Fi drops.</p>
         <ul className="grid gap-1.5">
           {kiosks.map((k) => (
             <li key={k.id} className="flex items-center justify-between gap-2 text-sm">
@@ -189,10 +200,36 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
       </div>
 
       <div className="rounded-xl border p-4" style={box}>
+        <p className="font-bold">Staff seats (optional)</p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Give a teacher a code to open the booth desk without your login. Codes only show the roster check-in, nothing else.</p>
+        <ul className="grid gap-1.5">
+          {staff.map((m) => (
+            <li key={m.id} className="flex items-center justify-between text-sm">
+              <span>{m.label}</span>
+              <button onClick={async () => { await call("rmstaff", `/api/school-election/${id}/staff?staffId=${m.id}`, { method: "DELETE" }); loadStaff(); }} className="text-xs font-bold underline">Revoke</button>
+            </li>
+          ))}
+        </ul>
+        {!closed && (
+          <div className="mt-2 flex gap-2">
+            <input value={staffName} onChange={(ev) => setStaffName(ev.target.value)} maxLength={60} placeholder="Teacher name" className="min-w-0 flex-1 rounded-[10px] border px-3 py-2 text-sm" style={box} />
+            <button disabled={busy !== null || !staffName.trim()} onClick={async () => { const r = await call("staff", `/api/school-election/${id}/staff`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label: staffName }) }); if (r) { setNewStaff(r); setStaffName(""); loadStaff(); } }} className="rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Add seat</button>
+          </div>
+        )}
+        {newStaff && (
+          <div className="mt-3 rounded-lg border p-3" style={{ borderColor: "var(--gold, #a97a12)" }}>
+            <p className="text-sm font-bold">{newStaff.label}&apos;s desk code</p>
+            <p className="mt-1 text-2xl font-black tracking-[0.2em]">{newStaff.code}</p>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>Shown once. They enter it at the booth desk page: /school-election/{id}/desk</p>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border p-4" style={box}>
         <p className="font-bold">Results</p>
         {!closed ? (
           <>
-            <p className="mb-3 mt-1 text-sm" style={{ color: "var(--text-dim)" }}>Hidden until voting closes, for everyone. You can see turnout above, but not who is winning.</p>
+            <p className="mb-3 mt-1 text-sm" style={{ color: "var(--text-dim)" }}>Hidden until voting closes, for everyone. You can see turnout above, but not who is winning. Before you announce winners, check that every iPad shows &ldquo;0 waiting to send&rdquo;.</p>
             {e.status === "live" && (
               <button onClick={async () => { if (confirm("Close voting now? Students will no longer be able to vote and results become visible.")) { await call("close", `/api/school-election/${id}/close`, { method: "POST" }); load(); } }} disabled={busy !== null} className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Close voting now</button>
             )}

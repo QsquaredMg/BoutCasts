@@ -23,7 +23,7 @@ create table if not exists public.school_elections (
   organizer_id uuid not null references public.profiles(id) on delete cascade,
   title text not null check (char_length(btrim(title)) between 1 and 120),
   school_name text check (school_name is null or char_length(school_name) <= 120),
-  tier text not null check (tier in ('small','medium','large')),
+  tier text not null check (tier in ('free','small','medium','large')),
   kiosks integer not null default 1 check (kiosks between 1 and 3),
   days integer not null default 1 check (days between 1 and 3),
   price_cents integer not null check (price_cents >= 0),
@@ -88,6 +88,17 @@ create table if not exists public.election_audit (
 );
 alter table public.election_audit enable row level security;
 
+-- Optional staff seats: a teacher can use the booth desk with a code instead of the organizer's login.
+create table if not exists public.election_staff (
+  id uuid primary key default gen_random_uuid(),
+  election_id uuid not null references public.school_elections(id) on delete cascade,
+  label text not null check (char_length(btrim(label)) between 1 and 60),
+  code_hash text not null unique,
+  created_at timestamptz not null default now(),
+  revoked_at timestamptz
+);
+alter table public.election_staff enable row level security;
+
 -- ---------------------------------------------------------------- results hidden until close
 create or replace function public.get_live_vote_tally(p_event_id uuid)
 returns table(option_id uuid, votes bigint)
@@ -116,7 +127,9 @@ returns jsonb language sql stable security definer set search_path to 'public' a
            'race_id', e.id,
            'title', e.title,
            'options', coalesce((select jsonb_agg(jsonb_build_object(
-                'id', o.id, 'name', o.name, 'description', o.description, 'image_url', o.image_url)
+                'id', o.id, 'name', o.name, 'description', o.description, 'image_url', o.image_url,
+                'video_url', case when o.source_type in ('upload','record') then o.source_url else null end,
+                'media_seconds', o.media_seconds)
                 order by o.sort_order, o.created_at)
               from live_vote_options o where o.event_id = e.id), '[]'::jsonb))
          order by e.election_sort, e.created_at), '[]'::jsonb)
@@ -160,14 +173,21 @@ end $fn$;
 
 -- ---------------------------------------------------------------- kiosk: cast the whole ballot
 -- p_choices is {"<race_id>": "<option_id>" | null}. Null or missing means the student skipped that office.
-create or replace function public.kiosk_cast_ballot(p_token_hash text, p_code text, p_name text, p_choices jsonb, p_request_id text)
+-- p_cast_at is when the student pressed submit on the iPad. A ballot saved offline can arrive after voting
+-- closed and still counts if it was cast while voting was open and arrives within 6 hours of the close.
+drop function if exists public.kiosk_cast_ballot(text, text, text, jsonb, text);
+create or replace function public.kiosk_cast_ballot(p_token_hash text, p_code text, p_name text, p_choices jsonb, p_request_id text, p_cast_at timestamptz default null)
 returns jsonb language plpgsql security definer set search_path to 'public' as $fn$
-declare k election_kiosks; el school_elections; v election_voters; r record; pick text;
+declare k election_kiosks; el school_elections; v election_voters; r record; pick text; v_at timestamptz;
 begin
   select * into k from election_kiosks where token_hash = p_token_hash;
   if not found then return jsonb_build_object('ok', false, 'error', 'kiosk_unknown'); end if;
   select * into el from school_elections where id = k.election_id;
-  if el.status <> 'live' or el.closes_at is null or el.closes_at <= now() then
+  v_at := least(coalesce(p_cast_at, now()), now());
+  if el.status = 'draft' or el.starts_at is null or el.closes_at is null
+     or v_at < el.starts_at - interval '1 minute'
+     or v_at > el.closes_at
+     or now() > el.closes_at + interval '6 hours' then
     return jsonb_build_object('ok', false, 'error', 'closed');
   end if;
   if k.locked_until is not null and k.locked_until > now() then
@@ -178,6 +198,12 @@ begin
    where election_id = el.id and code = upper(btrim(coalesce(p_code, '')))
    for update;
   if not found or v.name_norm <> election_norm_name(p_name) then
+    -- Wrong guesses here count toward the same lockout as the check-in screen.
+    update election_kiosks
+       set failed_attempts = failed_attempts + 1,
+           locked_until = case when failed_attempts + 1 >= 5 then now() + interval '5 minutes' else locked_until end
+     where id = k.id;
+    insert into election_audit (election_id, kiosk_id, kind) values (el.id, k.id, 'no_match');
     return jsonb_build_object('ok', false, 'error', 'no_match');
   end if;
   if v.voted_at is not null then
@@ -198,8 +224,8 @@ begin
     end if;
   end loop;
 
-  update election_voters set voted_at = now(), voted_kiosk = k.id, voted_request_id = p_request_id where id = v.id;
-  insert into election_audit (election_id, kiosk_id, kind) values (el.id, k.id, 'ballot');
+  update election_voters set voted_at = v_at, voted_kiosk = k.id, voted_request_id = p_request_id where id = v.id;
+  insert into election_audit (election_id, kiosk_id, kind) values (el.id, k.id, case when p_cast_at is not null and p_cast_at < now() - interval '1 minute' then 'ballot_late' else 'ballot' end);
   return jsonb_build_object('ok', true);
 end $fn$;
 
@@ -221,7 +247,8 @@ declare el school_elections; v_start timestamptz := now(); v_close timestamptz;
 begin
   select * into el from school_elections where id = p_election_id for update;
   if not found or el.status <> 'draft' then return; end if; -- repeated webhook delivery is a no-op
-  v_close := v_start + make_interval(days => el.days);
+  -- A Free election keeps the Free window (12 hours) when it runs a single day.
+  v_close := v_start + case when el.tier = 'free' and el.days = 1 then interval '12 hours' else make_interval(days => el.days) end;
   update school_elections
      set status = 'live', starts_at = v_start, closes_at = v_close, stripe_checkout_session_id = p_session_id
    where id = el.id;
@@ -240,13 +267,13 @@ end $fn$;
 
 -- Only the service role (the app's server) may call these.
 revoke all on function public.kiosk_verify(text, text, text) from public, anon, authenticated;
-revoke all on function public.kiosk_cast_ballot(text, text, text, jsonb, text) from public, anon, authenticated;
+revoke all on function public.kiosk_cast_ballot(text, text, text, jsonb, text, timestamptz) from public, anon, authenticated;
 revoke all on function public.kiosk_unlock(text) from public, anon, authenticated;
 revoke all on function public.apply_school_election_payment(uuid, text) from public, anon, authenticated;
 revoke all on function public.close_school_election(uuid) from public, anon, authenticated;
 revoke all on function public.election_ballot(uuid) from public, anon, authenticated;
 grant execute on function public.kiosk_verify(text, text, text) to service_role;
-grant execute on function public.kiosk_cast_ballot(text, text, text, jsonb, text) to service_role;
+grant execute on function public.kiosk_cast_ballot(text, text, text, jsonb, text, timestamptz) to service_role;
 grant execute on function public.kiosk_unlock(text) to service_role;
 grant execute on function public.apply_school_election_payment(uuid, text) to service_role;
 grant execute on function public.close_school_election(uuid) to service_role;

@@ -6,7 +6,7 @@ import { isHexColor } from "@/lib/liveVoteEvents/roomTheme";
 import { hashPin } from "@/lib/schoolElection";
 
 // Create a school election (a draft): its races, candidates, size, kiosks and days. Paying activates it.
-type Candidate = { name?: unknown; description?: unknown };
+type Candidate = { name?: unknown; description?: unknown; photoUrl?: unknown; videoUrl?: unknown; videoSeconds?: unknown };
 type Race = { title?: unknown; candidates?: unknown };
 
 const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -44,7 +44,13 @@ export async function POST(req: NextRequest) {
 
   const parsed = races.map((r) => {
     const cands = (Array.isArray(r.candidates) ? (r.candidates as Candidate[]) : [])
-      .map((c) => ({ name: clean(c.name, 80), description: clean(c.description, 200) || null }))
+      .map((c) => ({
+        name: clean(c.name, 80),
+        description: clean(c.description, 200) || null,
+        photo: httpsUrl(c.photoUrl),
+        video: httpsUrl(c.videoUrl),
+        seconds: Number.isFinite(Number(c.videoSeconds)) && Number(c.videoSeconds) > 0 ? Math.min(Math.round(Number(c.videoSeconds)), 600) : null,
+      }))
       .filter((c) => c.name);
     return { title: clean(r.title, 120), candidates: cands };
   });
@@ -54,6 +60,12 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
+  if (tier === "free") {
+    // Same pacing as Free live votes: 5 per 30 days.
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const { count } = await admin.from("school_elections").select("id", { count: "exact", head: true }).eq("organizer_id", auth.user.id).eq("tier", "free").gte("created_at", since);
+    if ((count ?? 0) >= 5) return NextResponse.json({ error: "Free elections are limited to 5 every 30 days. Pick Small or larger." }, { status: 400 });
+  }
   const { data: election, error } = await admin
     .from("school_elections")
     .insert({
@@ -93,15 +105,15 @@ export async function POST(req: NextRequest) {
           is_private: true,
           election_id: election.id,
           election_sort: i,
-          brand_name: schoolName,
-          ...brand,
+          brand_name: tier === "free" ? null : schoolName,
+          ...(tier === "free" ? {} : brand),
         })
         .select("id")
         .single();
       if (evErr || !ev) throw evErr ?? new Error("race insert failed");
       const { error: optErr } = await admin
         .from("live_vote_options")
-        .insert(race.candidates.map((c, j) => ({ event_id: ev.id, name: c.name, description: c.description, sort_order: j })));
+        .insert(race.candidates.map((c, j) => ({ event_id: ev.id, name: c.name, description: c.description, sort_order: j, image_url: c.photo, ...(c.video ? { source_type: "upload", source_url: c.video, media_seconds: c.seconds } : {}) })));
       if (optErr) throw optErr;
     }
   } catch (err) {

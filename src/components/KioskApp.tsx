@@ -2,9 +2,8 @@
 
 import { roomThemeVars } from "@/lib/liveVoteEvents/roomTheme";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fingerprint, load, post, save, type Manifest, type QueueItem, type Race } from "@/lib/kioskOffline";
 
-type Opt = { id: string; name: string; description: string | null; image_url: string | null };
-type Race = { race_id: string; title: string; options: Opt[] };
 type Brand = { logo: string | null; banner: string | null; color: string | null; bg: string | null; bgImage: string | null };
 type Status = { label: string; title: string; school: string | null; brand: Brand; state: "open" | "not_started" | "closed"; locked: boolean };
 type Step = "welcome" | "ballot" | "review" | "sending" | "done" | "pin";
@@ -29,14 +28,39 @@ export default function KioskApp({ token }: { token: string }) {
   const [pinMsg, setPinMsg] = useState<string | null>(null);
   const requestId = useRef("");
   const last = useRef(0);
+  const offlineChecked = useRef(false); // this student was checked in from the iPad's offline list
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [saved, setSaved] = useState(false); // last ballot was saved on the iPad to send later
+  const [online, setOnline] = useState(true);
+  const localFails = useRef<{ n: number; until: number }>({ n: 0, until: 0 });
+  const syncing = useRef(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQueue(load<QueueItem[]>(token, "queue", []));
+    setManifest(load<Manifest | null>(token, "manifest", null));
+    const cached = load<Status | null>(token, "status", null);
+    if (cached) setStatus(cached);
+  }, [token]);
+
+  const persistQueue = useCallback((next: QueueItem[]) => {
+    setQueue(next);
+    save(token, "queue", next);
+  }, [token]);
 
   const loadStatus = useCallback(async () => {
     try {
       const res = await fetch(`/api/kiosk/status?token=${encodeURIComponent(token)}`, { cache: "no-store" });
       if (res.status === 404) return setMissing(true);
-      if (res.ok) setStatus(await res.json());
+      if (res.ok) {
+        const st = (await res.json()) as Status;
+        setStatus(st);
+        setOnline(true);
+        save(token, "status", st);
+      }
     } catch {
-      /* offline: keep the last known state */
+      setOnline(false); // keep the last known state
     }
   }, [token]);
 
@@ -84,50 +108,140 @@ export default function KioskApp({ token }: { token: string }) {
     return () => clearTimeout(t);
   }, [step, reset]);
 
+  // Send saved ballots. Safe to repeat: the request id means a ballot is never counted twice.
+  const sync = useCallback(async () => {
+    if (syncing.current) return;
+    syncing.current = true;
+    try {
+      let items = load<QueueItem[]>(token, "queue", []);
+      for (const it of items.filter((x) => !x.problem)) {
+        try {
+          const { data } = await post("/api/kiosk/submit", { token, code: it.code, name: it.name, choices: it.choices, requestId: it.requestId, castAt: it.castAt });
+          if (data.ok) items = items.filter((x) => x.requestId !== it.requestId);
+          else if (data.error === "already_voted") items = items.map((x) => (x.requestId === it.requestId ? { ...x, problem: "Already voted on another iPad, so this ballot was not counted." } : x));
+          else if (data.error === "closed") items = items.map((x) => (x.requestId === it.requestId ? { ...x, problem: "Arrived too late to count." } : x));
+          else if (data.error === "no_match" || data.error === "cap") items = items.map((x) => (x.requestId === it.requestId ? { ...x, problem: data.error === "cap" ? "The election reached its vote limit." : "Code and name did not match." } : x));
+          setOnline(true);
+        } catch {
+          setOnline(false);
+          break;
+        }
+      }
+      persistQueue(items);
+    } finally {
+      syncing.current = false;
+    }
+  }, [token, persistQueue]);
+
+  useEffect(() => {
+    const t = setInterval(sync, 10000);
+    const on = () => { setOnline(true); sync(); };
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { clearInterval(t); window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, [sync]);
+
+  function startBallot(ballot: Race[], who: string, fromOffline: boolean) {
+    setVoter(who);
+    setRaces(ballot);
+    setIdx(0);
+    setChoices({});
+    requestId.current = crypto.randomUUID();
+    offlineChecked.current = fromOffline;
+    setSaved(false);
+    setStep("ballot");
+  }
+
+  // Check in using the list a teacher loaded onto this iPad (no connection needed).
+  async function verifyLocal() {
+    if (!manifest) return setMsg("No connection. Please ask a teacher.");
+    if (manifest.closesAt && new Date(manifest.closesAt) <= new Date()) return setMsg("Voting is closed.");
+    if (Date.now() < localFails.current.until) return setMsg("Too many tries. Please ask a teacher.");
+    const norm = code.trim().toUpperCase();
+    if (queue.some((q) => q.code.toUpperCase() === norm)) return setMsg("This code has already been used.");
+    const fp = await fingerprint(manifest.electionId, code, name);
+    if (!manifest.hashes.includes(fp)) {
+      const n = localFails.current.n + 1;
+      localFails.current = { n, until: n >= 5 ? Date.now() + 5 * 60_000 : 0 };
+      if (n >= 5) localFails.current.n = 0;
+      return setMsg("That code and name don't match, or the code was already used. Check both and try again.");
+    }
+    localFails.current = { n: 0, until: 0 };
+    startBallot(manifest.ballot, name.trim(), true);
+  }
+
   async function verify() {
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/kiosk/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, code, name }) });
-      const d = await res.json();
-      if (d.ok) {
-        setVoter(d.voter_name);
-        setRaces(d.ballot);
-        setIdx(0);
-        setChoices({});
-        requestId.current = crypto.randomUUID();
-        setStep("ballot");
-      } else if (d.error === "already_voted") setMsg("This code has already been used.");
+      const { data: d } = await post("/api/kiosk/verify", { token, code, name });
+      setOnline(true);
+      if (d.ok) startBallot(d.ballot as Race[], String(d.voter_name), false);
+      else if (d.error === "already_voted") setMsg("This code has already been used.");
       else if (d.error === "locked") { setMsg("This kiosk is locked. Please ask a teacher."); loadStatus(); }
       else if (d.error === "closed") { setMsg("Voting is closed."); loadStatus(); }
       else if (d.error === "no_match") setMsg("That code and name don't match. Check both and try again.");
       else setMsg("Something went wrong. Please try again.");
     } catch {
-      setMsg("No connection. Please try again in a moment.");
+      setOnline(false);
+      await verifyLocal();
     } finally {
       setBusy(false);
     }
   }
 
+  // Save the finished ballot on the iPad, and stop the same code being used again here.
+  async function enqueue() {
+    const item: QueueItem = { requestId: requestId.current, code, name, choices, castAt: new Date().toISOString() };
+    persistQueue([...load<QueueItem[]>(token, "queue", []), item]);
+    if (manifest) {
+      const fp = await fingerprint(manifest.electionId, code, name);
+      const next = { ...manifest, hashes: manifest.hashes.filter((h) => h !== fp) };
+      setManifest(next);
+      save(token, "manifest", next);
+    }
+    setSaved(true);
+    setStep("done");
+  }
+
   async function submit() {
     setStep("sending");
-    // Retry on network failure; the request id makes a repeat harmless.
-    for (let attempt = 0; attempt < 6; attempt++) {
+    if (offlineChecked.current) return enqueue();
+    const castAt = new Date().toISOString();
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const res = await fetch("/api/kiosk/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, code, name, choices, requestId: requestId.current }) });
-        const d = await res.json().catch(() => ({}));
+        const { data: d } = await post("/api/kiosk/submit", { token, code, name, choices, requestId: requestId.current, castAt });
         if (d.ok) return setStep("done");
         if (d.error === "closed") { setMsg("Voting closed before your ballot was sent."); return setStep("welcome"); }
         if (d.error === "already_voted") { setMsg("This code has already been used."); return setStep("welcome"); }
         if (d.error === "cap") { setMsg("This election has reached its vote limit. Please ask a teacher."); return setStep("welcome"); }
         if (d.error === "no_match" || d.error === "locked") { setMsg("Please ask a teacher for help."); return setStep("welcome"); }
       } catch {
-        /* retry */
+        /* try once more, then save on the iPad */
       }
-      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
     }
-    setMsg("We couldn't reach the server. Your ballot was NOT sent. Please ask a teacher to check the Wi-Fi, then try again.");
-    setStep("review");
+    setOnline(false);
+    await enqueue();
+  }
+
+  async function prepareOffline() {
+    setBusy(true);
+    setPinMsg(null);
+    try {
+      const { data } = await post("/api/kiosk/offline-prep", { token, pin }, 30000);
+      if (data.ok) {
+        const m: Manifest = { electionId: String(data.electionId), ballot: data.ballot as Race[], hashes: data.hashes as string[], preparedAt: String(data.preparedAt), closesAt: (data.closesAt as string | null) ?? null };
+        setManifest(m);
+        save(token, "manifest", m);
+        setPinMsg(`Ready for offline: ${m.hashes.length.toLocaleString()} students can check in without Wi-Fi.`);
+      } else setPinMsg(data.error === "wait" ? "Too many tries. Wait a few minutes." : data.error === "bad_pin" ? "Wrong PIN." : "Couldn't load. Try again with Wi-Fi.");
+    } catch {
+      setPinMsg("No connection. Connect to Wi-Fi or a hotspot first.");
+    } finally {
+      setBusy(false);
+      setPin("");
+    }
   }
 
   async function pinSubmit(action: "unlock" | "exit") {
@@ -189,6 +303,15 @@ export default function KioskApp({ token }: { token: string }) {
           {pinMsg && <p className="mt-3 text-sm">{pinMsg}</p>}
           <div className="mt-4 grid gap-3">
             <button disabled={busy || pin.length !== 6} onClick={() => pinSubmit("unlock")} className={big} style={accentBtn}>Unlock kiosk</button>
+            <button disabled={busy || pin.length !== 6} onClick={prepareOffline} className="rounded-xl border px-4 py-3 font-bold disabled:opacity-40" style={card}>Get ready for offline</button>
+            <button onClick={sync} className="rounded-xl border px-4 py-3 font-bold" style={card}>Send waiting ballots now ({queue.filter((q) => !q.problem).length})</button>
+            {queue.some((q) => q.problem) && (
+              <div className="rounded-xl border p-3 text-left text-sm" style={card}>
+                <p className="font-bold">Ballots not counted</p>
+                {queue.filter((q) => q.problem).map((q) => <p key={q.requestId}>{q.name}: {q.problem}</p>)}
+                <button onClick={() => persistQueue(queue.filter((q) => !q.problem))} className="mt-1 underline">Clear this list</button>
+              </div>
+            )}
             <button disabled={busy || pin.length !== 6} onClick={() => pinSubmit("exit")} className="rounded-xl border px-4 py-3 font-bold disabled:opacity-40" style={card}>Confirm teacher to exit</button>
             <button onClick={reset} className="text-sm underline">Back</button>
           </div>
@@ -203,7 +326,7 @@ export default function KioskApp({ token }: { token: string }) {
         <div className="m-auto px-8 text-center">
           <p className="text-7xl">✓</p>
           <h2 className="mt-4 text-5xl font-extrabold">Thanks for voting!</h2>
-          <p className="mt-3 text-xl opacity-80">Your ballot is in. Results will be shared when voting closes.</p>
+          <p className="mt-3 text-xl opacity-80">{saved ? "Your ballot is saved on this iPad and will send automatically." : "Your ballot is in."} Results will be shared when voting closes.</p>
         </div>
       </div>
     );
@@ -236,6 +359,9 @@ export default function KioskApp({ token }: { token: string }) {
           )}
           {blocked && msg && <p className="mt-3 text-center">{msg}</p>}
         </div>
+        <p className="absolute bottom-3 left-4 text-xs opacity-60">
+          {!online && "Offline · "}{queue.filter((q) => !q.problem).length} waiting to send{queue.some((q) => q.problem) ? " · see teacher" : ""}{manifest ? " · offline ready" : ""}
+        </p>
         {pinLink}
       </div>
     );
@@ -282,10 +408,21 @@ export default function KioskApp({ token }: { token: string }) {
           {race.options.map((o) => {
             const on = pick === o.id;
             return (
-              <button key={o.id} onClick={() => setChoices((c) => ({ ...c, [race.race_id]: on ? null : o.id }))} aria-pressed={on} className="rounded-2xl border-2 px-5 py-4 text-left" style={{ ...card, borderColor: on ? "var(--red, #FFC72C)" : card.borderColor, background: on ? "var(--red-soft, #1d2a5c)" : card.background }}>
-                <span className="text-2xl font-extrabold">{on ? "✓ " : ""}{o.name}</span>
-                {o.description && <span className="mt-1 block text-base opacity-80">{o.description}</span>}
-              </button>
+              <div key={o.id} className="overflow-hidden rounded-2xl border-2" style={{ ...card, borderColor: on ? "var(--red, #FFC72C)" : card.borderColor, background: on ? "var(--red-soft, #1d2a5c)" : card.background }}>
+                <button onClick={() => setChoices((c) => ({ ...c, [race.race_id]: on ? null : o.id }))} aria-pressed={on} className="flex w-full items-center gap-4 px-5 py-4 text-left">
+                  {o.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={o.image_url} alt="" className="h-24 w-24 shrink-0 rounded-xl object-cover" />
+                  )}
+                  <span>
+                    <span className="text-2xl font-extrabold">{on ? "✓ " : ""}{o.name}</span>
+                    {o.description && <span className="mt-1 block text-base opacity-80">{o.description}</span>}
+                  </span>
+                </button>
+                {o.video_url && (
+                  <video src={o.video_url} controls playsInline preload="none" className="max-h-64 w-full bg-black" aria-label={`${o.name} speech`} />
+                )}
+              </div>
             );
           })}
         </div>

@@ -88,7 +88,7 @@ export const TIME_ADDON = {
 // price (the size tier price); each extra kiosk and each extra day is charged on top.
 // Keep in sync with docs/sql/kiosk_mode.sql (kiosks 1-3, days 1-3).
 export const SCHOOL_ELECTION = {
-  tiers: ["small", "medium", "large"] as LiveVoteTier[],
+  tiers: ["free", "small", "medium", "large"] as LiveVoteTier[],
   maxKiosks: 3,
   maxDays: 3,
   extraKioskCents: 2500,

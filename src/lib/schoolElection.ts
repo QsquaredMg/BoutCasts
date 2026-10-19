@@ -60,7 +60,7 @@ export type ElectionRow = {
   organizer_id: string;
   title: string;
   school_name: string | null;
-  tier: "small" | "medium" | "large";
+  tier: "free" | "small" | "medium" | "large";
   kiosks: number;
   days: number;
   price_cents: number;
@@ -95,6 +95,49 @@ export async function requireElectionOwner(id: string) {
 // Whether the election is open for voting right now.
 export function isOpen(e: Pick<ElectionRow, "status" | "closes_at">): boolean {
   return e.status === "live" && !!e.closes_at && new Date(e.closes_at) > new Date();
+}
+
+/** Same normal form the database uses for the name check. */
+export function voterHash(electionId: string, code: string, name: string): string {
+  return createHash("sha256").update(`${electionId}|${code.trim().toUpperCase()}|${normName(name)}`).digest("hex");
+}
+
+const STAFF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+export function newStaffCode(): { code: string; hash: string } {
+  const bytes = randomBytes(10);
+  const code = Array.from(bytes, (b) => STAFF_ALPHABET[b % STAFF_ALPHABET.length]).join("");
+  return { code, hash: hashToken(code) };
+}
+
+/** Teacher PIN check for a kiosk, with the shared wrong-PIN limit (5 per 10 minutes per kiosk). */
+export async function checkKioskPin(token: string, pin: string) {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const hash = hashToken(token);
+  const { data: kiosk } = await admin.from("election_kiosks").select("id, election_id").eq("token_hash", hash).maybeSingle();
+  if (!kiosk) return { ok: false as const, status: 404, error: "kiosk_unknown" };
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { count } = await admin.from("election_audit").select("id", { count: "exact", head: true }).eq("kiosk_id", kiosk.id).eq("kind", "bad_pin").gte("created_at", since);
+  if ((count ?? 0) >= 5) return { ok: false as const, status: 429, error: "wait" };
+  const { data: el } = await admin.from("school_elections").select("exit_pin_hash").eq("id", kiosk.election_id).maybeSingle();
+  if (!el || !verifyPin(pin, el.exit_pin_hash)) {
+    await admin.from("election_audit").insert({ election_id: kiosk.election_id, kiosk_id: kiosk.id, kind: "bad_pin" });
+    return { ok: false as const, status: 401, error: "bad_pin" };
+  }
+  return { ok: true as const, admin, hash, kioskId: kiosk.id, electionId: kiosk.election_id as string };
+}
+
+/** Booth desk access: the organizer's login, or a staff seat code sent in the x-desk-code header. */
+export async function requireDeskAccess(req: Request, id: string) {
+  const code = req.headers.get("x-desk-code");
+  if (code && UUID.test(id)) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { data } = await admin.from("election_staff").select("id").eq("election_id", id).eq("code_hash", hashToken(code.trim().toUpperCase())).is("revoked_at", null).maybeSingle();
+    if (data) return { admin } as const;
+    return { error: NextResponse.json({ error: "That staff code isn't valid." }, { status: 401 }) } as const;
+  }
+  return requireElectionOwner(id);
 }
 
 export type ElectionBrand = {

@@ -104,7 +104,7 @@ const TOOLS = [
   { t: "Ranked choice or pick-one", b: "Run a classic single vote or a ranked-choice ballot for officer elections with several candidates." },
   { t: "Judge panels", b: "Invite faculty or community judges by email. Each gets a private link to score entries, and you release the results when scoring is done." },
   { t: "Fundraise while they vote", b: `Add sponsor spots and optional Super Votes, including a Platinum Supporter tier you can price or leave open at $20 or more. Your school keeps ${Math.round(SUPER_VOTES.organizerShare * 100)}% of final collections, less any applicable fees.` },
-  { t: "Kiosk voting", b: `Set up a voting booth on up to ${SCHOOL_ELECTION.maxKiosks} iPads. Students enter a code from a teacher plus their name and vote every office on one ballot. Results stay hidden until voting closes.` },
+  { t: "Kiosk voting", b: `Set up a voting booth on up to ${SCHOOL_ELECTION.maxKiosks} iPads. Students enter a code from a teacher plus their name and vote every office on one ballot. Results stay hidden until voting closes, and iPads keep working if the Wi-Fi drops.` },
   { t: "Know your turnout", b: "Turnout over time, optional demographic breakdowns and a CSV export for your records with Pro." },
 ];
 
@@ -123,7 +123,7 @@ const FAQ = [
   },
   {
     q: "How does kiosk voting work and what does it cost?",
-    a: `Load your student list, pair up to ${SCHOOL_ELECTION.maxKiosks} iPads and hand out codes at the booth. The first day is included in the price of your election size; each extra day is ${money(SCHOOL_ELECTION.extraDayCents)} and each kiosk after the first is ${money(SCHOOL_ELECTION.extraKioskCents)}. Elections run up to ${SCHOOL_ELECTION.maxDays} days. Start one at /school-election/new.`,
+    a: `Load your student list, pair up to ${SCHOOL_ELECTION.maxKiosks} iPads and hand out codes at the booth. The first day is included in the price of your election size; each extra day is ${money(SCHOOL_ELECTION.extraDayCents)} and each kiosk after the first is ${money(SCHOOL_ELECTION.extraKioskCents)}. Elections run up to ${SCHOOL_ELECTION.maxDays} days, and a Free election (25 students, 12 hours) can use a kiosk too. If the Wi-Fi drops, ballots are saved on the iPad and sent automatically. Start one at /school-election/new.`,
   },
   {
     q: "Can we try it before we pay?",

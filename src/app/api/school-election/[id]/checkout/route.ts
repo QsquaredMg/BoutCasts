@@ -17,11 +17,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const tierCfg = LIVE_VOTE_TIERS[election.tier];
   const total = schoolElectionPriceCents(election.tier, election.kiosks, election.days);
   const lines = [
-    { name: `School election: ${tierCfg.label} (up to ${tierCfg.voteCap.toLocaleString()} students, 1 day, 1 kiosk)`, cents: tierCfg.priceCents, qty: 1 },
+    ...(tierCfg.priceCents > 0 ? [{ name: `School election: ${tierCfg.label} (up to ${tierCfg.voteCap.toLocaleString()} students, 1 day, 1 kiosk)`, cents: tierCfg.priceCents, qty: 1 }] : []),
     ...(election.kiosks > 1 ? [{ name: "Extra kiosk", cents: SCHOOL_ELECTION.extraKioskCents, qty: election.kiosks - 1 }] : []),
     ...(election.days > 1 ? [{ name: "Extra day of voting", cents: SCHOOL_ELECTION.extraDayCents, qty: election.days - 1 }] : []),
   ];
   if (lines.reduce((s, l) => s + l.cents * l.qty, 0) !== total) return NextResponse.json({ error: "Pricing mismatch. Please contact support." }, { status: 500 });
+
+  if (total === 0) {
+    // Free election: no card needed, open voting right away.
+    const { error } = await admin.rpc("apply_school_election_payment", { p_election_id: id, p_session_id: "free" });
+    if (error) return NextResponse.json({ error: "Couldn't open voting. Please try again." }, { status: 500 });
+    return NextResponse.json({ url: `/school-election/${id}?checkout=success` });
+  }
 
   const origin = req.headers.get("origin") ?? new URL(req.url).origin;
   try {

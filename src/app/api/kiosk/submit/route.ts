@@ -6,7 +6,8 @@ import { hashToken } from "@/lib/schoolElection";
 // the same submission never counts twice.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const { token, code, name, choices, requestId } = body ?? {};
+  const { token, code, name, choices, requestId, castAt } = body ?? {};
+  const castDate = typeof castAt === "string" && !Number.isNaN(Date.parse(castAt)) ? new Date(castAt).toISOString() : null;
   if (
     typeof token !== "string" || typeof code !== "string" || typeof name !== "string" ||
     typeof requestId !== "string" || requestId.length > 80 ||
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
     p_name: name,
     p_choices: choices,
     p_request_id: requestId,
+    p_cast_at: castDate,
   });
   if (error) {
     console.error("kiosk/submit", error);
