@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import InAppRecorder from "@/components/InAppRecorder";
 import FileUploadPicker from "@/components/FileUploadPicker";
+import LogoUploadField from "@/components/LogoUploadField";
 import { formatDuration, linkDuration } from "@/lib/mediaDuration";
 
 export type ClipSourceValue = {
@@ -12,6 +13,8 @@ export type ClipSourceValue = {
   seconds?: number | null;
   /** True when a pasted link is known to be longer than the cap. */
   tooLong?: boolean;
+  /** Optional picture of the contestant, shown on the bout share card. */
+  photoUrl?: string | null;
 };
 
 // Shared upload / record / embed-link clip picker. Used on the Submit page
@@ -49,7 +52,7 @@ export default function ClipSourcePicker({
             <button
               key={t}
               type="button"
-              onClick={() => onChange(t === value.sourceType ? value : { sourceType: t, sourceUrl: null })}
+              onClick={() => onChange(t === value.sourceType ? value : { sourceType: t, sourceUrl: null, photoUrl: value.photoUrl })}
               className="rounded-full px-3.5 py-1.5 text-sm font-semibold capitalize"
               style={{
                 background: active ? "var(--surface)" : "transparent",
@@ -68,7 +71,7 @@ export default function ClipSourcePicker({
           <input
             type="url"
             value={value.sourceUrl ?? ""}
-            onChange={(e) => onChange({ sourceType: "link", sourceUrl: e.target.value })}
+            onChange={(e) => onChange({ sourceType: "link", sourceUrl: e.target.value, photoUrl: value.photoUrl })}
             placeholder="https://..."
             className={inputClass}
             style={inputStyle}
@@ -82,7 +85,7 @@ export default function ClipSourcePicker({
           instrumentalUrl={instrumentalUrl}
           maxSeconds={maxSeconds}
           uploadPrefix={uploadPrefix}
-          onRecorded={(url, secs) => onChange({ sourceType: "record", sourceUrl: url, seconds: secs ?? null })}
+          onRecorded={(url, secs) => onChange({ sourceType: "record", sourceUrl: url, seconds: secs ?? null, photoUrl: value.photoUrl })}
         />
       )}
 
@@ -91,9 +94,20 @@ export default function ClipSourcePicker({
           maxSeconds={maxSeconds}
           mediaOnly={Boolean(maxSeconds)}
           uploadPrefix={uploadPrefix}
-          onUploaded={(url, secs) => onChange({ sourceType: "upload", sourceUrl: url, seconds: secs ?? null })}
+          onUploaded={(url, secs) => onChange({ sourceType: "upload", sourceUrl: url, seconds: secs ?? null, photoUrl: value.photoUrl })}
         />
       )}
+
+      <div className="mt-3">
+        <p className="mb-1 text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+          Contestant photo (optional) — shown on the share card in place of initials
+        </p>
+        <LogoUploadField
+          noun="photo"
+          value={value.photoUrl ?? ""}
+          onChange={(url) => onChange({ ...value, photoUrl: url || null })}
+        />
+      </div>
     </div>
   );
 }

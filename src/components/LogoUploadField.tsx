@@ -13,11 +13,13 @@ export default function LogoUploadField({
   onChange,
   folder = "applications",
   compact = false,
+  noun = "logo",
 }: {
   value: string;
   onChange: (url: string) => void;
   folder?: "applications" | "sponsors" | "teams";
   compact?: boolean;
+  noun?: "logo" | "photo";
 }) {
   const supabase = createClient();
   const inputId = useId();
@@ -44,7 +46,7 @@ export default function LogoUploadField({
     }
     if (file.size > 5 * 1024 * 1024) {
       setBusy(false);
-      setError("Logo must be 5 MB or smaller.");
+      setError(`${noun === "photo" ? "Photo" : "Logo"} must be 5 MB or smaller.`);
       return;
     }
     const ext = (file.type.split("/")[1] || "png").replace("jpeg", "jpg");
@@ -63,10 +65,10 @@ export default function LogoUploadField({
       <div className="flex items-center gap-2">
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt="Logo preview" className="h-10 w-10 shrink-0 rounded-lg border bg-white object-contain p-0.5" style={{ borderColor: "var(--border)" }} />
+          <img src={value} alt={`${noun} preview`} className="h-10 w-10 shrink-0 rounded-lg border bg-white object-contain p-0.5" style={{ borderColor: "var(--border)" }} />
         ) : (
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-[10px]" style={{ borderColor: "var(--border)", color: "var(--text-faint)" }}>
-            Logo
+            {noun === "photo" ? "Photo" : "Logo"}
           </span>
         )}
         <label
@@ -74,7 +76,7 @@ export default function LogoUploadField({
           className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold"
           style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
         >
-          {busy ? "Uploading…" : value ? "Replace logo" : "Upload logo"}
+          {busy ? "Uploading…" : value ? `Replace ${noun}` : `Upload ${noun}`}
         </label>
         <input id={inputId} type="file" accept={PHOTO_ACCEPT} onChange={pick} className="sr-only" />
         {value && (
@@ -85,7 +87,7 @@ export default function LogoUploadField({
       </div>
       <input
         type="url"
-        placeholder="…or paste a logo URL"
+        placeholder={`…or paste a ${noun} URL`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="rounded-lg border px-3 py-1.5 text-xs outline-none"

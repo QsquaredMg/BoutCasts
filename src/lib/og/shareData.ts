@@ -19,8 +19,8 @@ async function submissionThumbs(supabase: SupabaseClient, ids: (string | null)[]
   const want = ids.filter((x): x is string => !!x);
   const out = new Map<string, string | null>();
   if (!want.length || !imgs) return out;
-  const { data } = await supabase.from("submissions").select("id, source_type, source_url").in("id", want);
-  await Promise.all(((data ?? []) as (SubRef & { id: string })[]).map(async (s) => out.set(s.id, await videoThumb(s.source_type, s.source_url))));
+  const { data } = await supabase.from("submissions").select("id, source_type, source_url, photo_url").in("id", want);
+  await Promise.all(((data ?? []) as (SubRef & { id: string; photo_url?: string | null })[]).map(async (s) => out.set(s.id, (s.photo_url ? await logoDataUrl(s.photo_url) : null) ?? (await videoThumb(s.source_type, s.source_url)))));
   return out;
 }
 

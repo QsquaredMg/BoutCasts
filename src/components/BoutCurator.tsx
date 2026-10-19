@@ -95,7 +95,8 @@ export default function BoutCurator({
     categoryId: string,
     title: string,
     sourceType: "upload" | "link" | "record",
-    sourceUrl: string
+    sourceUrl: string,
+    photoUrl?: string | null
   ): Promise<{ id: string } | { error: string }> {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
@@ -109,6 +110,7 @@ export default function BoutCurator({
         title,
         source_type: sourceType,
         source_url: sourceUrl,
+        photo_url: photoUrl || null,
       })
       .select("id")
       .single();
@@ -148,7 +150,8 @@ export default function BoutCurator({
         form.category_id,
         `${form.title.trim()} — ${form.competitor_a_name.trim()}`,
         form.competitor_a_clip.sourceType,
-        form.competitor_a_clip.sourceUrl
+        form.competitor_a_clip.sourceUrl,
+        form.competitor_a_clip.photoUrl
       );
       if ("error" in result) {
         setCreating(false);
@@ -164,7 +167,8 @@ export default function BoutCurator({
         form.category_id,
         `${form.title.trim()} — ${form.competitor_b_name.trim()}`,
         form.competitor_b_clip.sourceType,
-        form.competitor_b_clip.sourceUrl
+        form.competitor_b_clip.sourceUrl,
+        form.competitor_b_clip.photoUrl
       );
       if ("error" in result) {
         setCreating(false);
@@ -238,7 +242,8 @@ export default function BoutCurator({
         editForm.category_id,
         `${editForm.title.trim()} — ${editForm.competitor_a_name.trim()}`,
         editForm.competitor_a_clip.sourceType,
-        editForm.competitor_a_clip.sourceUrl
+        editForm.competitor_a_clip.sourceUrl,
+        editForm.competitor_a_clip.photoUrl
       );
       if ("error" in result) {
         setBusyId(null);
@@ -254,7 +259,8 @@ export default function BoutCurator({
         editForm.category_id,
         `${editForm.title.trim()} — ${editForm.competitor_b_name.trim()}`,
         editForm.competitor_b_clip.sourceType,
-        editForm.competitor_b_clip.sourceUrl
+        editForm.competitor_b_clip.sourceUrl,
+        editForm.competitor_b_clip.photoUrl
       );
       if ("error" in result) {
         setBusyId(null);

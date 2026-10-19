@@ -118,6 +118,7 @@ export default function SubmitPage() {
       title,
       source_type: clip.sourceType,
       source_url: clip.sourceUrl,
+      photo_url: clip.photoUrl || null,
       crew_name: isCrew ? crewName || null : null,
       teammates: isCrew ? teammates.filter((t) => t.trim()) : null,
       auto_bracket_opt_out: optOut,
