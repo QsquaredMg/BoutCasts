@@ -31,12 +31,21 @@ export default function NewSchoolElectionPage() {
   const [accent, setAccent] = useState<string | null>(null);
   const [bgColor, setBgColor] = useState<string | null>(null);
   const [showTally, setShowTally] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [openEnded, setOpenEnded] = useState(false);
   const [races, setRaces] = useState<RaceDraft[]>([{ ...newRace(), title: "President" }]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    const sb = createClient();
+    sb.auth.getUser().then(async ({ data }) => {
+      setSignedIn(!!data.user);
+      if (data.user) {
+        const { data: me } = await sb.from("profiles").select("is_admin").eq("id", data.user.id).maybeSingle();
+        setIsAdmin(!!me?.is_admin);
+      }
+    });
   }, []);
 
   const price = schoolElectionPriceCents(tier, kiosks, days);
@@ -67,6 +76,7 @@ export default function NewSchoolElectionPage() {
           brandColor: accent,
           brandBgColor: bgColor,
           showTally,
+          openEnded: isAdmin && openEnded,
           races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds })) })),
         }),
       });
@@ -125,6 +135,12 @@ export default function NewSchoolElectionPage() {
             </label>
           ))}
         </div>
+        {isAdmin && (
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" checked={openEnded} onChange={(e) => setOpenEnded(e.target.checked)} className="mt-1" />
+            <span><span className="font-semibold">Admin: no end time.</span> <span style={{ color: "var(--text-faint)" }}>Stays open until you close it by hand. Good for polls ahead of an election and for test or example ballots. Admins can preview the running count.</span></span>
+          </label>
+        )}
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={showTally} onChange={(e) => setShowTally(e.target.checked)} className="mt-1" />
           <span><span className="font-semibold">Show vote counts in the results.</span> <span style={{ color: "var(--text-faint)" }}>Turn off to show only the winners.</span></span>

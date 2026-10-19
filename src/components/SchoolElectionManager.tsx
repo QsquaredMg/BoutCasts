@@ -6,8 +6,9 @@ import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
+  interim?: boolean;
   viewerIsAdmin?: boolean;
-  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -136,7 +137,8 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>{e.school_name ?? "School election"} · {status}</p>
         <h1 className="text-3xl font-extrabold">{e.title}</h1>
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-          {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {e.kiosks} kiosk{e.kiosks === 1 ? "" : "s"} · {e.tier === "free" && e.days === 1 ? "12 hours" : `${e.days} day${e.days === 1 ? "" : "s"}`} · {e.price_cents ? money(e.price_cents) : "Free"}
+          {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {e.kiosks} kiosk{e.kiosks === 1 ? "" : "s"} · {e.open_ended ? "no end time" : e.tier === "free" && e.days === 1 ? "12 hours" : `${e.days} day${e.days === 1 ? "" : "s"}`} · {e.price_cents ? money(e.price_cents) : "Free"}
+          {e.open_ended && !closed && " · stays open until you close it"}
           {e.closes_at && !closed && ` · closes ${new Date(e.closes_at).toLocaleString()}`}
         </p>
       </div>
@@ -240,6 +242,14 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         {!closed ? (
           <>
             <p className="mb-3 mt-1 text-sm" style={{ color: "var(--text-dim)" }}>Hidden until voting closes, for everyone. You can see turnout above, but not who is winning. Before you announce winners, check that every iPad shows &ldquo;0 waiting to send&rdquo;.</p>
+            {data.interim && (
+              <div className="mb-3 rounded-lg border p-3" style={{ borderColor: "var(--gold, #a97a12)" }}>
+                <p className="text-sm font-bold">Admin preview: running count (voters and staff can&apos;t see this)</p>
+                {races.map((r) => (
+                  <p key={r.id} className="mt-1 text-sm"><span className="font-semibold">{r.title}:</span> {r.options.map((o) => `${o.name} ${o.votes ?? 0}`).join(" · ")}</p>
+                ))}
+              </div>
+            )}
             {e.status === "live" && (
               <button onClick={async () => { if (confirm("Close voting now? Students will no longer be able to vote and results become visible.")) { await call("close", `/api/school-election/${id}/close`, { method: "POST" }); load(); } }} disabled={busy !== null} className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Close voting now</button>
             )}

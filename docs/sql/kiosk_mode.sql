@@ -44,7 +44,8 @@ alter table public.school_elections
   add column if not exists brand_color text check (brand_color is null or brand_color ~ '^#[0-9a-fA-F]{6}$'),
   add column if not exists brand_bg_color text check (brand_bg_color is null or brand_bg_color ~ '^#[0-9a-fA-F]{6}$'),
   add column if not exists brand_bg_image_url text,
-  add column if not exists show_tally boolean not null default true;
+  add column if not exists show_tally boolean not null default true,
+  add column if not exists open_ended boolean not null default false; -- admin only: no end time, closed by hand
 
 alter table public.live_vote_events
   add column if not exists election_id uuid references public.school_elections(id) on delete cascade,
@@ -144,7 +145,7 @@ begin
   select * into k from election_kiosks where token_hash = p_token_hash;
   if not found then return jsonb_build_object('ok', false, 'error', 'kiosk_unknown'); end if;
   select * into el from school_elections where id = k.election_id;
-  if el.status <> 'live' or el.closes_at is null or el.closes_at <= now() then
+  if el.status <> 'live' or (el.closes_at is not null and el.closes_at <= now()) then
     return jsonb_build_object('ok', false, 'error', 'closed');
   end if;
   if k.locked_until is not null and k.locked_until > now() then
@@ -184,10 +185,9 @@ begin
   if not found then return jsonb_build_object('ok', false, 'error', 'kiosk_unknown'); end if;
   select * into el from school_elections where id = k.election_id;
   v_at := least(coalesce(p_cast_at, now()), now());
-  if el.status = 'draft' or el.starts_at is null or el.closes_at is null
+  if el.status = 'draft' or el.starts_at is null
      or v_at < el.starts_at - interval '1 minute'
-     or v_at > el.closes_at
-     or now() > el.closes_at + interval '6 hours' then
+     or (el.closes_at is not null and (v_at > el.closes_at or now() > el.closes_at + interval '6 hours')) then
     return jsonb_build_object('ok', false, 'error', 'closed');
   end if;
   if k.locked_until is not null and k.locked_until > now() then
@@ -248,7 +248,9 @@ begin
   select * into el from school_elections where id = p_election_id for update;
   if not found or el.status <> 'draft' then return; end if; -- repeated webhook delivery is a no-op
   -- A Free election keeps the Free window (12 hours) when it runs a single day.
-  v_close := v_start + case when el.tier = 'free' and el.days = 1 then interval '12 hours' else make_interval(days => el.days) end;
+  -- Open-ended (admin) elections have no end time and run until someone closes them.
+  v_close := case when el.open_ended then null
+                  else v_start + case when el.tier = 'free' and el.days = 1 then interval '12 hours' else make_interval(days => el.days) end end;
   update school_elections
      set status = 'live', starts_at = v_start, closes_at = v_close, stripe_checkout_session_id = p_session_id
    where id = el.id;
@@ -278,3 +280,16 @@ grant execute on function public.kiosk_unlock(text) to service_role;
 grant execute on function public.apply_school_election_payment(uuid, text) to service_role;
 grant execute on function public.close_school_election(uuid) to service_role;
 grant execute on function public.election_ballot(uuid) to service_role;
+
+-- ---------------------------------------------------------------- keep kiosk votes out of the live feed
+-- Every vote is copied to live_vote_tally_feed, which the organizer and anyone holding a race id can read in
+-- real time. Kiosk races must stay hidden until the election closes, so they are left out of the feed.
+create or replace function public.live_votes_to_feed()
+returns trigger language plpgsql security definer set search_path to 'public' as $fn$
+begin
+  if exists (select 1 from live_vote_events e where e.id = new.event_id and e.election_id is not null) then
+    return new;
+  end if;
+  insert into live_vote_tally_feed(event_id, option_id) values (new.event_id, new.option_id);
+  return new;
+end $fn$;
