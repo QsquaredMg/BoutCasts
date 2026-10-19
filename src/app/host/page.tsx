@@ -54,7 +54,7 @@ function windowLabel(ms: number) {
   const hours = ms / 3_600_000;
   if (hours < 24) return `${hours}-hour voting window`;
   const days = hours / 24;
-  return days === 1 ? "1-day voting window" : `${days}-day voting window`;
+  return days === 1 ? "24-hour voting window" : `${days}-day voting window`;
 }
 
 const TIER_NOTES: Record<LiveVoteTier, { fit: string; tag?: string }> = {

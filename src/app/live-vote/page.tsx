@@ -189,7 +189,7 @@ export default function LiveVoteEventsPage() {
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
                   Up to {tier.voteCap.toLocaleString()} votes ·{" "}
-                  {tier.durationMs >= 24 * 60 * 60 * 1000
+                  {tier.durationMs > 24 * 60 * 60 * 1000
                     ? `${Math.round(tier.durationMs / (24 * 60 * 60 * 1000))}d`
                     : `${Math.round(tier.durationMs / (60 * 60 * 1000))}hr`}{" "}
                   window

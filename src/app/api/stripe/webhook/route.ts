@@ -227,6 +227,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    if (metadata.kind === "time_addon") {
+      const days = Number(metadata.days);
+      if (!metadata.event_id || !Number.isInteger(days) || days <= 0) {
+        console.error("Stripe webhook: bad time_addon metadata", metadata);
+        return NextResponse.json({ error: "Invalid time_addon metadata" }, { status: 400 });
+      }
+      const admin = createAdminClient();
+      // Idempotent on the checkout session, so a repeated delivery adds the days once.
+      const { error } = await admin.rpc("apply_live_vote_time_addon", {
+        p_event_id: metadata.event_id,
+        p_days: days,
+        p_session_id: session.id,
+      });
+      if (error) {
+        console.error("Stripe webhook: failed to apply time add-on", error);
+        return NextResponse.json({ error: "Failed to apply time add-on" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
     if (metadata.kind === "super_votes_unlock") {
       const admin = createAdminClient();
       const { error } = await admin

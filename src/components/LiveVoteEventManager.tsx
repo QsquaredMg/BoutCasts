@@ -10,6 +10,7 @@ import LiveVoteAnalyticsPanel from "@/components/LiveVoteAnalyticsPanel";
 import EventSponsorManager from "@/components/EventSponsorManager";
 import EventSponsorSales from "@/components/EventSponsorSales";
 import SuperVotesManager from "@/components/SuperVotesManager";
+import TimeAddOn from "@/components/TimeAddOn";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import EventBrandingEditor from "@/components/EventBrandingEditor";
@@ -34,6 +35,7 @@ type LiveVoteEventDetail = {
   collect_demographics: boolean;
   super_votes_enabled: boolean;
   super_votes_mode: "separate" | "counted";
+  super_votes_platinum_cents: number | null;
   title: string;
   description: string | null;
   voter_mode: "account" | "open_link";
@@ -128,7 +130,7 @@ export default function LiveVoteEventManager({
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, is_private, access_code, pro_enabled, collect_demographics, super_votes_enabled, super_votes_mode, tier, status, starts_at, closes_at")
+      .select("id, organizer_id, title, description, voter_mode, voting_method, scoring_mode, results_released, listed_publicly, is_private, access_code, pro_enabled, collect_demographics, super_votes_enabled, super_votes_mode, super_votes_platinum_cents, tier, status, starts_at, closes_at")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -524,6 +526,7 @@ export default function LiveVoteEventManager({
         eventId={event.id}
         status={event.status}
         enabled={event.super_votes_enabled}
+        platinumCents={event.super_votes_platinum_cents}
         mode={event.super_votes_mode}
         eligible={!isFree && event.scoring_mode === "crowd" && event.voting_method === "single"}
         isAdmin={isAdmin}
@@ -703,6 +706,7 @@ export default function LiveVoteEventManager({
               ? `Voting closes ${formatWhen(event.closes_at, getZone(), { withYear: true })}`
               : "No end time — voting stays open until you close it."}
           </p>
+          {event.status === "live" && event.closes_at && <TimeAddOn eventId={event.id} />}
           {isAdmin && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
               <span className="w-full text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
