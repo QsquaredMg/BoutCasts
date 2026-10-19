@@ -385,7 +385,7 @@ export default function NewLiveVoteEventPage() {
                       Up to {config.voteCap.toLocaleString()} votes
                     </p>
                     <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-                      {config.durationMs >= 24 * 60 * 60 * 1000
+                      {config.durationMs > 24 * 60 * 60 * 1000
                         ? `${Math.round(config.durationMs / (24 * 60 * 60 * 1000))}-day window`
                         : `${Math.round(config.durationMs / (60 * 60 * 1000))}-hour window`}
                     </p>

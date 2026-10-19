@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { LIVE_VOTE_TIERS, ORG_LICENSE, ORGANIZER_PRO, SUPER_VOTES, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, ORG_LICENSE, ORGANIZER_PRO, SUPER_VOTES, TIME_ADDON, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import SchoolBallotDemo, { type DemoRealEvent } from "@/components/SchoolBallotDemo";
 
 export const metadata: Metadata = {
@@ -103,7 +103,7 @@ const TOOLS = [
   { t: "Candidate profiles", b: "Photos, a platform line and a speech or video up to three minutes. Candidates can send their own media through a private link, and you approve it first." },
   { t: "Ranked choice or pick-one", b: "Run a classic single vote or a ranked-choice ballot for officer elections with several candidates." },
   { t: "Judge panels", b: "Invite faculty or community judges by email. Each gets a private link to score entries, and you release the results when scoring is done." },
-  { t: "Fundraise while they vote", b: `Add sponsor spots and optional Super Votes. Fans buy vote packs and you keep ${Math.round(SUPER_VOTES.organizerShare * 100)}% of sales, paid out after the vote closes.` },
+  { t: "Fundraise while they vote", b: `Add sponsor spots and optional Super Votes, including a Platinum Supporter tier you can price or leave open at $20 or more. Your school keeps ${Math.round(SUPER_VOTES.organizerShare * 100)}% of final collections, less any applicable fees.` },
   { t: "Know your turnout", b: "Turnout over time, optional demographic breakdowns and a CSV export for your records with Pro." },
 ];
 
@@ -382,7 +382,7 @@ export default async function SchoolsPage() {
                   </tbody>
                 </table>
                 <p className="mt-3 text-[14px]" style={{ color: "var(--lp-muted)" }}>
-                  Free events are pick-one only. Paid events add your branding, ranked choice and judges.
+                  Free events are pick-one only. Paid events add your branding, ranked choice and judges. Need more time? Add days to a live vote for {money(TIME_ADDON.centsPerDay)} per day.
                 </p>
               </div>
 

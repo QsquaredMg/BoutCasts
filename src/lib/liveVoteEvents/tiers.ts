@@ -15,19 +15,19 @@ export const LIVE_VOTE_TIERS: Record<
   free: {
     label: "Free",
     priceCents: 0,
-    durationMs: 24 * 60 * 60 * 1000,
+    durationMs: 12 * 60 * 60 * 1000,
     voteCap: 25,
   },
   small: {
     label: "Small",
     priceCents: 4900,
-    durationMs: 4 * 60 * 60 * 1000,
+    durationMs: 24 * 60 * 60 * 1000,
     voteCap: 500,
   },
   medium: {
     label: "Medium",
     priceCents: 14900,
-    durationMs: 24 * 60 * 60 * 1000,
+    durationMs: 3 * 24 * 60 * 60 * 1000,
     voteCap: 5000,
   },
   large: {
@@ -76,11 +76,24 @@ export const ORG_LICENSE = {
   seats: 10,
 };
 
+// Time add-on: an organizer can extend a live event by whole days. Keep the
+// per-day price in sync with add_live_vote_days() in docs/sql/pricing_75_platinum_addon.sql.
+export const TIME_ADDON = {
+  centsPerDay: 2500,
+  maxDays: 14,
+};
+
 // Super Votes: organizer unlocks per event; fans buy packs to boost a
-// contestant. Organizer earns ORGANIZER_SHARE of gross sales.
+// contestant. Organizer earns organizerShare (75%) of final collections, less
+// any applicable fees.
 export const SUPER_VOTES = {
   unlockCents: 4900,
-  organizerShare: 0.5,
+  organizerShare: 0.75,
+  // Platinum Supporter: the top tier. The organizer sets a fixed price, or
+  // leaves it open so a fan can give any amount of platinumMinCents or more.
+  platinumMinCents: 2000,
+  // Platinum buys Super Votes at the best pack rate (150 for $9.99, about 15 per dollar).
+  platinumVotesPerDollar: 15,
   packs: [
     { key: "s10", quantity: 10, cents: 99 },
     { key: "s50", quantity: 50, cents: 399 },

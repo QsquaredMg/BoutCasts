@@ -11,25 +11,29 @@ export default function SuperVoteBoost({
   optionName,
   count,
   canBuy,
+  platinumCents = null,
 }: {
   eventId: string;
   optionId: string;
   optionName: string;
   count: number;
   canBuy: boolean;
+  /** Organizer-set Platinum Supporter price in cents; null = the fan picks any amount of $20 or more. */
+  platinumCents?: number | null;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [platDollars, setPlatDollars] = useState(String(SUPER_VOTES.platinumMinCents / 100));
 
-  async function buy(pack: string) {
+  async function buy(pack: string, amountCents?: number) {
     setBusy(pack);
     setError(null);
     try {
       const res = await fetch("/api/checkout/super-votes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, optionId, pack }),
+        body: JSON.stringify({ eventId, optionId, pack, amountCents }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't start checkout.");
@@ -79,6 +83,49 @@ export default function SuperVoteBoost({
                 </span>
               </button>
             ))}
+          </div>
+          <div className="mt-2 rounded-lg border p-2" style={{ borderColor: "var(--gold, #a97a12)", background: "var(--surface)" }}>
+            <p className="text-xs font-bold" style={{ color: "var(--gold, #a97a12)" }}>
+              ★ Platinum Supporter
+            </p>
+            {platinumCents != null ? (
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() => buy("platinum")}
+                className="mt-1.5 w-full rounded-lg border px-2 py-2 text-sm font-bold disabled:opacity-60"
+                style={{ borderColor: "var(--border)" }}
+              >
+                {busy === "platinum" ? "…" : `Give $${(platinumCents / 100).toFixed(2)}`}
+              </button>
+            ) : (
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="text-sm font-bold">$</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={SUPER_VOTES.platinumMinCents / 100}
+                  step={1}
+                  value={platDollars}
+                  onChange={(e) => setPlatDollars(e.target.value)}
+                  aria-label="Platinum Supporter amount in dollars"
+                  className="w-20 rounded-lg border px-2 py-1.5 text-sm"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                />
+                <button
+                  type="button"
+                  disabled={busy !== null || !(Number(platDollars) >= SUPER_VOTES.platinumMinCents / 100)}
+                  onClick={() => buy("platinum", Math.round(Number(platDollars)) * 100)}
+                  className="flex-1 rounded-lg border px-2 py-1.5 text-sm font-bold disabled:opacity-60"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  {busy === "platinum" ? "…" : "Give"}
+                </button>
+              </div>
+            )}
+            <p className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
+              {platinumCents != null ? "The top tier." : `Any amount of $${SUPER_VOTES.platinumMinCents / 100} or more.`}
+            </p>
           </div>
           <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
             Secure checkout by Stripe. Must be 18+ or have a parent&apos;s permission. Purchases are final.

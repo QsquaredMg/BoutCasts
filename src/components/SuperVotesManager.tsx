@@ -13,6 +13,7 @@ export default function SuperVotesManager({
   eventId,
   status,
   enabled,
+  platinumCents,
   eligible,
   isAdmin,
   onChanged,
@@ -20,6 +21,7 @@ export default function SuperVotesManager({
   eventId: string;
   status: "draft" | "live" | "closed";
   enabled: boolean;
+  platinumCents: number | null;
   /** Always "separate" now; kept so callers don't need to change. */
   mode: "separate" | "counted";
   eligible: boolean;
@@ -30,6 +32,7 @@ export default function SuperVotesManager({
   const [earnings, setEarnings] = useState<Earnings | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [platInput, setPlatInput] = useState(platinumCents != null ? String(platinumCents / 100) : "");
 
   const load = useCallback(async () => {
     if (!enabled) return;
@@ -85,8 +88,8 @@ export default function SuperVotesManager({
         <>
           <p className="mb-2 text-sm" style={{ color: "var(--text-dim)" }}>
             Let fans buy Super Vote packs (10 for $0.99, 50 for $3.99, 150 for $9.99) to boost their
-            favorite. You earn {Math.round(SUPER_VOTES.organizerShare * 100)}% of every sale, and
-            contestants share their links to rally fans. Regular voting stays free.
+            favorite. Add a Platinum Supporter tier too. You keep {Math.round(SUPER_VOTES.organizerShare * 100)}% of final collections,
+            less any applicable fees, and contestants share their links to rally fans. Regular voting stays free.
           </p>
           {status !== "closed" && (
             <div className="flex flex-col gap-2">
@@ -131,6 +134,36 @@ export default function SuperVotesManager({
               ))}
             </div>
           )}
+          <div className="mt-3 rounded-lg border p-2.5" style={{ borderColor: "var(--border)" }}>
+            <p className="text-xs font-bold" style={{ color: "var(--text-dim)" }}>
+              ★ Platinum Supporter price
+            </p>
+            <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>
+              Set a price, or leave it blank so fans can give any amount of ${SUPER_VOTES.platinumMinCents / 100} or more.
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold">$</span>
+              <input
+                type="number"
+                min={SUPER_VOTES.platinumMinCents / 100}
+                step={1}
+                value={platInput}
+                onChange={(e) => setPlatInput(e.target.value)}
+                placeholder="Open amount"
+                aria-label="Platinum Supporter price in dollars"
+                className="w-32 rounded-lg border px-2 py-1.5 text-sm"
+                style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+              />
+              <button
+                disabled={busy || status === "closed"}
+                onClick={() => rpc("set_super_votes_platinum", { p_event_id: eventId, p_cents: platInput.trim() === "" ? null : Math.round(Number(platInput)) * 100 })}
+                className="rounded-full border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+                style={{ borderColor: "var(--border)" }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
           <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
             Your share is paid out after the event closes — email support@boutcasts.com with your payout details.
           </p>

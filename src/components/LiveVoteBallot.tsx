@@ -44,6 +44,7 @@ type EventRow = {
   collect_demographics: boolean;
   super_votes_enabled: boolean;
   super_votes_mode: "separate" | "counted";
+  super_votes_platinum_cents?: number | null;
   categories?: { name: string } | null;
   subcategories?: { name: string } | null;
 };
@@ -134,7 +135,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, shared_source_url, voter_mode, status, tier, closes_at, brand_name, brand_logo_url, cover_image_url, is_private, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, categories(name), subcategories(name)")
+      .select("id, title, description, shared_source_url, voter_mode, status, tier, closes_at, brand_name, brand_logo_url, cover_image_url, is_private, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, super_votes_platinum_cents, categories(name), subcategories(name)")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -844,6 +845,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
                   optionName={option.name}
                   count={superTally[option.id] ?? 0}
                   canBuy={event.status === "live"}
+                  platinumCents={event.super_votes_platinum_cents ?? null}
                 />
               )}
             </div>
