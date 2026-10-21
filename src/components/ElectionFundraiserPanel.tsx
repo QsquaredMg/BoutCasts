@@ -64,7 +64,7 @@ export default function ElectionFundraiserPanel({ id, closed, started }: { id: s
         ) : (
           <>
             <p className="mb-2 mt-1 text-sm" style={{ color: "var(--text-dim)" }}>
-              Let families and neighbors give toward the school while they back a candidate. Gifts never count as votes and the winners are decided only by the student ballots. Supporters must confirm they are an adult or have a parent&apos;s permission, and only the school-wide total is shown publicly.
+              Let families and neighbors give toward the school while they back a candidate. Gifts never count as votes and the winners are decided only by the student ballots. Anyone can give, and only the school-wide total is shown publicly.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <input value={goal} onChange={(e) => setGoal(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Goal in dollars (optional)" className="w-52 rounded-[10px] border px-3 py-2 text-sm" style={box} />

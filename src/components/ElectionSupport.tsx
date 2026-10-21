@@ -18,7 +18,6 @@ type Props = {
 const money = (c: number) => `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
 
 export default function ElectionSupport({ id, title, school, open, thanks, raisedCents, goalCents, sharePct, packs, races }: Props) {
-  const [adult, setAdult] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const box = { borderColor: "var(--border)", background: "var(--surface)" } as const;
@@ -26,10 +25,9 @@ export default function ElectionSupport({ id, title, school, open, thanks, raise
 
   async function give(optionId: string, pack: string) {
     setError(null);
-    if (!adult) return setError("Please confirm you are an adult, or have a parent or guardian's permission.");
     setBusy(optionId + pack);
     try {
-      const res = await fetch(`/api/school-election/${id}/support`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, pack, adult }) });
+      const res = await fetch(`/api/school-election/${id}/support`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, pack }) });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.url) throw new Error(body.error || "Something went wrong.");
       window.location.assign(body.url);
@@ -64,10 +62,6 @@ export default function ElectionSupport({ id, title, school, open, thanks, raise
         <p className="rounded-lg border p-3 text-sm" style={box}>Voting has closed, so the fundraiser is finished. Thank you to everyone who gave.</p>
       ) : (
         <>
-          <label className="flex items-start gap-2 rounded-xl border p-4 text-sm" style={box}>
-            <input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} className="mt-1" />
-            <span><span className="font-semibold">I am an adult, or I have a parent or guardian&apos;s permission to give.</span> <span style={{ color: "var(--text-faint)" }}>Students under 18 should ask a parent or guardian to make the gift.</span></span>
-          </label>
           {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
           {races.map((r) => (
             <div key={r.id} className="rounded-xl border p-4" style={box}>

@@ -5,7 +5,6 @@ import { SUPER_VOTES } from "@/lib/liveVoteEvents/tiers";
 import { UUID, isOpen, type ElectionRow } from "@/lib/schoolElection";
 
 // A supporter gives to the school's fundraiser, naming a candidate they back. No account needed.
-// The buyer must confirm they are an adult (or paying with a parent's or guardian's permission).
 // Gifts are recorded as Super Votes in "separate" mode: they never count as votes.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +12,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json().catch(() => null);
   const pack = SUPER_VOTES.packs.find((p) => p.key === body?.pack);
   if (!pack || typeof body?.optionId !== "string" || !UUID.test(body.optionId)) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  if (body.adult !== true) return NextResponse.json({ error: "Please confirm you are an adult, or have a parent or guardian's permission." }, { status: 400 });
 
   const admin = createAdminClient();
   const { data: el } = await admin.from("school_elections").select("*").eq("id", id).maybeSingle();
@@ -47,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       ],
       success_url: `${origin}/school-election/${id}/support?thanks=1`,
       cancel_url: `${origin}/school-election/${id}/support`,
-      metadata: { kind: "super_votes", event_id: race.id, option_id: option.id, quantity: String(pack.quantity), tier: "pack", adult_confirmed: "1" },
+      metadata: { kind: "super_votes", event_id: race.id, option_id: option.id, quantity: String(pack.quantity), tier: "pack" },
     });
   } catch (err) {
     console.error("school-election/support: Stripe error", err);

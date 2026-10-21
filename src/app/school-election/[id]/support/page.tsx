@@ -7,7 +7,7 @@ import { SUPER_VOTES } from "@/lib/liveVoteEvents/tiers";
 
 export const dynamic = "force-dynamic";
 
-// Public supporter page. It shows the school's total raised and lets an adult give toward a candidate's campaign.
+// Public supporter page. It shows the school's total raised and lets anyone give toward a candidate's campaign.
 // It deliberately shows no per-candidate amounts and no vote counts.
 export default async function SupportPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ thanks?: string }> }) {
   const { id } = await params;
