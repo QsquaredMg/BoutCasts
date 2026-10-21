@@ -84,6 +84,7 @@ export type ElectionRow = {
   require_registration: boolean;
   registration_closes_at: string | null;
   campaign_page_enabled: boolean;
+  forum_enabled: boolean;
 };
 
 // Signed-in organizer (or admin) who owns the election, else an error response to return.
@@ -137,16 +138,28 @@ export async function checkKioskPin(token: string, pin: string) {
 }
 
 /** Booth desk access: the organizer's login, or a staff seat code sent in the x-desk-code header. */
-export async function requireDeskAccess(req: Request, id: string) {
+export type StaffRole = "check_in" | "judge" | "observer";
+export const STAFF_ROLES: StaffRole[] = ["check_in", "judge", "observer"];
+
+/**
+ * Organizer login, or a staff code in the x-desk-code header. The organizer always passes. A staff seat passes only if its
+ * role is in `allow` (default: the two roles that work the booth desk). Returns who is acting, for the incident log.
+ */
+export async function requireDeskAccess(req: Request, id: string, allow: StaffRole[] = ["check_in", "judge"]) {
   const code = req.headers.get("x-desk-code");
   if (code && UUID.test(id)) {
     const { createAdminClient } = await import("@/lib/supabase/admin");
     const admin = createAdminClient();
-    const { data } = await admin.from("election_staff").select("id").eq("election_id", id).eq("code_hash", hashToken(code.trim().toUpperCase())).is("revoked_at", null).maybeSingle();
-    if (data) return { admin } as const;
-    return { error: NextResponse.json({ error: "That staff code isn't valid." }, { status: 401 }) } as const;
+    const { data } = await admin.from("election_staff").select("id, label, role").eq("election_id", id).eq("code_hash", hashToken(code.trim().toUpperCase())).is("revoked_at", null).maybeSingle();
+    if (!data) return { error: NextResponse.json({ error: "That staff code isn't valid." }, { status: 401 }) } as const;
+    const role = data.role as StaffRole;
+    if (!allow.includes(role)) return { error: NextResponse.json({ error: "Your seat can't do that." }, { status: 403 }) } as const;
+    return { admin, role, staffId: data.id as string, label: data.label as string } as const;
   }
-  return requireElectionOwner(id);
+  const owner = await requireElectionOwner(id);
+  if ("error" in owner && owner.error) return { error: owner.error } as const;
+  if (!("admin" in owner)) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
+  return { admin: owner.admin, role: "owner" as const, staffId: null, label: "Organizer" } as const;
 }
 
 export type ElectionBrand = {
