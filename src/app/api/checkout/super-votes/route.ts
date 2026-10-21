@@ -16,10 +16,12 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: event } = await supabase
     .from("live_vote_events")
-    .select("id, title, status, closes_at, super_votes_enabled, super_votes_platinum_cents")
+    .select("id, title, status, closes_at, super_votes_enabled, super_votes_platinum_cents, election_id")
     .eq("id", eventId)
     .maybeSingle();
   if (!event || !event.super_votes_enabled) return NextResponse.json({ error: "Super Votes aren't available here" }, { status: 400 });
+  // School election gifts go through the election's own supporter page, which asks for an adult confirmation.
+  if (event.election_id) return NextResponse.json({ error: "Use the school's supporter page to give." }, { status: 400 });
   if (event.status !== "live" || (event.closes_at && new Date(event.closes_at) <= new Date())) {
     return NextResponse.json({ error: "Voting is closed" }, { status: 400 });
   }

@@ -33,6 +33,7 @@ export default function NewSchoolElectionPage() {
   const [showTally, setShowTally] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [openEnded, setOpenEnded] = useState(false);
+  const [practice, setPractice] = useState(false);
   const [races, setRaces] = useState<RaceDraft[]>([{ ...newRace(), title: "President" }]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,7 +49,7 @@ export default function NewSchoolElectionPage() {
     });
   }, []);
 
-  const price = schoolElectionPriceCents(tier, kiosks, days);
+  const price = practice ? 0 : schoolElectionPriceCents(tier, kiosks, days);
   const input = "w-full rounded-[10px] border px-3 py-2.5 text-sm";
   const inputStyle = { borderColor: "var(--border)", background: "var(--surface)" } as const;
 
@@ -77,6 +78,7 @@ export default function NewSchoolElectionPage() {
           brandBgColor: bgColor,
           showTally,
           openEnded: isAdmin && openEnded,
+          practice,
           races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds })) })),
         }),
       });
@@ -141,6 +143,10 @@ export default function NewSchoolElectionPage() {
             <span><span className="font-semibold">Admin: no end time.</span> <span style={{ color: "var(--text-faint)" }}>Stays open until you close it by hand. Good for polls ahead of an election and for test or example ballots. Admins can preview the running count.</span></span>
           </label>
         )}
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" checked={practice} onChange={(e) => { setPractice(e.target.checked); if (e.target.checked) { setTier("free"); setKiosks(1); setDays(1); } }} className="mt-1" />
+          <span><span className="font-semibold">This is a practice election.</span> <span style={{ color: "var(--text-faint)" }}>Free, one kiosk, and you can reset it and run it again as often as you like. Use it to rehearse with a class before the real vote. It can&apos;t raise money or be certified.</span></span>
+        </label>
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={showTally} onChange={(e) => setShowTally(e.target.checked)} className="mt-1" />
           <span><span className="font-semibold">Show vote counts in the results.</span> <span style={{ color: "var(--text-faint)" }}>Turn off to show only the winners.</span></span>

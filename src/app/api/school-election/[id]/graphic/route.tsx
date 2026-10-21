@@ -11,7 +11,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const admin = createAdminClient();
   const { data: el } = await admin
     .from("school_elections")
-    .select("title, school_name, status, closes_at, show_tally, brand_logo_url, cover_image_url, brand_color, brand_bg_color")
+    .select("title, school_name, status, closes_at, show_tally, is_practice, certified_at, brand_logo_url, cover_image_url, brand_color, brand_bg_color")
     .eq("id", id)
     .maybeSingle();
   if (!el) return new Response("Not found", { status: 404 });
@@ -63,7 +63,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         <div style={{ display: "flex", flexDirection: "column", padding: "76px 56px 0" }}>
           {el.school_name && <div style={{ display: "flex", fontSize: 30, fontWeight: 800, letterSpacing: 3, textTransform: "uppercase", color: accent }}>{clip(el.school_name, 40)}</div>}
           <div style={{ display: "flex", fontSize: 62, fontWeight: 900, lineHeight: 1.1, marginTop: 8 }}>{clip(el.title, 50)}</div>
-          <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: sub, marginTop: 8 }}>Congratulations to our winners</div>
+          <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: sub, marginTop: 8 }}>
+            {el.is_practice ? "Practice election: not official results" : el.certified_at ? `Certified results · ${new Date(el.certified_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}` : "Congratulations to our winners"}
+          </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "30px 56px 0" }}>
           {shown.map((r) => (

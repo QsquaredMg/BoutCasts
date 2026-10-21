@@ -1,12 +1,8 @@
 "use client";
 
-export default function PrintButton({ label = "Print / save PDF" }: { label?: string }) {
+export default function PrintButton({ label = "Print" }: { label?: string }) {
   return (
-    <button
-      type="button"
-      onClick={() => window.print()}
-      className="bc-btn-solid rounded-full px-4 py-1.5 text-xs font-bold"
-    >
+    <button onClick={() => window.print()} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold print:hidden">
       {label}
     </button>
   );
