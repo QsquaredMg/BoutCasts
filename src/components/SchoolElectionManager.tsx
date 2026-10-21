@@ -4,14 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
 import ElectionFundraiserPanel from "@/components/ElectionFundraiserPanel";
+import ElectionCampaignPanel from "@/components/ElectionCampaignPanel";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
   interim?: boolean;
   viewerIsAdmin?: boolean;
-  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
-  turnout: { total: number; voted: number };
+  turnout: { total: number; voted: number; registered?: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
   races: { id: string; title: string; options: Option[] }[];
 };
@@ -239,6 +240,8 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           </div>
         )}
       </div>
+
+      <ElectionCampaignPanel id={id} closed={closed} races={races} requireRegistration={!!e.require_registration} registrationClosesAt={e.registration_closes_at ?? null} campaignPageEnabled={!!e.campaign_page_enabled} registered={turnout.registered ?? 0} total={turnout.total} onChanged={load} />
 
       {!e.is_practice && e.status !== "draft" && <ElectionFundraiserPanel id={id} closed={closed} started={e.status === "live"} />}
 

@@ -8,10 +8,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if ("error" in owner) return owner.error;
   const { data, error } = await owner.admin
     .from("election_voters")
-    .select("id, name, student_ref, code, voted_at")
+    .select("id, name, student_ref, code, voted_at, registered_at")
     .eq("election_id", id)
     .order("name", { ascending: true })
     .limit(5000);
   if (error) return NextResponse.json({ error: "Couldn't load the roster." }, { status: 500 });
-  return NextResponse.json({ voters: data ?? [] }, { headers: { "Cache-Control": "no-store" } });
+  const { data: el } = await owner.admin.from("school_elections").select("require_registration").eq("id", id).maybeSingle();
+  return NextResponse.json({ voters: data ?? [], requireRegistration: !!el?.require_registration }, { headers: { "Cache-Control": "no-store" } });
 }
