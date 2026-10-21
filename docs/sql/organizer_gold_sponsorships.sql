@@ -1,7 +1,7 @@
 -- Organizer Gold plan + organizer-sold event sponsorships.
 --
 -- Organizers on the Gold plan can sell sponsor packages for their own Live Vote
--- events. Sponsors pay BoutCasts by card. BoutCasts keeps platform_fee_pct (30)
+-- events. Sponsors pay BoutCasts by card. BoutCasts keeps platform_fee_pct (10)
 -- percent of each sponsorship and owes the organizer the rest, paid after the
 -- event closes. The organizer approves each sponsor before its logo appears;
 -- a declined sponsor is refunded in full.
@@ -55,7 +55,7 @@ create table if not exists public.event_sponsorships (
   logo_url text,
   link_url text,
   gross_cents integer not null check (gross_cents > 0),
-  platform_fee_pct integer not null default 30 check (platform_fee_pct between 0 and 100),
+  platform_fee_pct integer not null default 10 check (platform_fee_pct between 0 and 100),
   platform_fee_cents integer not null check (platform_fee_cents >= 0),
   organizer_share_cents integer not null check (organizer_share_cents >= 0),
   status text not null default 'pending' check (status in ('pending', 'approved', 'declined')),
@@ -99,14 +99,14 @@ begin
   select count(*) into taken from public.event_sponsorships where package_id = pk.id and status <> 'declined';
   if taken >= pk.slots then return 'full'; end if;
 
-  fee := (((pk.price_cents::bigint * 30) + 50) / 100)::integer;
+  fee := (((pk.price_cents::bigint * 10) + 50) / 100)::integer;
   insert into public.event_sponsorships (
     event_id, package_id, level, company_name, contact_email, logo_url, link_url,
     gross_cents, platform_fee_pct, platform_fee_cents, organizer_share_cents,
     stripe_checkout_session_id, stripe_payment_intent
   ) values (
     pk.event_id, pk.id, pk.level, left(p_company, 120), p_email, nullif(p_logo, ''), nullif(p_link, ''),
-    pk.price_cents, 30, fee, pk.price_cents - fee, p_session, p_payment_intent
+    pk.price_cents, 10, fee, pk.price_cents - fee, p_session, p_payment_intent
   );
   return 'paid';
 end;
