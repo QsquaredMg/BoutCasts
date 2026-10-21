@@ -20,9 +20,11 @@ export async function POST(req: NextRequest) {
 
   const title = clean(body.title, 120);
   const schoolName = clean(body.schoolName, 120) || null;
-  const tier = body.tier as LiveVoteTier;
-  const kiosks = Number(body.kiosks);
-  const days = Number(body.days);
+  // A practice election is a free one-kiosk rehearsal that can be reset and run again.
+  const practice = body.practice === true;
+  const tier = (practice ? "free" : body.tier) as LiveVoteTier;
+  const kiosks = practice ? 1 : Number(body.kiosks);
+  const days = practice ? 1 : Number(body.days);
   const pin = typeof body.pin === "string" ? body.pin : "";
   const httpsUrl = (v: unknown) => (typeof v === "string" && /^https:\/\/[^\s"'()\\]{1,600}$/i.test(v) ? v : null);
   const brand = {
@@ -61,10 +63,10 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
   const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
-  if (tier === "free" && !me?.is_admin) {
+  if (tier === "free" && !practice && !me?.is_admin) {
     // Same pacing as Free live votes: 5 per 30 days.
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
-    const { count } = await admin.from("school_elections").select("id", { count: "exact", head: true }).eq("organizer_id", auth.user.id).eq("tier", "free").gte("created_at", since);
+    const { count } = await admin.from("school_elections").select("id", { count: "exact", head: true }).eq("organizer_id", auth.user.id).eq("tier", "free").eq("is_practice", false).gte("created_at", since);
     if ((count ?? 0) >= 5) return NextResponse.json({ error: "Free elections are limited to 5 every 30 days. Pick Small or larger." }, { status: 400 });
   }
   const { data: election, error } = await admin
@@ -80,6 +82,7 @@ export async function POST(req: NextRequest) {
       exit_pin_hash: hashPin(pin),
       show_tally: showTally,
       open_ended: body.openEnded === true && !!me?.is_admin,
+      is_practice: practice,
       ...brand,
     })
     .select("id")

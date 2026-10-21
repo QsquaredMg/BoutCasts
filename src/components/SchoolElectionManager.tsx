@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
+import ElectionFundraiserPanel from "@/components/ElectionFundraiserPanel";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
   interim?: boolean;
   viewerIsAdmin?: boolean;
-  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -41,6 +42,8 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   const fileRef = useRef<HTMLInputElement>(null);
   const [staff, setStaff] = useState<{ id: string; label: string }[]>([]);
   const [staffName, setStaffName] = useState("");
+  const [certNote, setCertNote] = useState("");
+  const [certOk, setCertOk] = useState(false);
   const [newStaff, setNewStaff] = useState<{ label: string; code: string } | null>(null);
   const loadStaff = useCallback(async () => {
     const res = await fetch(`/api/school-election/${id}/staff`, { cache: "no-store" });
@@ -134,7 +137,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   return (
     <div className="grid gap-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>{e.school_name ?? "School election"} · {status}</p>
+        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>{e.school_name ?? "School election"} · {e.is_practice ? "Practice · " : ""}{status}{e.certified_at ? " · Certified" : ""}</p>
         <h1 className="text-3xl font-extrabold">{e.title}</h1>
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>
           {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {e.kiosks} kiosk{e.kiosks === 1 ? "" : "s"} · {e.open_ended ? "no end time" : e.tier === "free" && e.days === 1 ? "12 hours" : `${e.days} day${e.days === 1 ? "" : "s"}`} · {e.price_cents ? money(e.price_cents) : "Free"}
@@ -237,6 +240,8 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         )}
       </div>
 
+      {!e.is_practice && e.status !== "draft" && <ElectionFundraiserPanel id={id} closed={closed} started={e.status === "live"} />}
+
       <div className="rounded-xl border p-4" style={box}>
         <p className="font-bold">Results</p>
         {!closed ? (
@@ -250,6 +255,9 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
                 ))}
               </div>
             )}
+            {e.status === "live" && e.is_practice && (
+              <button onClick={async () => { if (confirm("Reset this practice election? Every practice vote is erased and everyone can vote again.")) { await call("reset", `/api/school-election/${id}/reset`, { method: "POST" }); setNotice("Practice election reset. Everyone can vote again."); load(); } }} disabled={busy !== null} className="mr-2 rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Reset practice</button>
+            )}
             {e.status === "live" && (
               <button onClick={async () => { if (confirm("Close voting now? Students will no longer be able to vote and results become visible.")) { await call("close", `/api/school-election/${id}/close`, { method: "POST" }); load(); } }} disabled={busy !== null} className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Close voting now</button>
             )}
@@ -257,6 +265,9 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         ) : (
           <div className="mt-2 grid gap-4">
             <div className="flex flex-wrap items-center gap-3">
+              {e.is_practice && (
+                <button onClick={async () => { if (confirm("Reset this practice election? Every practice vote is erased and everyone can vote again.")) { await call("reset", `/api/school-election/${id}/reset`, { method: "POST" }); setNotice("Practice election reset. Everyone can vote again."); load(); } }} disabled={busy !== null} className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Reset and run again</button>
+              )}
               <a href={`/api/school-election/${id}/graphic`} target="_blank" rel="noreferrer" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">View winners graphic</a>
               <a href={`/api/school-election/${id}/graphic`} download="winners.png" className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Download</a>
             </div>
@@ -277,6 +288,25 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           </div>
         )}
       </div>
+
+      {closed && !e.is_practice && (
+        <div className="rounded-xl border p-4" style={box}>
+          <p className="font-bold">Certify the results</p>
+          {e.certified_at ? (
+            <>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>Certified {new Date(e.certified_at).toLocaleString()}.{e.certified_note ? ` “${e.certified_note}”` : ""}</p>
+              <a href={`/school-election/${id}/certificate`} target="_blank" rel="noreferrer" className="mt-2 inline-block rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Print the certificate</a>
+            </>
+          ) : (
+            <>
+              <p className="mb-2 mt-1 text-sm" style={{ color: "var(--text-dim)" }}>Real elections end with a sign-off. Before you certify, check the turnout above, confirm every iPad shows &ldquo;0 waiting to send&rdquo;, and look over the results. Certifying adds an official stamp to the winners graphic and unlocks a printable certificate.</p>
+              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={certOk} onChange={(ev) => setCertOk(ev.target.checked)} className="mt-1" /><span>I have reviewed the turnout and results and they are correct.</span></label>
+              <input value={certNote} onChange={(ev) => setCertNote(ev.target.value)} maxLength={300} placeholder="Note (optional), e.g. recount not needed" className="mt-2 w-full rounded-[10px] border px-3 py-2 text-sm" style={box} />
+              <button disabled={!certOk || busy !== null} onClick={async () => { const r = await call("certify", `/api/school-election/${id}/certify`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: certNote }) }); if (r) { setNotice("Results certified."); load(); } }} className="bc-btn-solid mt-2 rounded-full px-4 py-2 text-sm font-bold disabled:opacity-50">{busy === "certify" ? "Certifying…" : "Certify results"}</button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="rounded-xl border p-4" style={box}>
         <p className="font-bold">Ballot</p>

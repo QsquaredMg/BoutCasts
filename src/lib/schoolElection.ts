@@ -75,6 +75,12 @@ export type ElectionRow = {
   brand_bg_image_url: string | null;
   show_tally: boolean;
   open_ended: boolean;
+  is_practice: boolean;
+  certified_at: string | null;
+  certified_by: string | null;
+  certified_note: string | null;
+  fundraiser_enabled: boolean;
+  fundraiser_goal_cents: number | null;
 };
 
 // Signed-in organizer (or admin) who owns the election, else an error response to return.
