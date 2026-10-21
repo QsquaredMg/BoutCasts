@@ -60,7 +60,7 @@ export const ORGANIZER_PRO = {
 // Keep platformFeePct in sync with record_event_sponsorship() in the database.
 export const ORGANIZER_GOLD = {
   priceCents: 19900, // placeholder: confirm before launch
-  platformFeePct: 30,
+  platformFeePct: 10,
 };
 
 export function tierPriceLabel(tier: LiveVoteTier): string {
@@ -104,11 +104,11 @@ export function schoolElectionPriceCents(tier: LiveVoteTier, kiosks: number, day
 }
 
 // Super Votes: organizer unlocks per event; fans buy packs to boost a
-// contestant. Organizer earns organizerShare (75%) of final collections, less
+// contestant. Organizer earns organizerShare (90%) of final collections, less
 // any applicable fees.
 export const SUPER_VOTES = {
   unlockCents: 4900,
-  organizerShare: 0.75,
+  organizerShare: 0.9,
   // Platinum Supporter: the top tier. The organizer sets a fixed price, or
   // leaves it open so a fan can give any amount of platinumMinCents or more.
   platinumMinCents: 2000,

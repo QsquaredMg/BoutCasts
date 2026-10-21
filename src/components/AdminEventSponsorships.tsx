@@ -10,7 +10,7 @@ export type SponsorshipRow = {
   organizer_payout_status: string; payout_method: string | null;
 };
 
-// Admin records the organizer's 70% payout (made outside the app) once the event has closed.
+// Admin records the organizer's 90% payout (made outside the app) once the event has closed.
 export default function AdminEventSponsorships({ rows }: { rows: SponsorshipRow[] }) {
   const supabase = createClient();
   const [method, setMethod] = useState<Record<string, string>>({});

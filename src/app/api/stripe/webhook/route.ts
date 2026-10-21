@@ -293,7 +293,7 @@ export async function POST(req: NextRequest) {
           option_id: metadata.option_id,
           quantity,
           amount_cents: amount,
-          organizer_share_cents: Math.floor(amount * SUPER_VOTES.organizerShare),
+          organizer_share_cents: Math.floor((amount * Math.round(SUPER_VOTES.organizerShare * 100)) / 100),
           stripe_checkout_session_id: session.id,
         },
         { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true }
