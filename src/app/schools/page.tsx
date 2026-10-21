@@ -7,7 +7,7 @@ import SchoolBallotDemo, { type DemoRealEvent } from "@/components/SchoolBallotD
 export const metadata: Metadata = {
   title: "Student voting for schools, colleges & universities",
   description:
-    "Run prom court, student council, homecoming, Best of the Best and debate votes in your school colors. One vote per student, a live tally for the big screen. Free to start.",
+    "A hands-on civics unit that teaches students to register, campaign, debate, vote and certify a real election, and raises money for your school while they learn. Free to start.",
 };
 
 // Re-read the sample school every few minutes so new photos show up without a deploy.
@@ -15,6 +15,29 @@ export const revalidate = 300;
 
 const CREATE_HREF = "/live-vote/new";
 const MAIL_HREF = `mailto:support@boutcasts.com?subject=${encodeURIComponent("School license question")}`;
+
+const UNIT_HREF = `mailto:support@boutcasts.com?subject=${encodeURIComponent("Vote Smart civics unit")}`;
+
+const CIVICS_TIERS = [
+  {
+    grades: "Grades K-5",
+    length: "1 week",
+    title: "Class helper election",
+    body: "Learn what a vote is, why every voter gets one, and why ballots are secret. Candidates make a poster and say one sentence, then the class votes on a tablet and watches the reveal.",
+  },
+  {
+    grades: "Grades 6-8",
+    length: "2 weeks",
+    title: "Student council election",
+    body: "Write job descriptions, run a registration sign-in, build a campaign with a slogan and platform, hold a forum, staff the polling place, and certify the results.",
+  },
+  {
+    grades: "Grades 9-12",
+    length: "3 weeks",
+    title: "Full campaign simulation",
+    body: "Run a registration drive, a campaign with a spending report, a moderated debate with fact-checkers, a staffed polling place, and an audit of the whole process.",
+  },
+];
 
 const MAROON = "#7a1f3d";
 const DEEP = "#3b0d1f";
@@ -154,14 +177,15 @@ export default async function SchoolsPage() {
         <div className="relative mx-auto grid max-w-[1280px] grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 pb-16 pt-12 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14 lg:px-12 lg:pb-24 lg:pt-20">
           <div className="flex min-w-0 flex-col gap-6">
             <p className="text-[15px] font-bold sm:text-[16px]" style={{ color: GOLD }}>
-              For high schools, colleges and universities
+              Civics, elections and school fundraising
             </p>
             <h1 className="lp-display text-[44px] sm:text-[64px] lg:text-[68px]" style={{ lineHeight: 0.94 }}>
-              Every student vote, counted in the open.
+              Teach the election. Fund the school.
             </h1>
             <p className="max-w-[560px] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: "#ecd5de" }}>
-              Prom court, student council, homecoming, Best of the Best and debates, all in your school colors. One vote per
-              student, and a live tally you can put on the big screen.
+              Students register, campaign, debate, vote and certify a real election in your school colors, from a class helper
+              vote to a full student-body race. Supporters can chip in along the way, and your school keeps{" "}
+              {Math.round(SUPER_VOTES.organizerShare * 100)}% of what is raised.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href={CREATE_HREF} className="lp-btn px-7 py-4 text-[17px]" style={{ background: GOLD, color: DEEP }}>
@@ -196,6 +220,43 @@ export default async function SchoolsPage() {
           <Fact t="Student government advisors" b="Fair, visible elections students trust" />
           <Fact t="Band and arts directors" b="Crowd votes for shows and competitions" />
           <Fact t="Campus life offices" b="Awards, court and organization votes" />
+        </div>
+      </section>
+
+      {/* ================= CIVICS MODULE ================= */}
+      <section style={{ background: "#fff" }}>
+        <div className="mx-auto max-w-[1280px] px-5 py-16 sm:px-8 lg:px-12 lg:py-28">
+          <div className="flex max-w-[780px] flex-col gap-4">
+            <h2 className="lp-display text-[38px] sm:text-[52px] lg:text-[62px]" style={{ color: DEEP }}>
+              A civics unit students run themselves
+            </h2>
+            <p className="text-[17px] leading-relaxed lg:text-[19px]" style={{ color: "var(--lp-muted)" }}>
+              Vote Smart walks a class through five phases: register, campaign, debate, vote, then count and certify. The vote
+              happens on a kiosk with one-time codes, a secret ballot and results hidden until the polls close, so it feels like a
+              real polling place.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 lg:mt-14 lg:grid-cols-3">
+            {CIVICS_TIERS.map((t) => (
+              <div key={t.grades} className="flex flex-col gap-3 rounded-3xl p-7" style={{ background: CREAM, border: `2px solid ${MAROON}` }}>
+                <p className="text-[14px] font-bold" style={{ color: MAROON }}>{t.grades} · {t.length}</p>
+                <h3 className="lp-title text-[26px] leading-tight" style={{ color: DEEP }}>{t.title}</h3>
+                <p className="text-[16px] leading-relaxed" style={{ color: "var(--lp-muted)" }}>{t.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-col gap-4 rounded-3xl p-7 sm:flex-row sm:items-center sm:justify-between" style={{ background: DEEP, color: "#fff" }}>
+            <p className="max-w-[640px] text-[17px] leading-relaxed" style={{ color: "#f2dbe3" }}>
+              Fundraising is part of the lesson. Supporters can buy optional Super Votes and local businesses can sponsor the
+              election. Student votes stay free, and the money goes to the school, never to a candidate. Students can study who
+              pays for campaigns without anyone getting an edge.
+            </p>
+            <a href={UNIT_HREF} className="lp-btn shrink-0 px-7 py-4 text-[17px]" style={{ background: GOLD, color: DEEP }}>
+              Request the teacher unit
+            </a>
+          </div>
         </div>
       </section>
 
