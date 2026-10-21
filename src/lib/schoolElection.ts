@@ -81,6 +81,9 @@ export type ElectionRow = {
   certified_note: string | null;
   fundraiser_enabled: boolean;
   fundraiser_goal_cents: number | null;
+  require_registration: boolean;
+  registration_closes_at: string | null;
+  campaign_page_enabled: boolean;
 };
 
 // Signed-in organizer (or admin) who owns the election, else an error response to return.

@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-type Voter = { id: string; name: string; student_ref: string | null; code: string; voted_at: string | null };
+type Voter = { id: string; name: string; student_ref: string | null; code: string; voted_at: string | null; registered_at?: string | null };
 
 // Teacher check-in desk: find a student, read out or hand over their code. Shows whether they have voted,
 // never how. Signed-in organizer only (the roster API enforces it).
 export default function BoothDesk({ id }: { id: string }) {
   const [voters, setVoters] = useState<Voter[] | null>(null);
+  const [requireReg, setRequireReg] = useState(false);
   const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [needCode, setNeedCode] = useState(false);
@@ -30,8 +31,18 @@ export default function BoothDesk({ id }: { id: string }) {
     }
     setNeedCode(false);
     setError(null);
-    setVoters((await res.json()).voters);
+    const body = await res.json();
+    setVoters(body.voters);
+    setRequireReg(!!body.requireRegistration);
   }, [id, storeKey]);
+
+  async function register(voterId: string) {
+    let code = "";
+    try { code = sessionStorage.getItem(storeKey) ?? ""; } catch { /* ignore */ }
+    const res = await fetch(`/api/school-election/${id}/voters/register`, { method: "POST", headers: { "Content-Type": "application/json", ...(code ? { "x-desk-code": code } : {}) }, body: JSON.stringify({ voterId }) });
+    if (!res.ok) setError("Couldn't register that student.");
+    else load();
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -93,6 +104,8 @@ export default function BoothDesk({ id }: { id: string }) {
             </div>
             {v.voted_at ? (
               <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>Voted</span>
+            ) : requireReg && !v.registered_at ? (
+              <button onClick={() => register(v.id)} className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">Register to vote</button>
             ) : (
               <span className="text-3xl font-black tracking-[0.2em]" aria-label={`Code ${v.code.split("").join(" ")}`}>{v.code}</span>
             )}
@@ -101,7 +114,7 @@ export default function BoothDesk({ id }: { id: string }) {
         {voters && shown.length === 0 && <li className="text-sm" style={{ color: "var(--text-dim)" }}>No student matches.</li>}
       </ul>
       <p className="mt-4 text-xs" style={{ color: "var(--text-faint)" }}>
-        Check a student&apos;s ID before handing over a code. A code works once. Codes for students who already voted are hidden.
+        Check a student&apos;s ID before registering them or handing over a code. When registration is required, only registered students can vote. A code works once. Codes for students who already voted are hidden.
       </p>
     </div>
   );

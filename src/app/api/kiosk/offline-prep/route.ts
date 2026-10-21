@@ -13,11 +13,15 @@ export async function POST(req: NextRequest) {
   const r = await checkKioskPin(token, pin);
   if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: r.status });
 
-  const { data: el } = await r.admin.from("school_elections").select("id, title, school_name, status, closes_at").eq("id", r.electionId).maybeSingle();
+  const { data: el } = await r.admin.from("school_elections").select("id, title, school_name, status, closes_at, require_registration").eq("id", r.electionId).maybeSingle();
   if (!el || el.status !== "live") return NextResponse.json({ ok: false, error: "closed" }, { status: 400 });
   const [{ data: ballot }, { data: voters }] = await Promise.all([
     r.admin.rpc("election_ballot", { p_election_id: r.electionId }),
-    r.admin.from("election_voters").select("code, name").eq("election_id", r.electionId).is("voted_at", null).limit(50000),
+    (() => {
+      const q = r.admin.from("election_voters").select("code, name").eq("election_id", r.electionId).is("voted_at", null);
+      // When registration is required, only registered students get a fingerprint for offline check-in.
+      return (el.require_registration ? q.not("registered_at", "is", null) : q).limit(50000);
+    })(),
   ]);
   return NextResponse.json(
     { ok: true, electionId: r.electionId, ballot, closesAt: el.closes_at, hashes: (voters ?? []).map((v) => voterHash(r.electionId, v.code, v.name)), preparedAt: new Date().toISOString() },

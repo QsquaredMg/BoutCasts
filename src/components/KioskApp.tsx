@@ -120,6 +120,7 @@ export default function KioskApp({ token }: { token: string }) {
           if (data.ok) items = items.filter((x) => x.requestId !== it.requestId);
           else if (data.error === "already_voted") items = items.map((x) => (x.requestId === it.requestId ? { ...x, problem: "Already voted on another iPad, so this ballot was not counted." } : x));
           else if (data.error === "closed") items = items.map((x) => (x.requestId === it.requestId ? { ...x, problem: "Arrived too late to count." } : x));
+          else if (data.error === "not_registered") items = items.map((x) => (x.requestId === it.requestId ? { ...x, problem: "Not registered to vote, so this ballot was not counted." } : x));
           else if (data.error === "no_match" || data.error === "cap") items = items.map((x) => (x.requestId === it.requestId ? { ...x, problem: data.error === "cap" ? "The election reached its vote limit." : "Code and name did not match." } : x));
           setOnline(true);
         } catch {
@@ -181,6 +182,7 @@ export default function KioskApp({ token }: { token: string }) {
       else if (d.error === "already_voted") setMsg("This code has already been used.");
       else if (d.error === "locked") { setMsg("This kiosk is locked. Please ask a teacher."); loadStatus(); }
       else if (d.error === "closed") { setMsg("Voting is closed."); loadStatus(); }
+      else if (d.error === "not_registered") setMsg("You are not registered to vote yet. Please see a teacher.");
       else if (d.error === "no_match") setMsg("That code and name don't match. Check both and try again.");
       else setMsg("Something went wrong. Please try again.");
     } catch {
@@ -216,6 +218,7 @@ export default function KioskApp({ token }: { token: string }) {
         if (d.error === "closed") { setMsg("Voting closed before your ballot was sent."); return setStep("welcome"); }
         if (d.error === "already_voted") { setMsg("This code has already been used."); return setStep("welcome"); }
         if (d.error === "cap") { setMsg("This election has reached its vote limit. Please ask a teacher."); return setStep("welcome"); }
+        if (d.error === "not_registered") { setMsg("You are not registered to vote yet. Please see a teacher."); return setStep("welcome"); }
         if (d.error === "no_match" || d.error === "locked") { setMsg("Please ask a teacher for help."); return setStep("welcome"); }
       } catch {
         /* try once more, then save on the iPad */

@@ -8,11 +8,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if ("error" in owner) return owner.error;
   const { admin, election, isAdmin } = owner;
 
-  const [{ data: races }, { data: kiosks }, { count: total }, { count: voted }] = await Promise.all([
+  const [{ data: races }, { data: kiosks }, { count: total }, { count: voted }, { count: registered }] = await Promise.all([
     admin.from("live_vote_events").select("id, title, election_sort").eq("election_id", id).order("election_sort"),
     admin.from("election_kiosks").select("id, label, created_at, locked_until").eq("election_id", id).order("created_at"),
     admin.from("election_voters").select("id", { count: "exact", head: true }).eq("election_id", id),
     admin.from("election_voters").select("id", { count: "exact", head: true }).eq("election_id", id).not("voted_at", "is", null),
+    admin.from("election_voters").select("id", { count: "exact", head: true }).eq("election_id", id).not("registered_at", "is", null),
   ]);
 
   const closed = election.status === "closed" || (election.closes_at != null && new Date(election.closes_at) <= new Date());
@@ -45,7 +46,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     viewerIsAdmin: isAdmin,
     interim,
     closed,
-    turnout: { total: total ?? 0, voted: voted ?? 0 },
+    turnout: { total: total ?? 0, voted: voted ?? 0, registered: registered ?? 0 },
     kiosks: kiosks ?? [],
     races: (races ?? []).map((r) => ({
       id: r.id,
