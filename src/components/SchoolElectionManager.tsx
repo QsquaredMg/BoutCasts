@@ -5,12 +5,14 @@ import Link from "next/link";
 import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
 import ElectionFundraiserPanel from "@/components/ElectionFundraiserPanel";
 import ElectionCampaignPanel from "@/components/ElectionCampaignPanel";
+import ElectionForumPanel from "@/components/ElectionForumPanel";
+import ElectionIncidentLog from "@/components/ElectionIncidentLog";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
   interim?: boolean;
   viewerIsAdmin?: boolean;
-  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number; registered?: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -33,6 +35,8 @@ function parseRoster(text: string): { name: string; ref: string | null }[] {
   return rows;
 }
 
+const ROLE_LABEL: Record<string, string> = { check_in: "Check-in", judge: "Judge", observer: "Observer" };
+
 export default function SchoolElectionManager({ id, checkout }: { id: string; checkout: string | null }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,11 +45,12 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   const [paste, setPaste] = useState("");
   const [newLink, setNewLink] = useState<{ label: string; url: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [staff, setStaff] = useState<{ id: string; label: string }[]>([]);
+  const [staff, setStaff] = useState<{ id: string; label: string; role: string }[]>([]);
+  const [staffRole, setStaffRole] = useState("check_in");
   const [staffName, setStaffName] = useState("");
   const [certNote, setCertNote] = useState("");
   const [certOk, setCertOk] = useState(false);
-  const [newStaff, setNewStaff] = useState<{ label: string; code: string } | null>(null);
+  const [newStaff, setNewStaff] = useState<{ label: string; code: string; role: string } | null>(null);
   const loadStaff = useCallback(async () => {
     const res = await fetch(`/api/school-election/${id}/staff`, { cache: "no-store" });
     if (res.ok) setStaff((await res.json()).staff);
@@ -217,19 +222,24 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
 
       <div className="rounded-xl border p-4" style={box}>
         <p className="font-bold">Staff seats (optional)</p>
-        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Give a teacher a code to open the booth desk without your login. Codes only show the roster check-in, nothing else.</p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Give each poll worker a code and a role, so they can work without your login. Check-in workers use the booth desk. Judges also close incidents and approve forum questions. Observers see no roster and can only log incidents.</p>
         <ul className="grid gap-1.5">
           {staff.map((m) => (
             <li key={m.id} className="flex items-center justify-between text-sm">
-              <span>{m.label}</span>
+              <span>{m.label} <span className="text-xs" style={{ color: "var(--text-faint)" }}>({ROLE_LABEL[m.role] ?? m.role})</span></span>
               <button onClick={async () => { await call("rmstaff", `/api/school-election/${id}/staff?staffId=${m.id}`, { method: "DELETE" }); loadStaff(); }} className="text-xs font-bold underline">Revoke</button>
             </li>
           ))}
         </ul>
         {!closed && (
           <div className="mt-2 flex gap-2">
-            <input value={staffName} onChange={(ev) => setStaffName(ev.target.value)} maxLength={60} placeholder="Teacher name" className="min-w-0 flex-1 rounded-[10px] border px-3 py-2 text-sm" style={box} />
-            <button disabled={busy !== null || !staffName.trim()} onClick={async () => { const r = await call("staff", `/api/school-election/${id}/staff`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label: staffName }) }); if (r) { setNewStaff(r); setStaffName(""); loadStaff(); } }} className="rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Add seat</button>
+            <input value={staffName} onChange={(ev) => setStaffName(ev.target.value)} maxLength={60} placeholder="Worker name" className="min-w-0 flex-1 rounded-[10px] border px-3 py-2 text-sm" style={box} />
+            <select value={staffRole} onChange={(ev) => setStaffRole(ev.target.value)} className="rounded-[10px] border px-2 py-2 text-sm" style={box} aria-label="Role">
+              <option value="check_in">Check-in</option>
+              <option value="judge">Judge</option>
+              <option value="observer">Observer</option>
+            </select>
+            <button disabled={busy !== null || !staffName.trim()} onClick={async () => { const r = await call("staff", `/api/school-election/${id}/staff`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label: staffName, role: staffRole }) }); if (r) { setNewStaff(r); setStaffName(""); loadStaff(); } }} className="rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Add seat</button>
           </div>
         )}
         {newStaff && (
@@ -240,6 +250,10 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           </div>
         )}
       </div>
+
+      <ElectionForumPanel id={id} closed={closed} enabled={!!e.forum_enabled} onChanged={load} />
+
+      <ElectionIncidentLog id={id} />
 
       <ElectionCampaignPanel id={id} closed={closed} races={races} requireRegistration={!!e.require_registration} registrationClosesAt={e.registration_closes_at ?? null} campaignPageEnabled={!!e.campaign_page_enabled} registered={turnout.registered ?? 0} total={turnout.total} onChanged={load} />
 

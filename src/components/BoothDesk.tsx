@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import ElectionIncidentLog from "@/components/ElectionIncidentLog";
 
 type Voter = { id: string; name: string; student_ref: string | null; code: string; voted_at: string | null; registered_at?: string | null };
 
@@ -13,6 +14,8 @@ export default function BoothDesk({ id }: { id: string }) {
   const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [needCode, setNeedCode] = useState(false);
+  const [logOnly, setLogOnly] = useState(false);
+  const [deskCode, setDeskCode] = useState<string | undefined>(undefined);
   const [codeInput, setCodeInput] = useState("");
   const storeKey = `desk-code:${id}`;
 
@@ -20,7 +23,15 @@ export default function BoothDesk({ id }: { id: string }) {
   const load = useCallback(async () => {
     let code = "";
     try { code = sessionStorage.getItem(storeKey) ?? ""; } catch { /* ignore */ }
+    setDeskCode(code || undefined);
     const res = await fetch(`/api/school-election/${id}/voters`, { cache: "no-store", headers: code ? { "x-desk-code": code } : {} });
+    if (res.status === 403) {
+      // An observer seat: no roster, incident log only.
+      setNeedCode(false);
+      setError(null);
+      setLogOnly(true);
+      return;
+    }
     if (!res.ok) {
       if (res.status === 401 || res.status === 404) {
         setNeedCode(true);
@@ -79,6 +90,15 @@ export default function BoothDesk({ id }: { id: string }) {
     );
   }
 
+  if (logOnly) {
+    return (
+      <div>
+        <h1 className="mb-3 text-2xl font-extrabold">Observer log</h1>
+        <ElectionIncidentLog id={id} deskCode={deskCode} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
@@ -116,6 +136,7 @@ export default function BoothDesk({ id }: { id: string }) {
       <p className="mt-4 text-xs" style={{ color: "var(--text-faint)" }}>
         Check a student&apos;s ID before registering them or handing over a code. When registration is required, only registered students can vote. A code works once. Codes for students who already voted are hidden.
       </p>
+      <div className="mt-6"><ElectionIncidentLog id={id} deskCode={deskCode} /></div>
     </div>
   );
 }

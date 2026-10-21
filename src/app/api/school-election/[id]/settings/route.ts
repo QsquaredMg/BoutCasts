@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireElectionOwner } from "@/lib/schoolElection";
 
-// Organizer settings for the civics features: voter registration and the public campaign page.
+// Organizer settings for the civics features: voter registration, the public campaign page and the forum.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const owner = await requireElectionOwner(id);
@@ -13,6 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const patch: Record<string, unknown> = {};
   if (typeof body.requireRegistration === "boolean") patch.require_registration = body.requireRegistration;
   if (typeof body.campaignPageEnabled === "boolean") patch.campaign_page_enabled = body.campaignPageEnabled;
+  if (typeof body.forumEnabled === "boolean") patch.forum_enabled = body.forumEnabled;
   if ("registrationClosesAt" in body) {
     if (body.registrationClosesAt === null || body.registrationClosesAt === "") patch.registration_closes_at = null;
     else {
