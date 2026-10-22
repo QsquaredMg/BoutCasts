@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export type QueueRow = {
@@ -15,13 +16,23 @@ const MODES: { key: Mode; label: string; hint: string }[] = [
   { key: "off", label: "Paused", hint: "Nothing is queued or posted." },
 ];
 
-export default function SocialQueue({ initial, mode: initialMode, facebookReady, instagramReady }: { initial: QueueRow[]; mode: Mode; facebookReady: boolean; instagramReady: boolean }) {
+export default function SocialQueue({ initial, mode: initialMode, facebookReady, instagramReady, queueErrors = [] }: { initial: QueueRow[]; mode: Mode; facebookReady: boolean; instagramReady: boolean; queueErrors?: string[] }) {
   const supabase = createClient();
+  const router = useRouter();
   const [rows, setRows] = useState(initial);
   const [mode, setMode] = useState(initialMode);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
+  async function checkNow() {
+    setBusy("refresh"); setMsg(null);
+    const res = await fetch("/api/admin/social/refresh", { method: "POST" });
+    const json = await res.json().catch(() => ({}));
+    setBusy(null);
+    if (!res.ok) return setMsg(json.error ?? "Couldn't check for new posts.");
+    setMsg(json.errors?.length ? `Queued ${json.added}. Problems: ${json.errors.join("; ")}` : json.added ? `Queued ${json.added} new post${json.added === 1 ? "" : "s"}.` : "Nothing new to post right now.");
+    router.refresh();
+  }
   async function setModeTo(m: Mode) {
     const { error } = await supabase.from("social_settings").update({ mode: m }).eq("id", 1);
     if (error) setMsg("Couldn't change the mode."); else setMode(m);
@@ -46,6 +57,13 @@ export default function SocialQueue({ initial, mode: initialMode, facebookReady,
   const box = { borderColor: "var(--border)", background: "var(--surface)" } as const;
   return (
     <div className="flex flex-col gap-4">
+      {queueErrors.length > 0 && (
+        <p className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--red)", color: "var(--red)" }} role="alert">Some posts couldn&apos;t be queued: {queueErrors.join("; ")}</p>
+      )}
+      <div className="flex items-center gap-3">
+        <button disabled={busy === "refresh"} onClick={checkNow} className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>{busy === "refresh" ? "Checking…" : "Check for new posts"}</button>
+        {mode === "off" && <span className="text-xs" style={{ color: "var(--text-faint)" }}>Paused: nothing is queued while the mode is Paused.</span>}
+      </div>
       <div className="rounded-2xl border p-4" style={box}>
         <div className="mb-2 flex flex-wrap gap-2">
           {MODES.map((m) => (

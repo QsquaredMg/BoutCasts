@@ -2,12 +2,21 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import SocialQueue, { type QueueRow } from "@/components/admin/SocialQueue";
 import { socialConfigured } from "@/lib/social/publish";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { queueFinishedResults } from "@/lib/social/collect";
 
 export const metadata: Metadata = { title: "Social posts" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminSocialPage() {
   const supabase = await createClient();
+  // Queue anything new right now, so this tab never depends on the hourly cron having run. Each game is queued once.
+  const queueErrors: string[] = [];
+  try {
+    await queueFinishedResults(createAdminClient(), queueErrors);
+  } catch (e) {
+    queueErrors.push((e as Error).message);
+  }
   const [{ data: posts }, { data: settings }] = await Promise.all([
     supabase.from("social_posts").select("id, kind, title, winner, status, caption_facebook, caption_instagram, error, results, created_at").order("created_at", { ascending: false }).limit(60),
     supabase.from("social_settings").select("mode, hashtags").eq("id", 1).maybeSingle(),
@@ -25,6 +34,7 @@ export default async function AdminSocialPage() {
         mode={(settings?.mode ?? "approve") as "off" | "approve" | "auto"}
         facebookReady={cfg.facebook}
         instagramReady={cfg.instagram}
+        queueErrors={queueErrors}
       />
     </div>
   );
