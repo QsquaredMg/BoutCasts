@@ -291,7 +291,7 @@ async function boutBracketLaunchDrafts(db: Db, since: string): Promise<SocialDra
 }
 
 /** Finds newly finished results and queues them. Safe to run repeatedly: each result is queued once. */
-export async function queueFinishedResults(db: Db): Promise<number> {
+export async function queueFinishedResults(db: Db, errors: string[] = []): Promise<number> {
   const { data: settings } = await db.from("social_settings").select("mode, hashtags").eq("id", 1).maybeSingle();
   if (!settings || settings.mode === "off") return 0;
   const recent = new Date(Date.now() - 3 * DAY).toISOString();
@@ -300,7 +300,7 @@ export async function queueFinishedResults(db: Db): Promise<number> {
   const drafts = (
     await Promise.all([
       boutLaunchDrafts(db, recent), paidBoutLaunchDrafts(db, recent), predictionLaunchDrafts(db, recent), standaloneGameLaunchDrafts(db, recent), boutBracketLaunchDrafts(db, recent), boutDrafts(db, recent), bracketDrafts(db, recent), liveVoteDrafts(db, recent), predictionDrafts(db, week), triviaDrafts(db, week),
-    ].map((p) => p.catch((e) => { console.error("social collect failed", (e as Error).message); return [] as SocialDraft[]; })))
+    ].map((p) => p.catch((e) => { console.error("social collect failed", (e as Error).message); errors.push((e as Error).message); return [] as SocialDraft[]; })))
   ).flat();
 
   let added = 0;
@@ -320,7 +320,10 @@ export async function queueFinishedResults(db: Db): Promise<number> {
       kind: d.kind, source_id: d.source_id, title: d.title, winner: d.winner, top10: d.top10,
       caption_facebook: cap.facebook, caption_instagram: cap.instagram,
     });
-    if (!error) added++;
+    if (error) {
+      console.error("social queue insert failed", d.kind, d.source_id, error.message);
+      errors.push(`${d.kind} "${d.title}": ${error.message}`);
+    } else added++;
   }
   return added;
 }
