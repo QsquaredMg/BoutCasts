@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
     cancel_url: `${origin}/paid-bouts/${boutId}?checkout=cancelled`,
     metadata: { kind: "paid_bout_entry", entry_id: entryId as string, bout_id: boutId },
   });
-  await admin.from("paid_bout_entries").update({ stripe_session_id: session.id }).eq("id", entryId);
+  const { error: sessErr } = await admin.from("paid_bout_entries").update({ stripe_session_id: session.id }).eq("id", entryId);
+  if (sessErr) console.error("paid bout checkout: couldn't store session id", entryId, session.id, sessErr);
   return NextResponse.json({ url: session.url });
 }

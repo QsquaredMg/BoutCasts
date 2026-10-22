@@ -16,14 +16,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const db = createAdminClient();
 
   if (body?.action === "skip") {
-    await db.from("social_posts").update({ status: "skipped" }).eq("id", id).neq("status", "posted");
+    const { error } = await db.from("social_posts").update({ status: "skipped" }).eq("id", id).neq("status", "posted");
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
   if (body?.action === "save") {
     const patch: Record<string, string> = {};
     if (typeof body.caption_facebook === "string") patch.caption_facebook = body.caption_facebook.slice(0, 8000);
     if (typeof body.caption_instagram === "string") patch.caption_instagram = body.caption_instagram.slice(0, 2200);
-    await db.from("social_posts").update(patch).eq("id", id).neq("status", "posted");
+    const { error } = await db.from("social_posts").update(patch).eq("id", id).neq("status", "posted");
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
   if (body?.action === "publish") {

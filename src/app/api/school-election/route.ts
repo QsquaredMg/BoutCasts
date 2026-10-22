@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.error("school-election: races failed", err);
-    await admin.from("school_elections").delete().eq("id", election.id);
+    const { error: rollbackErr } = await admin.from("school_elections").delete().eq("id", election.id);
+    if (rollbackErr) console.error("school-election: rollback failed, orphan election", election.id, rollbackErr);
     return NextResponse.json({ error: "Couldn't save the offices. Please try again." }, { status: 500 });
   }
   return NextResponse.json({ id: election.id });

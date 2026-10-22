@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     const { data: pk } = await admin.from("event_sponsor_packages").select("id, event_id").eq("id", String(body.packageId ?? "")).maybeSingle();
     const owned = pk ? await loadOwned(pk.event_id, user.id) : null;
     if (!pk || !owned) return NextResponse.json({ error: "Not your package." }, { status: 403 });
-    await admin.from("event_sponsor_packages").update({ active: body.active === true }).eq("id", pk.id);
+    const { error: tgErr } = await admin.from("event_sponsor_packages").update({ active: body.active === true }).eq("id", pk.id);
+    if (tgErr) return NextResponse.json({ error: tgErr.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
