@@ -71,6 +71,7 @@ export default function ShareButton({
   big = false,
   track,
   imageUrl,
+  url,
 }: {
   title: string;
   text?: string;
@@ -82,6 +83,8 @@ export default function ShareButton({
   track?: ShareTarget;
   /** A graphic to attach on devices that can share files, and to save for Instagram/TikTok. */
   imageUrl?: string;
+  /** Link to share (a path like /predictions/123 works). Defaults to the page being viewed. */
+  url?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -91,6 +94,7 @@ export default function ShareButton({
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
 
+  const linkToShare = () => new URL(url ?? window.location.href, window.location.href).href;
   const shareText = text ?? `${title} — cast your vote, or start your own Bout, on BoutCasts!`;
 
   useEffect(() => {
@@ -126,7 +130,7 @@ export default function ShareButton({
 
   async function nativeShare() {
     logShare(track, "share");
-    const url = window.location.href;
+    const url = linkToShare();
     if (imageUrl && navigator.canShare) {
       try {
         const res = await fetch(imageUrl);
@@ -154,7 +158,7 @@ export default function ShareButton({
 
   function toNetwork(n: Network) {
     logShare(track, "share");
-    const href = intentUrl(n, window.location.href, shareText);
+    const href = intentUrl(n, linkToShare(), shareText);
     if (n === "email" || n === "sms") {
       // open mail/messages through a temporary link rather than navigating the page
       const a = document.createElement("a");
@@ -178,7 +182,7 @@ export default function ShareButton({
   }
 
   async function copyLink() {
-    if (!(await copyText(window.location.href))) {
+    if (!(await copyText(linkToShare()))) {
       setNote("Couldn't copy. Press and hold the page address to copy it.");
       return;
     }
@@ -191,7 +195,7 @@ export default function ShareButton({
   // copy the caption — the person pastes both into the app.
   async function forInstagramTikTok() {
     logShare(track, "share");
-    const url = window.location.href;
+    const url = linkToShare();
     const copiedCaption = await copyText(`${shareText} ${url}`);
     if (imageUrl) {
       try {
