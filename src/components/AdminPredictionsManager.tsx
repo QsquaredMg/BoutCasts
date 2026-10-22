@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LocalTime from "@/components/LocalTime";
+import ShareButton from "@/components/ShareButton";
 import { useNow } from "@/lib/predictions/useNow";
 
 export type AdminPredRow = {
@@ -116,6 +117,18 @@ export default function AdminPredictionsManager({ rows }: { rows: AdminPredRow[]
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href={href} className={btn} style={border}>Manage / enter score</Link>
+              {r.status !== "cancelled" && r.status !== "pending" && (
+                <ShareButton
+                  title={r.title}
+                  url={href}
+                  label="🔗 Share"
+                  text={
+                    r.kind === "bracket"
+                      ? `${r.title} — fill out your bracket on BoutCasts. Free to play!`
+                      : `${r.title} — make your pick on BoutCasts. Free to play!`
+                  }
+                />
+              )}
               {r.kind === "game" && r.status === "scheduled" && future && (
                 <button type="button" disabled={busy === k} className={btn} style={border} onClick={() => run(k, "admin_start_pred_game", { p_game: r.id }, "Game started. Predictions stay open for 15 more minutes.")}>Start now</button>
               )}
