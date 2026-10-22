@@ -64,6 +64,7 @@ export default function ElectionForumPanel({ id, closed, enabled, onChanged }: {
         Open the question box
       </label>
       {enabled && <p className="ml-6 break-all text-xs">Share with students: {origin}/school-election/{id}/forum</p>}
+      <p className="mt-2 text-sm"><a href={`/school-election/${id}/debate`} className="font-bold underline">Open the equal-time debate timer</a> <span className="text-xs" style={{ color: "var(--text-faint)" }}>(organizer or a judge seat)</span></p>
       {error && <p className="mt-2 text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
       {enabled && (
         <div className="mt-3 grid gap-4">
