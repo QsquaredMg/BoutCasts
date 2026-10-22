@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     if (!inboxErr) inboxRecipients = (n as number) ?? 0;
   }
 
-  await admin.from("push_broadcasts").insert({
+  const { error: pbErr } = await admin.from("push_broadcasts").insert({
     sent_by: user.id,
     title,
     body: message,
@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
     devices_delivered: delivered,
     inbox_recipients: inboxRecipients,
   });
+  if (pbErr) console.error("push: broadcast sent but history row not saved", pbErr);
 
   return NextResponse.json({ devices: list.length, delivered, removed: dead.length, inboxRecipients });
 }

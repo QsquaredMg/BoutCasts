@@ -35,7 +35,8 @@ async function refundAll(admin: Admin, boutId: string) {
       if (e.stripe_payment_intent) {
         await stripe.refunds.create({ payment_intent: e.stripe_payment_intent }, { idempotencyKey: `paid-bout-refund-${e.id}` });
       }
-      await admin.from("paid_bout_entries").update({ status: "refunded", refunded_at: new Date().toISOString() }).eq("id", e.id);
+      const { error: markErr } = await admin.from("paid_bout_entries").update({ status: "refunded", refunded_at: new Date().toISOString() }).eq("id", e.id);
+      if (markErr) throw markErr; // money moved but the row still says "paid": count it so the organizer retries (Stripe's idempotency key makes the retry safe)
     } catch (err) {
       failed++;
       console.error("paid bout refund failed", e.id, err);
@@ -52,7 +53,11 @@ async function cancelBout(admin: Admin, bout: Bout, reason: string) {
       { status: 502 }
     );
   }
-  await admin.from("paid_bouts").update({ status: "cancelled", cancelled_reason: reason }).eq("id", bout.id);
+  const { error: cancelErr } = await admin.from("paid_bouts").update({ status: "cancelled", cancelled_reason: reason }).eq("id", bout.id);
+  if (cancelErr) {
+    console.error("paid bout cancel update failed", bout.id, cancelErr);
+    return NextResponse.json({ error: "Refunds went out but the bout couldn't be marked cancelled. Try Cancel again." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, status: "cancelled" });
 }
 
@@ -135,7 +140,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         // Not enough entries: the published terms say everyone is refunded in full.
         return cancelBout(admin, bout, `Minimum of ${bout.min_entries} entries was not reached`);
       }
-      await admin.from("paid_bouts").update({ status: "closed" }).eq("id", id);
+      const { error: closeErr } = await admin.from("paid_bouts").update({ status: "closed" }).eq("id", id);
+      if (closeErr) {
+        console.error("paid bout close failed", id, closeErr);
+        return NextResponse.json({ error: "Couldn't close the bout. Please try again." }, { status: 500 });
+      }
       return NextResponse.json({ ok: true, status: "closed" });
     }
 
@@ -162,7 +171,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         chosen.add(entryId);
       }
       for (const p of prizes ?? []) {
-        await admin.from("paid_bout_prizes").update({ winner_entry_id: picks[String(p.place)] }).eq("id", p.id);
+        const { error: winErr } = await admin.from("paid_bout_prizes").update({ winner_entry_id: picks[String(p.place)] }).eq("id", p.id);
+        if (winErr) {
+          console.error("paid bout winner save failed", p.id, winErr);
+          return NextResponse.json({ error: "Couldn't save the winners. Please try again." }, { status: 500 });
+        }
       }
       return NextResponse.json({ ok: true });
     }

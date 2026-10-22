@@ -31,6 +31,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const owner = await requireElectionOwner(id);
   if ("error" in owner) return owner.error;
   const staffId = new URL(req.url).searchParams.get("staffId") ?? "";
-  await owner.admin.from("election_staff").update({ revoked_at: new Date().toISOString() }).eq("id", staffId).eq("election_id", id);
+  const { error } = await owner.admin.from("election_staff").update({ revoked_at: new Date().toISOString() }).eq("id", staffId).eq("election_id", id);
+  if (error) return NextResponse.json({ error: "Couldn't remove that seat. Please try again." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

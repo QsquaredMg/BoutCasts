@@ -17,6 +17,11 @@ export async function publishQueuedPost(db: SupabaseClient, id: string) {
   const good = attempted.filter((r) => r.ok).length;
   const status = good === 0 ? "failed" : good === attempted.length ? "posted" : "partial";
   const error = attempted.filter((r) => !r.ok).map((r) => r.error).join(" | ") || null;
-  await db.from("social_posts").update({ status, results, error, posted_at: good ? new Date().toISOString() : null }).eq("id", id);
+  const { error: saveErr } = await db.from("social_posts").update({ status, results, error, posted_at: good ? new Date().toISOString() : null }).eq("id", id);
+  if (saveErr) {
+    // The post may be live but unrecorded: say so loudly, or the next run would publish it again.
+    console.error("social post published but status not saved", id, saveErr);
+    return { ok: good > 0, error: `Posted, but the queue couldn't record it (${saveErr.message}). Don't publish again.` };
+  }
   return { ok: good > 0, error };
 }

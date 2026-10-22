@@ -40,10 +40,11 @@ export async function POST(req: Request) {
     }
     const sent = (await send.json().catch(() => ({}))) as { id?: string };
     const newThread = `compose-${sent.id ?? crypto.randomUUID()}`;
-    await db.from("inbox_messages").insert({
+    const { error: logErr1 } = await db.from("inbox_messages").insert({
       thread_id: newThread, direction: "out", resend_id: sent.id ?? null, from_addr: sender.from, to_addrs: [to], subject, text_body: text,
       sent_by: u.user.id, read_at: new Date().toISOString(),
     });
+    if (logErr1) console.error("inbox: sent email not saved to the thread", newThread, logErr1);
     await db.from("inbox_threads").upsert({ thread_id: newThread, status: "done", updated_at: new Date().toISOString() }, { onConflict: "thread_id" });
     return NextResponse.json({ ok: true, threadId: newThread });
   }
@@ -51,11 +52,13 @@ export async function POST(req: Request) {
   if (!body?.action || !threadId || threadId.length > 998) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   if (body.action === "read") {
-    await db.from("inbox_messages").update({ read_at: new Date().toISOString() }).eq("thread_id", threadId).eq("direction", "in").is("read_at", null);
+    const { error } = await db.from("inbox_messages").update({ read_at: new Date().toISOString() }).eq("thread_id", threadId).eq("direction", "in").is("read_at", null);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
   if (body.action === "done" || body.action === "open") {
-    await db.from("inbox_threads").upsert({ thread_id: threadId, status: body.action, updated_at: new Date().toISOString() }, { onConflict: "thread_id" });
+    const { error } = await db.from("inbox_threads").upsert({ thread_id: threadId, status: body.action, updated_at: new Date().toISOString() }, { onConflict: "thread_id" });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
   if (body.action !== "reply") return NextResponse.json({ error: "Unknown action" }, { status: 400 });
@@ -89,10 +92,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "The email could not be sent. Check the Resend settings." }, { status: 502 });
   }
   const sent = (await send.json().catch(() => ({}))) as { id?: string };
-  await db.from("inbox_messages").insert({
+  const { error: logErr2 } = await db.from("inbox_messages").insert({
     thread_id: threadId, direction: "out", resend_id: sent.id ?? null, from_addr: from, to_addrs: [to], subject, text_body: text,
     sent_by: u.user.id, read_at: new Date().toISOString(),
   });
+  if (logErr2) console.error("inbox: sent reply not saved to the thread", threadId, logErr2);
   await db.from("inbox_threads").upsert({ thread_id: threadId, status: "done", updated_at: new Date().toISOString() }, { onConflict: "thread_id" });
   return NextResponse.json({ ok: true });
 }

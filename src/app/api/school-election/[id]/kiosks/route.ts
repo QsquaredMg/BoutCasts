@@ -28,6 +28,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if ("error" in owner) return owner.error;
   const kioskId = new URL(req.url).searchParams.get("kioskId");
   if (!kioskId) return NextResponse.json({ error: "Missing kioskId" }, { status: 400 });
-  await owner.admin.from("election_kiosks").delete().eq("id", kioskId).eq("election_id", id);
+  const { error } = await owner.admin.from("election_kiosks").delete().eq("id", kioskId).eq("election_id", id);
+  if (error) return NextResponse.json({ error: "Couldn't remove that kiosk. Please try again." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
