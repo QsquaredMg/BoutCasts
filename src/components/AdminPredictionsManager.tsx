@@ -22,11 +22,34 @@ export type AdminPredRow = {
   created_at: string;
 };
 
+export type AdminTeams = {
+  home_name: string; away_name: string;
+  home_logo: string | null; away_logo: string | null;
+  home_score: number | null; away_score: number | null;
+};
+
+function Team({ name, logo, score, align }: { name: string; logo: string | null; score: number | null; align: "left" | "right" }) {
+  return (
+    <div className={`flex min-w-0 flex-1 items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt="" className="h-9 w-9 shrink-0 rounded-md bg-white object-contain p-0.5" />
+      ) : (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs font-bold" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+          {name.slice(0, 2).toUpperCase()}
+        </span>
+      )}
+      <span className="min-w-0 break-words text-sm font-bold leading-tight">{name}</span>
+      {score !== null && <span className="text-lg font-extrabold tabular-nums">{score}</span>}
+    </div>
+  );
+}
+
 const STATUS_LABEL: Record<string, string> = {
   scheduled: "Scheduled", final: "Final", cancelled: "Cancelled", pending: "Not paid", open: "Open", closed: "Closed",
 };
 
-export default function AdminPredictionsManager({ rows }: { rows: AdminPredRow[] }) {
+export default function AdminPredictionsManager({ rows, teams = {} }: { rows: AdminPredRow[]; teams?: Record<string, AdminTeams> }) {
   const router = useRouter();
   const now = useNow();
   const [busy, setBusy] = useState<string | null>(null);
@@ -108,8 +131,16 @@ export default function AdminPredictionsManager({ rows }: { rows: AdminPredRow[]
         const k = `${r.kind}-${r.id}`;
         return (
           <div key={k} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ ...border, background: "var(--surface)" }}>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{r.title}</p>
+            <div className="min-w-[16rem] flex-1">
+              {r.kind === "game" && teams[r.id] ? (
+                <div className="mb-1 flex items-center gap-2">
+                  <Team name={teams[r.id].home_name} logo={teams[r.id].home_logo} score={teams[r.id].home_score} align="left" />
+                  <span className="shrink-0 text-xs font-extrabold uppercase" style={{ color: "var(--text-faint)" }}>vs</span>
+                  <Team name={teams[r.id].away_name} logo={teams[r.id].away_logo} score={teams[r.id].away_score} align="right" />
+                </div>
+              ) : (
+                <p className="break-words font-semibold">{r.title}</p>
+              )}
               <p className="text-xs" style={{ color: "var(--text-dim)" }}>
                 {r.kind === "bracket" ? `Bracket (${r.tier})` : "Single game"} · {STATUS_LABEL[r.status] ?? r.status} · {r.owner ?? "unknown"} · {r.games} {r.games === 1 ? "game" : "games"} · {r.picks} picks
                 {r.starts_at ? <> · {r.kind === "bracket" ? "locks" : "starts"} <LocalTime iso={r.starts_at} /></> : null}
