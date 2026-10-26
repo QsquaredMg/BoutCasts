@@ -179,12 +179,41 @@ export default async function MatchupsView() {
           const pctA = total > 0 ? Math.round((tally.a / total) * 100) : 0;
           const pctB = total > 0 ? 100 - pctA : 0;
           const effectiveSponsor = bout.sponsors ?? bout.categories?.sponsors;
+          const statusChip = (
+            <span
+              className="whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+              style={{
+                fontFamily: "var(--font-display)",
+                background: bout.status === "live" ? "var(--red-soft)" : bout.status === "final" ? "var(--gold-soft)" : "var(--surface-2)",
+                color: bout.status === "live" ? "var(--red)" : bout.status === "final" ? "var(--gold)" : "var(--text-dim)",
+              }}
+            >
+              {bout.status === "live" && <span className="bc-live-dot mr-1" />}
+              {STATUS_LABEL[bout.status]}
+            </span>
+          );
+          const splitBar =
+            total > 0 ? (
+              <div className="w-full">
+                <div className="flex h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }} role="img" aria-label={`${bout.competitor_a_name} ${pctA} percent, ${bout.competitor_b_name} ${pctB} percent`}>
+                  <span style={{ width: `${pctA}%`, background: "var(--red)" }} />
+                  <span style={{ width: `${pctB}%`, background: "var(--blue)" }} />
+                </div>
+                <div className="mt-1 flex justify-between text-xs font-bold tabular-nums">
+                  <span style={{ color: "var(--red)" }}>{pctA}%</span>
+                  <span style={{ color: "var(--text-faint)" }}>{total} {total === 1 ? "vote" : "votes"}</span>
+                  <span style={{ color: "var(--blue)" }}>{pctB}%</span>
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs" style={{ color: "var(--text-faint)" }}>No votes yet</span>
+            );
 
           return (
             <Link
               key={bout.id}
               href={`/bout/${bout.id}`}
-              className="flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--surface-2)]"
+              className="flex items-start gap-3 px-4 py-4 transition-colors hover:bg-[var(--surface-2)] sm:items-center sm:gap-4"
               style={{
                 borderTop: i > 0 ? "1px solid var(--border)" : "none",
               }}
@@ -197,9 +226,9 @@ export default async function MatchupsView() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-sm font-bold">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 break-words text-[15px] font-bold leading-snug">
                   <span>{bout.competitor_a_name}</span>
-                  <span style={{ color: "var(--text-faint)" }}>vs</span>
+                  <span className="text-xs uppercase" style={{ color: "var(--text-faint)" }}>vs</span>
                   <span>{bout.competitor_b_name}</span>
                   {bout.bracket_key && (
                     <span
@@ -224,11 +253,11 @@ export default async function MatchupsView() {
                   const pool = poolByBout.get(bout.id)!;
                   const pct = Math.min(100, Math.round((pool.raised / pool.goal_amount) * 100));
                   return (
-                    <div className="mt-2 flex max-w-[300px] items-center gap-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                       <span className="whitespace-nowrap text-[11px] font-bold" style={{ color: "var(--text-dim)" }}>
                         🪙 {pool.raised} of {pool.goal_amount} BB
                       </span>
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
+                      <div className="h-1.5 min-w-[5rem] flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--blue)" }} />
                       </div>
                       <StopPropagation>
@@ -237,42 +266,15 @@ export default async function MatchupsView() {
                     </div>
                   );
                 })()}
+                <div className="mt-2.5 flex flex-col gap-2 sm:hidden">
+                  <div>{statusChip}</div>
+                  {splitBar}
+                </div>
               </div>
 
-              <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                <span
-                  className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    background:
-                      bout.status === "live"
-                        ? "var(--red-soft)"
-                        : bout.status === "final"
-                        ? "var(--gold-soft)"
-                        : "var(--surface-2)",
-                    color:
-                      bout.status === "live"
-                        ? "var(--red)"
-                        : bout.status === "final"
-                        ? "var(--gold)"
-                        : "var(--text-dim)",
-                  }}
-                >
-                  {bout.status === "live" && <span className="bc-live-dot mr-1" />}
-                  {STATUS_LABEL[bout.status]}
-                </span>
-                {total > 0 ? (
-                  <span
-                    className="text-xs font-variant-tabular"
-                    style={{ color: "var(--text-faint)" }}
-                  >
-                    {pctA}% / {pctB}%
-                  </span>
-                ) : (
-                  <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-                    No votes yet
-                  </span>
-                )}
+              <div className="hidden w-[9.5rem] flex-shrink-0 flex-col items-end gap-1.5 sm:flex">
+                {statusChip}
+                {splitBar}
               </div>
             </Link>
           );
