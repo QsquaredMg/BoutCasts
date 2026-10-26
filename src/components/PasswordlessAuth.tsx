@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyAuthError } from "@/lib/authMessages";
 import { postLoginPath } from "@/lib/postLoginPath";
 import GoogleIdButton from "@/components/GoogleIdButton";
+import { useSocialInAppBrowser } from "@/lib/inAppBrowser";
 import type { User } from "@supabase/supabase-js";
 
 // When set, Google sign-in runs on this site (Google's own button) instead of redirecting through Supabase.
@@ -55,6 +56,7 @@ export default function PasswordlessAuth({
   const [cooldown, setCooldown] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
   const [gidFailed, setGidFailed] = useState(false);
+  const inApp = useSocialInAppBrowser();
 
   useEffect(() => {
     let alive = true;
@@ -132,7 +134,8 @@ export default function PasswordlessAuth({
     router.refresh();
   }
 
-  const showSocial = providers.google || providers.apple;
+  const showGoogle = providers.google && !inApp;
+  const showSocial = showGoogle || providers.apple;
 
   return (
     <div className="flex flex-col gap-3">
@@ -142,12 +145,18 @@ export default function PasswordlessAuth({
         </p>
       )}
 
+      {inApp && providers.google && (
+        <p className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-dim)" }}>
+          Google sign-in doesn&apos;t work inside Facebook. Use the email code below. It takes about 20 seconds, with no password.
+        </p>
+      )}
+
       {showSocial && (
         <div className="flex flex-col gap-2">
-          {providers.google && GOOGLE_CLIENT_ID && !gidFailed && (
+          {showGoogle && GOOGLE_CLIENT_ID && !gidFailed && (
             <GoogleIdButton clientId={GOOGLE_CLIENT_ID} onSignedIn={googleDone} onError={setError} onUnavailable={() => setGidFailed(true)} />
           )}
-          {providers.google && (!GOOGLE_CLIENT_ID || gidFailed) && (
+          {showGoogle && (!GOOGLE_CLIENT_ID || gidFailed) && (
             <button type="button" onClick={() => social("google")} disabled={busy} className="flex items-center justify-center gap-2.5 rounded-full border py-2.5 text-sm font-bold disabled:opacity-60" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
               <GoogleMark /> Continue with Google
             </button>
