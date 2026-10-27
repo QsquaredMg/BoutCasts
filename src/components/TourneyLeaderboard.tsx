@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { TourneyRow } from "@/lib/predictions/types";
 
-// Standings for a tournament bracket: points first (wins and losses), then the championship score breaks ties.
+// Standings for a prediction bracket: points first (wins and losses), then the championship score breaks ties.
 export default function TourneyLeaderboard({ rows, meId, champFinal }: { rows: TourneyRow[]; meId?: string | null; champFinal: boolean }) {
   if (rows.length === 0) {
     return (

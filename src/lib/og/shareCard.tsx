@@ -45,7 +45,7 @@ export type CardData = {
   games?: GameRow[];
   /** Games beyond the ones listed. */
   gamesMore?: number;
-  /** Small line above the contenders, e.g. a category or "Private game". */
+  /** Small line above the contenders, e.g. a category or "Private pool". */
   kicker?: string | null;
   /** The event's own name (room, bracket or topic title). */
   title?: string | null;

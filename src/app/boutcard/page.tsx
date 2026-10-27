@@ -6,7 +6,7 @@ import BracketTree from "@/components/BracketTree";
 
 // The "BoutCard" page (moved from / when the marketing homepage launched) —
 // mirrors the concept mockup's default view:
-// a featured live duel up top, its tournament bracket underneath, with a
+// a featured live duel up top, its voting bracket underneath, with a
 // way to jump into the full flat feed of every other matchup.
 export const metadata = { title: "BoutCard", description: "Today’s BoutCard: the featured matchups on BoutCasts. Watch, vote and share your pick." };
 

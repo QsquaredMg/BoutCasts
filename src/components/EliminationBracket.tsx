@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import PredTeam from "@/components/PredTeam";
+import BracketVotePanel from "@/components/BracketVotePanel";
 import LocalTime from "@/components/LocalTime";
 import { roundLabel } from "@/lib/predictions/pricing";
 import type { BracketTeam, PredGame, PredSlate } from "@/lib/predictions/types";
@@ -45,6 +46,9 @@ export default function EliminationBracket({
   myPicks,
   canPredict,
   signedIn,
+  isOwner = false,
+  voteCounts = {},
+  myVotes = {},
 }: {
   slate: PredSlate;
   teams: BracketTeam[];
@@ -52,6 +56,11 @@ export default function EliminationBracket({
   myPicks: BracketPick[];
   canPredict: boolean;
   signedIn: boolean;
+  isOwner?: boolean;
+  /** Crowd-votes brackets: votes per matchup, then per contestant. */
+  voteCounts?: Record<string, Record<string, number>>;
+  /** Crowd-votes brackets: the signed-in user's vote per matchup. */
+  myVotes?: Record<string, string>;
 }) {
   const router = useRouter();
   const teamById = new Map(teams.map((t) => [t.id, t]));
@@ -60,6 +69,8 @@ export default function EliminationBracket({
   const pickByGame = new Map(myPicks.map((p) => [p.game_id, p]));
   // Tournament brackets: wins and losses are the grade; only the championship score is asked for (it breaks ties).
   const tour = slate.scoring_mode === "tourney";
+  // Crowd-votes brackets: players only pick winners (no scores at all); the crowd's votes advance the contestants.
+  const votes = slate.advance_mode === "votes";
 
   const [draft, setDraft] = useState<Draft>(() => {
     const d: Draft = {};
@@ -75,7 +86,7 @@ export default function EliminationBracket({
 
   const complete = games.every((g) => {
     const d = draft[g.id];
-    if (tour && g.round !== totalRounds) return !!d?.team;
+    if (votes || (tour && g.round !== totalRounds)) return !!d?.team;
     const w = Number(d?.win), l = Number(d?.lose);
     return d?.team && d.win !== "" && d.lose !== "" && Number.isInteger(w) && Number.isInteger(l) && w > l && l >= 0;
   });
@@ -84,7 +95,7 @@ export default function EliminationBracket({
     setBusy(true);
     setMsg(null);
     const picks = games.map((g) => {
-      const scored = !tour || g.round === totalRounds;
+      const scored = !votes && (!tour || g.round === totalRounds);
       return { game_id: g.id, team_id: draft[g.id].team, win_score: scored ? Number(draft[g.id].win) : null, lose_score: scored ? Number(draft[g.id].lose) : null };
     });
     const { error } = await createClient().rpc("submit_bracket", { p_bracket: slate.id, p_picks: picks });
@@ -110,7 +121,9 @@ export default function EliminationBracket({
     <div className="mb-8">
       {canPredict && (
         <p className="mb-4 rounded-xl p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
-          {tour
+          {votes
+            ? <>Pick the winner of every matchup. After picks lock, the crowd votes round by round and the contestant with more votes really advances. Correct picks earn more points each round. </>
+            : tour
             ? <>Pick the winner of every game, then guess the championship score (winner&apos;s score first). Correct picks earn more points each round, and the championship score only breaks ties. </>
             : <>Pick the winner of every game and the final score (winner&apos;s score first). Your later rounds follow from the winners you pick. </>}
           Everything locks 15 minutes after the first game starts{slate.locks_at ? <> (<LocalTime iso={slate.locks_at} />)</> : null}.
@@ -128,7 +141,7 @@ export default function EliminationBracket({
                 const d = draft[g.id];
                 return (
                   <div key={g.id} className="bc-card p-4">
-                    <p className="mb-2 text-xs font-bold" style={{ color: "var(--text-faint)" }}>Game {g.slot} · <LocalTime iso={g.starts_at} /></p>
+                    <p className="mb-2 text-xs font-bold" style={{ color: "var(--text-faint)" }}>{votes ? "Matchup" : "Game"} {g.slot} · {votes ? "voting opens " : ""}<LocalTime iso={g.starts_at} /></p>
                     {opts.length < 2 && r > 1 ? (
                       <p className="text-sm" style={{ color: "var(--text-faint)" }}>Pick the winners of the earlier games first{opts.length === 1 ? ` (so far ${teamById.get(opts[0])?.name})` : ""}.</p>
                     ) : null}
@@ -143,7 +156,7 @@ export default function EliminationBracket({
                         );
                       })}
                     </div>
-                    {d?.team && (!tour || r === totalRounds) && (
+                    {d?.team && !votes && (!tour || r === totalRounds) && (
                       <div className="mt-3 flex items-end gap-2">
                         <label className="flex-1 text-xs font-bold">
                           Winner&apos;s score
@@ -155,6 +168,27 @@ export default function EliminationBracket({
                           <input type="number" inputMode="numeric" min={0} max={999} value={d.lose} onChange={(e) => setGame(g.id, { lose: e.target.value })} className="mt-1 h-11 w-full rounded-xl border bg-transparent text-center text-lg font-black" style={{ borderColor: "var(--border)" }} />
                         </label>
                       </div>
+                    )}
+                  </div>
+                );
+              }
+              if (votes) {
+                return (
+                  <div key={g.id} className="bc-card p-4">
+                    <p className="mb-2 text-xs font-bold" style={{ color: "var(--text-faint)" }}>Matchup {g.slot}</p>
+                    <BracketVotePanel
+                      game={g}
+                      teams={teamById}
+                      counts={voteCounts[g.id] ?? {}}
+                      myVote={myVotes[g.id] ?? null}
+                      signedIn={signedIn}
+                      isOwner={isOwner}
+                      loginHref={`/login?next=${encodeURIComponent(`/predictions/slate/${slate.id}`)}`}
+                    />
+                    {mine && (
+                      <p className="mt-3 text-center text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
+                        Your bracket pick: {teamById.get(mine.team_id)?.name ?? "Team"}{mine.pts_total != null ? ` · ${mine.pts_total} pts` : ""}
+                      </p>
                     )}
                   </div>
                 );
@@ -186,7 +220,7 @@ export default function EliminationBracket({
           <button type="button" onClick={save} disabled={busy || !complete} className="bc-btn-solid w-full rounded-full px-5 py-3 text-sm font-bold disabled:opacity-60">
             {busy ? "Saving…" : myPicks.length ? "Update my bracket" : "Lock in my bracket"}
           </button>
-          {!complete && <p className="mt-2 text-center text-xs" style={{ color: "var(--text-faint)" }}>Pick a winner and score for every game to lock it in.</p>}
+          {!complete && <p className="mt-2 text-center text-xs" style={{ color: "var(--text-faint)" }}>{votes ? "Pick a winner for every matchup to lock it in." : "Pick a winner and score for every game to lock it in."}</p>}
           {msg && <p role="status" className="mt-3 text-sm font-semibold" style={{ color: msg.ok ? "var(--blue)" : "var(--red)" }}>{msg.text}</p>}
         </>
       )}

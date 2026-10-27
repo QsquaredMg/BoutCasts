@@ -42,6 +42,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const slate = slateRow as PredSlate;
   const isElim = slate.kind === "elimination";
   const isTourney = slate.scoring_mode === "tourney";
+  const isVotes = slate.advance_mode === "votes";
 
   const [{ data: gameRows }, { data: lb }, { data: teamRows }, { data: me }, { data: sponsorRows }, { data: entrantStand }] = await Promise.all([
     supabase.from("pred_games").select(GAME_FIELDS).eq("slate_id", id).neq("status", "cancelled").order("starts_at"),
@@ -74,6 +75,18 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const allFinal = games.length > 0 && finals === games.length;
   const totalRounds = Math.max(...games.map((g) => g.round ?? 1), 1);
 
+  // Crowd-votes brackets: the vote tally per matchup, and this person's own votes.
+  const voteCounts: Record<string, Record<string, number>> = {};
+  const myVotes: Record<string, string> = {};
+  if (isVotes) {
+    const [{ data: vc }, { data: mv }] = await Promise.all([
+      supabase.rpc("bracket_vote_counts", { p_slate: id }),
+      user ? supabase.rpc("bracket_my_votes", { p_slate: id }) : Promise.resolve({ data: [] }),
+    ]);
+    for (const r of (vc ?? []) as { game_id: string; team_id: string; votes: number }[]) (voteCounts[r.game_id] ??= {})[r.team_id] = Number(r.votes);
+    for (const r of (mv ?? []) as { game_id: string; team_id: string }[]) myVotes[r.game_id] = r.team_id;
+  }
+
   let myPicks: BracketPick[] = [];
   const mine: Record<string, { pred_home: number; pred_away: number; pts_total: number | null }> = {};
   if (user && games.length) {
@@ -94,7 +107,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
       <PredHero
         wide
         backLabel="Bout Predictions"
-        kicker={<>{slate.visibility === "private" ? "🔒 Private game" : isElim ? `${slate.bracket_size}-team bracket` : "Weekly slate"} · {statusText}</>}
+        kicker={<>{slate.visibility === "private" ? "🔒 Private pool" : isElim ? `${slate.bracket_size}-${isVotes ? "contestant" : "team"} bracket${isVotes ? " · advances by crowd vote" : ""}` : "Weekly pick'em"} · {statusText}</>}
         live={open}
         title={slate.title}
         sub={<>
@@ -112,6 +125,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
           </div>
         )}
         <div className="pt-cta">
+          {isVotes && open && <a href="#bracket" className="pt-gold">Vote on matchups</a>}
           {isOwner && !isElim && open && (
             <Link href={`/predictions/new?slate=${slate.id}`} className="pt-gold">Add a game</Link>
           )}
@@ -132,7 +146,9 @@ export default async function SlatePage({ params, searchParams }: Props) {
       )}
 
       {isElim ? (
-        <EliminationBracket slate={slate} teams={teams} games={games} myPicks={myPicks} canPredict={canPredict} signedIn={!!user} />
+        <div id="bracket">
+          <EliminationBracket slate={slate} teams={teams} games={games} myPicks={myPicks} canPredict={canPredict} signedIn={!!user} isOwner={isOwner} voteCounts={voteCounts} myVotes={myVotes} />
+        </div>
       ) : (
         <section className="mb-8 grid gap-3">
           {games.length === 0 ? <p className="bc-card p-5 text-sm" style={{ color: "var(--text-dim)" }}>No games have been added yet.</p> : games.map((g) => <GameCard key={g.id} game={g} mine={mine[g.id]} />)}
@@ -143,7 +159,9 @@ export default async function SlatePage({ params, searchParams }: Props) {
         <section className="bc-card mb-6 p-4 text-sm">
           <h2 className="pt-h2 mb-2">How points work</h2>
           <p className="mb-2" style={{ color: "var(--text-dim)" }}>
-            Every correct pick earns points, and later rounds are worth more. Wins and losses decide the standings. The championship score guess only breaks ties.
+            {isVotes
+              ? "Every correct pick earns points, and later rounds are worth more. A matchup is decided by the crowd's votes, and players with the same points are ranked by who entered first."
+              : "Every correct pick earns points, and later rounds are worth more. Wins and losses decide the standings. The championship score guess only breaks ties."}
           </p>
           <p className="text-xs font-semibold" style={{ color: "var(--text-dim)" }}>
             {Array.from({ length: totalRounds }, (_, i) => `${roundLabel(i + 1, totalRounds)}: ${roundPoints(i + 1)}`).join(" · ")}

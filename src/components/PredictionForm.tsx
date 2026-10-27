@@ -120,7 +120,7 @@ export default function PredictionForm({
   if (!signedIn && game.is_private) {
     return (
       <div className="bc-card p-5 text-center">
-        <p className="mb-3 text-sm font-semibold">This is a private game. Sign in to make your prediction.</p>
+        <p className="mb-3 text-sm font-semibold">This is a private pool. Sign in to make your prediction.</p>
         <Link href={`/login?next=${encodeURIComponent(`/predictions/${game.id}`)}`} className="bc-btn-solid inline-block rounded-full px-5 py-2 text-sm font-bold">
           Sign in to predict
         </Link>

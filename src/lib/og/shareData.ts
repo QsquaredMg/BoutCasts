@@ -45,7 +45,7 @@ export async function loadPredGameCard(supabase: SupabaseClient, id: string, img
     // Graded: show the final score instead of the start and pick-close times.
     return {
       type: "predictions",
-      kicker: g.is_private ? "🔒 Private game" : null,
+      kicker: g.is_private ? "🔒 Private pool" : null,
       contenders: [{ name: g.home_name, img: h }, { name: g.away_name, img: a }],
       finalScore: [g.home_score, g.away_score],
       winner: g.home_score === g.away_score ? null : g.home_score > g.away_score ? 0 : 1,
@@ -57,7 +57,7 @@ export async function loadPredGameCard(supabase: SupabaseClient, id: string, img
   }
   return {
     type: "predictions",
-    kicker: g.is_private ? "🔒 Private game" : null,
+    kicker: g.is_private ? "🔒 Private pool" : null,
     contenders: [{ name: g.home_name, img: h }, { name: g.away_name, img: a }],
     startMs: start,
     startLabel: "Game time",

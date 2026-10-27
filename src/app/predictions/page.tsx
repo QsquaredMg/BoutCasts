@@ -50,10 +50,7 @@ export default async function PredictionsPage() {
         sub={<>Pick the winner and the final score before the game starts. Call the winner for {SCORING.winner} points, then earn bonus points for nailing the score or getting close.</>}
       >
         <div className="pt-cta">
-          <Link href="/predictions/new" className="pt-gold">Start a free game</Link>
-          <Link href="/predictions/tournament/new" className="pt-ghost">🏆 Tournament bracket</Link>
-          <Link href="/predictions/bracket/new" className="pt-ghost">Game slate</Link>
-          <Link href="/predictions/private/new" className="pt-ghost">🔒 Private game</Link>
+          <Link href="/predictions/start" className="pt-gold">Start a game</Link>
           <Link href="/predictions/join" className="pt-ghost">Have a code?</Link>
           <Link href="/predictions/leaderboard" className="pt-ghost">Leaderboard</Link>
           <Link href="/predictions/play" className="pt-ghost">How it works</Link>
@@ -73,7 +70,7 @@ export default async function PredictionsPage() {
 
       {(myPrivate ?? []).length > 0 && (
         <section className="mb-8">
-          <h2 className="pt-h2 mb-3">Your private games</h2>
+          <h2 className="pt-h2 mb-3">Your private pools</h2>
           <div className="grid gap-2">
             {(myPrivate ?? []).map((s) => (
               <Link key={s.id} href={`/predictions/slate/${s.id}`} className="bc-card flex items-center justify-between gap-3 p-4 text-sm font-bold">
@@ -94,7 +91,7 @@ export default async function PredictionsPage() {
                 <span className="min-w-0">
                   <span className="block truncate">{s.title}</span>
                   <span className="block text-xs font-semibold" style={{ color: "var(--text-faint)" }}>
-                    {s.kind === "elimination" ? "Elimination bracket" : "Slate of games"} · {s.status === "pending" ? "Not paid yet (only you can see this)" : s.status === "open" ? "Open" : "Closed"}
+                    {s.kind === "elimination" ? "Prediction bracket" : "Pick'em (a list of games)"} · {s.status === "pending" ? "Not paid yet (only you can see this)" : s.status === "open" ? "Open" : "Closed"}
                   </span>
                 </span>
                 <span style={{ color: "var(--blue)" }}>View →</span>

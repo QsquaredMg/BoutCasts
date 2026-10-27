@@ -13,7 +13,7 @@ type Game = { home_name: string; home_logo: string; away_name: string; away_logo
 const blankGame = (): Game => ({ home_name: "", home_logo: "", away_name: "", away_logo: "", starts_at: "", allow_draw: false });
 
 // Closed, invite-only prediction game. $5 per game, paid by the creator; invitees play free.
-// Private games skip the "this matchup already exists" check, so the same teams can be used again.
+// Private pools skip the "this matchup already exists" check, so the same teams can be used again.
 export default function PrivateGameBuilder() {
   const [title, setTitle] = useState("");
   const [games, setGames] = useState<Game[]>([blankGame()]);
@@ -45,7 +45,7 @@ export default function PrivateGameBuilder() {
       });
       const out = await resp.json().catch(() => ({}));
       if (!resp.ok || !out.url) {
-        setError(out.error ?? "We couldn't start checkout. Your private game is saved; open it from Bout Predictions to pay.");
+        setError(out.error ?? "We couldn't start checkout. Your private pool is saved; open it from Bout Predictions to pay.");
         return;
       }
       window.location.assign(out.url);

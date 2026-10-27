@@ -28,7 +28,7 @@ const TICKER = ["Friday night lights", "Band battles", "Homecoming week", "Rival
 
 const USES = [
   { c: "u1", i: "🎓", t: "Classrooms and school spirit", d: "Run friendly rivalry games around the home team. A natural way to practice reading stats and making a call." },
-  { c: "u2", i: "👨‍👩‍👧‍👦", t: "Family and friend groups", d: "Settle who really knows the game. A private game with a join code keeps the bragging rights in the group chat." },
+  { c: "u2", i: "👨‍👩‍👧‍👦", t: "Family and friend groups", d: "Settle who really knows the game. A private pool with a join code keeps the bragging rights in the group chat." },
   { c: "u3", i: "🍔", t: "Bars, restaurants and watch parties", d: "Give the room a reason to stay for the whole game. Put a QR code on the table and post the leaderboard." },
   { c: "u4", i: "📣", t: "Booster clubs and school events", d: "Build buzz before game night and give supporters something to talk about all week." },
   { c: "u5", i: "🎙️", t: "Creators and communities", d: "Add a game to your stream, show or newsletter and turn viewers into a competing community." },
@@ -37,9 +37,9 @@ const USES = [
 
 const FAQ = [
   { q: "Do players have to pay?", a: "No. Players always play free. Organizers get one free single game every two weeks." },
-  { q: "How do I keep a game private?", a: `A private game is invite-only and costs ${money(BRACKET_PRICING.privateGameCents)} per game. Invitees join with a code and play free.` },
-  { q: "What if I want several games at once?", a: `A game slate puts many games on one leaderboard. It is ${money(BRACKET_PRICING.weeklyCents)} for ${BRACKET_PRICING.weeklyDays} days, or ${money(BRACKET_PRICING.seasonCents)} to stay open all season.` },
-  { q: "Can I run a March Madness style tournament?", a: `Yes. A tournament bracket (4 to 64 teams) is free to build, and you pay once when you publish: ${TOURNEY_TIERS.map((t) => `${money(t.cents)} for up to ${t.cap.toLocaleString()} entrants`).join(", ")}. Players fill out the whole bracket for free, and wins and losses decide the standings.` },
+  { q: "How do I keep a game private?", a: `A private pool is invite-only and costs ${money(BRACKET_PRICING.privateGameCents)} per game. Invitees join with a code and play free.` },
+  { q: "What if I want several games at once?", a: `A pick'em puts many games on one leaderboard. It is ${money(BRACKET_PRICING.weeklyCents)} for ${BRACKET_PRICING.weeklyDays} days, or ${money(BRACKET_PRICING.seasonCents)} to stay open all season.` },
+  { q: "Can I run a March Madness style tournament?", a: `Yes. A prediction bracket (4 to 64 teams) is free to build, and you pay once when you publish: ${TOURNEY_TIERS.map((t) => `${money(t.cents)} for up to ${t.cap.toLocaleString()} entrants`).join(", ")}. Players fill out the whole bracket for free, and wins and losses decide the standings.` },
   { q: "When do picks lock?", a: "15 minutes after the game's start time." },
   { q: "Is this gambling?", a: "No. There is no money in play for players. It is points and bragging rights only." },
 ];
@@ -256,7 +256,7 @@ export default async function PredictionsFunnelPage() {
             </div>
 
             <div className={`${s.card} ${s.b2}`}>
-              <h3>Brackets and slates</h3>
+              <h3>Brackets and pick&apos;ems</h3>
               <p>Run a whole tournament or a full weekend of games, with one leaderboard across all of it.</p>
               <svg viewBox="0 0 220 110" width="100%" height="110" aria-hidden>
                 <g fill="none" stroke="#1b4fe4" strokeWidth="3" strokeLinecap="round">
@@ -304,16 +304,16 @@ export default async function PredictionsFunnelPage() {
               <Link href="/predictions/new" className={s.tkBtn}>Start a free game</Link>
             </div>
             <div className={s.tk}>
-              <h3>Private game</h3>
+              <h3>Private pool</h3>
               <div className={s.price}>{money(BRACKET_PRICING.privateGameCents)}</div>
               <p>Invite-only with a join code. Invitees play free.</p>
-              <Link href="/predictions/private/new" className={s.tkBtn}>Create a private game</Link>
+              <Link href="/predictions/private/new" className={s.tkBtn}>Create a private pool</Link>
             </div>
             <div className={s.tk}>
-              <h3>Game slate</h3>
+              <h3>Pick&apos;em</h3>
               <div className={s.price}>{money(BRACKET_PRICING.weeklyCents)}</div>
               <p>Many games, one leaderboard. Open {BRACKET_PRICING.weeklyDays} days, or {money(BRACKET_PRICING.seasonCents)} for the whole season.</p>
-              <Link href="/predictions/bracket/new" className={s.tkBtn}>Build a slate</Link>
+              <Link href="/predictions/bracket/new" className={s.tkBtn}>Build a pick&apos;em</Link>
             </div>
             <div className={s.tk}>
               <h3>Tournament</h3>

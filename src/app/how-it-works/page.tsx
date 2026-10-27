@@ -18,7 +18,7 @@ const STEPS = [
     icon: "🥊",
     title: "Get matched",
     body:
-      "Approved entries get matched head-to-head against another competitor in the same category, either as a standalone bout or as a slot in a tournament bracket.",
+      "Approved entries get matched head-to-head against another competitor in the same category, either as a standalone bout or as a slot in a voting bracket.",
   },
   {
     icon: "🗳️",

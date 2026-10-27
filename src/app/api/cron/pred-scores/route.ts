@@ -12,6 +12,10 @@ export async function GET(req: Request) {
   }
   const db = createAdminClient();
   const now = Date.now();
+  // Crowd-votes brackets: close every matchup whose voting window has ended and advance the winner.
+  // (A tied matchup waits for its organizer to choose.)
+  const { data: closedVotes, error: voteErr } = await db.rpc("auto_close_bracket_votes");
+  if (voteErr) console.error("pred-scores bracket votes:", voteErr.message);
   const { data: games } = await db
     .from("pred_games")
     .select("id, home_name, away_name, starts_at, allow_draw, round, created_by")
@@ -21,7 +25,7 @@ export async function GET(req: Request) {
     .gt("starts_at", new Date(now - 4 * 24 * 60 * 60 * 1000).toISOString())
     .order("starts_at")
     .limit(40);
-  if (!games?.length) return NextResponse.json({ checked: 0, finalized: 0 });
+  if (!games?.length) return NextResponse.json({ checked: 0, finalized: 0, bracketVotesClosed: closedVotes ?? 0 });
 
   const { data: dir } = await db.from("team_directory").select(TEAM_FIELDS).eq("hidden", false).limit(2000);
   const directory = (dir ?? []) as DirectoryTeam[];
@@ -39,5 +43,5 @@ export async function GET(req: Request) {
     else finalized++;
   }
   if (notes.length) console.error("pred-scores:", notes.join(" | "));
-  return NextResponse.json({ checked: games.length, finalized, notes });
+  return NextResponse.json({ checked: games.length, finalized, notes, bracketVotesClosed: closedVotes ?? 0 });
 }

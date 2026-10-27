@@ -142,7 +142,7 @@ export default function AdminPredictionsManager({ rows, teams = {} }: { rows: Ad
                 <p className="break-words font-semibold">{r.title}</p>
               )}
               <p className="text-xs" style={{ color: "var(--text-dim)" }}>
-                {r.kind === "bracket" ? `Bracket (${r.tier})` : "Single game"} · {STATUS_LABEL[r.status] ?? r.status} · {r.owner ?? "unknown"} · {r.games} {r.games === 1 ? "game" : "games"} · {r.picks} picks
+                {r.kind === "bracket" ? `Pick'em or bracket (${r.tier})` : "Single game"} · {STATUS_LABEL[r.status] ?? r.status} · {r.owner ?? "unknown"} · {r.games} {r.games === 1 ? "game" : "games"} · {r.picks} picks
                 {r.starts_at ? <> · {r.kind === "bracket" ? "locks" : "starts"} <LocalTime iso={r.starts_at} /></> : null}
               </p>
             </div>

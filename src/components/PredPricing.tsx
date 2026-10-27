@@ -12,18 +12,18 @@ export default function PredPricing() {
       cta: "Start a free game",
     },
     {
-      name: "Private game",
+      name: "Private pool",
       price: `${money(BRACKET_PRICING.privateGameCents)} per game`,
       note: "Invite-only with a join code. Your group only.",
       href: "/predictions/private/new",
-      cta: "Make a private game",
+      cta: "Make a private pool",
     },
     {
-      name: "Game slate",
+      name: "Pick'em",
       price: money(BRACKET_PRICING.weeklyCents),
       note: `Many games, one leaderboard. Open ${BRACKET_PRICING.weeklyDays} days, or ${money(BRACKET_PRICING.seasonCents)} for the whole season.`,
       href: "/predictions/bracket/new",
-      cta: "Build a slate",
+      cta: "Build a pick'em",
     },
     {
       name: "Tournament bracket",

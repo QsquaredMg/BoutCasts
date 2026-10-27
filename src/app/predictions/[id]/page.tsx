@@ -41,7 +41,7 @@ export default async function GamePage({ params }: Props) {
   const [{ data: picks }, { data: me }, { data: slate }] = await Promise.all([
     supabase.from("pred_predictions").select("id, game_id, user_id, pick, pred_home, pred_away, pts_entry, pts_winner, pts_exact, pts_close, pts_total, graded_at").eq("game_id", id).order("pts_total", { ascending: false, nullsFirst: false }).limit(200),
     user ? supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
-    game.slate_id ? supabase.from("pred_slates").select("id, title, brand_name, brand_logo_url, white_label").eq("id", game.slate_id).maybeSingle() : Promise.resolve({ data: null }),
+    game.slate_id ? supabase.from("pred_slates").select("id, title, brand_name, brand_logo_url, white_label, advance_mode").eq("id", game.slate_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const all = (picks ?? []) as PredPrediction[];
   // Picks the organizer entered on behalf of a group. Hidden by the database until picks close, except from the organizer.
@@ -159,7 +159,10 @@ export default async function GamePage({ params }: Props) {
         </div>
       )}
 
-      {canManage && <div className="mb-5"><GameAdminPanel game={game} isAdmin={!!me?.is_admin} /></div>}
+      {canManage && slate?.advance_mode === "votes" && (
+        <p className="bc-card mb-5 p-4 text-sm" style={{ color: "var(--text-dim)" }}>This bracket advances by crowd votes. Close voting and settle ties from the bracket page.</p>
+      )}
+      {canManage && slate?.advance_mode !== "votes" && <div className="mb-5"><GameAdminPanel game={game} isAdmin={!!me?.is_admin} /></div>}
 
       {canEnterGroup && (
         <div className="mb-5">

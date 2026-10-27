@@ -16,7 +16,7 @@ export default async function NewPrivatePage() {
   if (!auth.user) redirect(`/login?next=${encodeURIComponent("/predictions/private/new")}`);
   return (
     <>
-      <PredHero small kicker="🔒 Invite-only · players always free" title="Create a private game" sub="Closed and invite-only: just your people, with their own private leaderboard. No limit on using a matchup that already exists publicly." />
+      <PredHero small kicker="🔒 Invite-only · players always free" title="Create a private pool" sub="Closed and invite-only: just your people, with their own private leaderboard. No limit on using a matchup that already exists publicly." />
       <div className="pt-body">
       <PrivateGameBuilder />
       </div>

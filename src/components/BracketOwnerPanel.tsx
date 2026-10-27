@@ -18,7 +18,7 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
   const [when, setWhen] = useState("");
   const isPrivate = slate.tier === "private";
   const isTourney = slate.tier === "tourney";
-  const noun = slate.kind === "elimination" ? "bracket" : "slate";
+  const noun = slate.kind === "elimination" ? "prediction bracket" : "pick'em";
   const tourneyPrice = tourneyCents(slate.entrant_cap);
   const hasInvite = (isPrivate || isTourney) && !!slate.invite_code;
   const privateCents = BRACKET_PRICING.privateGameCents * Math.max(gameCount, 1);
@@ -65,7 +65,7 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
 
   return (
     <div className="bc-card mb-6 p-5">
-      <h2 className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{isPrivate ? "Private game settings" : isTourney ? "Tournament settings" : slate.kind === "elimination" ? "Bracket settings" : "Slate settings"}</h2>
+      <h2 className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{isPrivate ? "Private pool settings" : isTourney ? "Tournament settings" : slate.kind === "elimination" ? "Bracket settings" : "Pick'em settings"}</h2>
 
       {slate.status === "pending" && (
         <>
@@ -75,8 +75,8 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
             <>
               <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>
                 {isTourney
-                  ? `Your tournament bracket is saved but not published yet. Publish it to let up to ${slate.entrant_cap?.toLocaleString() ?? ""} players enter${slate.invite_code ? " with your invite code" : ""}. Players always play free.`
-                  : isPrivate ? "This private game is saved but not open yet. Check out to get your invite code and link. Your invitees play free." : `This ${noun} is saved but not open yet. Players can't see it until you check out.`}
+                  ? `Your prediction bracket is saved but not published yet. Publish it to let up to ${slate.entrant_cap?.toLocaleString() ?? ""} players enter${slate.invite_code ? " with your invite code" : ""}. Players always play free.`
+                  : isPrivate ? "This private pool is saved but not open yet. Check out to get your invite code and link. Your invitees play free." : `This ${noun} is saved but not open yet. Players can't see it until you check out.`}
               </p>
               {isTourney ? (
                 <button type="button" disabled={busy || tourneyPrice == null} onClick={() => pay("activate")} className="bc-btn-solid w-full rounded-full px-4 py-2.5 text-sm font-bold disabled:opacity-60">
@@ -111,9 +111,13 @@ export default function BracketOwnerPanel({ slate, justPaid, isAdmin = false, ga
           {hasInvite && slate.invite_code && <InviteBox slateId={slate.id} code={slate.invite_code} />}
           <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>
             {isTourney ? (
-              <>Tournament bracket for up to {slate.entrant_cap?.toLocaleString()} entrants{slate.invite_code ? ", invite-only" : ""}. It stays open until you close it. Enter each game&apos;s final score as it finishes and the leaderboard updates.</>
+              slate.advance_mode === "votes" ? (
+                <>Crowd-vote bracket for up to {slate.entrant_cap?.toLocaleString()} players{slate.invite_code ? ", invite-only" : ""}. Each matchup&apos;s voting stays open for {slate.vote_hours ?? 24} hours, then the contestant with more votes advances (checked about once an hour). You can close a matchup early or break a tie right on its card below.</>
+              ) : (
+                <>Tournament bracket for up to {slate.entrant_cap?.toLocaleString()} entrants{slate.invite_code ? ", invite-only" : ""}. It stays open until you close it. Enter each game&apos;s final score as it finishes and the leaderboard updates.</>
+              )
             ) : isPrivate ? (
-              <>Private game. Only people with your link or code can find it, and it stays out of public lists and leaderboards.</>
+              <>Private pool. Only people with your link or code can find it, and it stays out of public lists and leaderboards.</>
             ) : slate.tier === "weekly" ? (
               <>8-day {noun}. It closes automatically {slate.closes_at ? <LocalTime iso={slate.closes_at} /> : "after 8 days"}.</>
             ) : slate.closes_at ? (

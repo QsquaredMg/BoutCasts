@@ -3,8 +3,8 @@ import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
 import { BRACKET_PRICING, money, tourneyCents } from "@/lib/predictions/pricing";
 
-// Organizer pays to open a game slate ($10 for 8 days, $25 for the season), a private game ($5 each),
-// or a tournament bracket (by entrant limit). $15 upgrades an open 8-day slate to a season slate.
+// Organizer pays to open a pick'em ($10 for 8 days, $25 for the season), a private pool ($5 each),
+// or a prediction bracket (by entrant limit). $15 upgrades an open 8-day slate to a season slate.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const bracketId = body?.bracketId;
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only a paid 8-day bracket can be upgraded" }, { status: 400 });
     }
     cents = BRACKET_PRICING.upgradeCents;
-    name = `Upgrade to season game slate (${money(cents)}) — ${bracket.title}`;
+    name = `Upgrade to season pick'em (${money(cents)}) — ${bracket.title}`;
     kind = "pred_bracket_upgrade";
     tier = "season";
   } else {
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       const chosen = body?.tier === "season" ? "season" : body?.tier === "weekly" ? "weekly" : bracket.tier;
       tier = chosen;
       cents = chosen === "season" ? BRACKET_PRICING.seasonCents : BRACKET_PRICING.weeklyCents;
-      name = chosen === "season" ? `Season game slate — ${bracket.title}` : `8-day game slate — ${bracket.title}`;
+      name = chosen === "season" ? `Season pick'em — ${bracket.title}` : `8-day pick'em — ${bracket.title}`;
     }
     kind = "pred_bracket";
   }

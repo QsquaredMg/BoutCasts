@@ -7,7 +7,8 @@ export type Goal = { href: string; icon: string; title: string; body: string; ta
 export const HOST_GOALS: Goal[] = [
   { href: "/school-election/new", icon: "🏫", title: "Run a school election", body: "Student council, class officers, homecoming court. Voting kiosks, teacher PIN, secret ballots, certified results.", tag: "Schools" },
   { href: "/live-vote/new", icon: "🗳️", title: "Settle a vote or poll", body: "Halftime votes, talent nights, fan choice or any question. One link, one vote each, live results.", tag: "Free to start" },
-  { href: "/predictions/new", icon: "🎯", title: "Start a prediction game", body: "Fans pick the winner and score of a game or a whole tournament and climb a leaderboard." },
+  { href: "/predictions/tournament/new", icon: "🏆", title: "Build a bracket", body: "March Madness, playoffs, talent shows or mascot battles. Choose whether final scores or crowd votes move the winners forward." },
+  { href: "/predictions/start", icon: "🎯", title: "Start a prediction game", body: "Fans pick the winners of real games: a single game, a pick'em, a prediction bracket or a private pool." },
   { href: "/trivia/packs", icon: "❓", title: "Host a trivia night", body: "Pick a question pack and run it live on the big screen with players on their phones." },
 ];
 
@@ -44,3 +45,11 @@ export default function GoalChooser({ goals, heading, compact = false }: { goals
     </div>
   );
 }
+
+// The four ways to run predictions, all in one place under Predictions.
+export const PREDICTION_GOALS: Goal[] = [
+  { href: "/predictions/new", icon: "🎯", title: "Single game", body: "One matchup. Players pick the winner and the final score before it starts.", tag: "Free" },
+  { href: "/predictions/bracket/new", icon: "📋", title: "Pick'em", body: "A list of games on one leaderboard, for a week or a whole season. Players pick every winner and score." },
+  { href: "/predictions/tournament/new", icon: "🏆", title: "Bracket", body: "An elimination bracket players fill out before round one. You choose what advances it: final scores you enter, or crowd votes.", tag: "Scores or votes" },
+  { href: "/predictions/private/new", icon: "🔒", title: "Private pool", body: "Invite-only, for your friends, family or office. Players join with a code and always play free." },
+];

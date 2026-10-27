@@ -5,20 +5,22 @@ import PredHero from "@/components/PredHero";
 import TourneyBuilder from "@/components/TourneyBuilder";
 
 export const metadata: Metadata = {
-  title: "Create a tournament bracket",
-  description: "Build a March Madness style bracket for any tournament. Players fill it out free, wins and losses decide the standings, and the leaderboard updates after every game.",
+  title: "Create a bracket",
+  description: "Build a bracket where final scores or crowd votes move the winners forward. Players fill it out free and the leaderboard updates after every round.",
   robots: { index: false },
 };
 
-export default async function NewTournamentPage() {
+export default async function NewTournamentPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+  const { mode } = await searchParams;
+  const initialMode = mode === "votes" ? "votes" : "score";
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect(`/login?next=${encodeURIComponent("/predictions/tournament/new")}`);
+  if (!auth.user) redirect(`/login?next=${encodeURIComponent(`/predictions/tournament/new${initialMode === "votes" ? "?mode=votes" : ""}`)}`);
   return (
     <>
-      <PredHero small kicker="Tournament brackets" title="Create a tournament bracket" sub="Build it free. Players fill out the whole bracket before Round 1, and the leaderboard updates after every game." />
+      <PredHero small kicker="Brackets" title="Create a bracket" sub="Choose what moves winners forward: the final scores you enter, or the crowd's votes. Players fill out the whole bracket free." />
       <div className="pt-body">
-        <TourneyBuilder />
+        <TourneyBuilder initialMode={initialMode} />
       </div>
     </>
   );

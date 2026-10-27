@@ -22,6 +22,8 @@ export type PredGame = {
   feeds_game_id: string | null;
   feeds_side: "home" | "away" | null;
   is_private: boolean;
+  /** Crowd-votes brackets: when voting on this matchup closes. */
+  votes_close_at: string | null;
 };
 
 export type PredSlate = {
@@ -42,11 +44,15 @@ export type PredSlate = {
   invite_code: string | null;
   scoring_mode: "classic" | "tourney";
   entrant_cap: number | null;
+  /** What moves winners forward: the final score the organizer enters, or the crowd's votes. */
+  advance_mode: "score" | "votes";
+  /** Crowd-votes brackets: how long each matchup stays open for voting. */
+  vote_hours: number | null;
 };
 
 export type BracketTeam = { id: string; seed: number; name: string; logo: string | null };
 
-export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label, visibility, invite_code, scoring_mode, entrant_cap";
+export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label, visibility, invite_code, scoring_mode, entrant_cap, advance_mode, vote_hours";
 
 export type PredPrediction = {
   id: string;
@@ -89,7 +95,7 @@ export type TourneyRow = {
 };
 
 export const GAME_FIELDS =
-  "id, slate_id, created_by, home_name, home_logo, away_name, away_logo, starts_at, allow_draw, status, scoring_version, crowd_state, home_score, away_score, finalized_at, round, slot, home_team_id, away_team_id, winner_team_id, feeds_game_id, feeds_side, is_private";
+  "id, slate_id, created_by, home_name, home_logo, away_name, away_logo, starts_at, allow_draw, status, scoring_version, crowd_state, home_score, away_score, finalized_at, round, slot, home_team_id, away_team_id, winner_team_id, feeds_game_id, feeds_side, is_private, votes_close_at";
 
 /** Rule: predictions stay open this long after a game's scheduled start. Keep in sync with pred_lock_grace() in the database. */
 export const LOCK_GRACE_MS = 15 * 60 * 1000;
