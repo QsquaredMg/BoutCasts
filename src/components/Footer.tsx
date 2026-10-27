@@ -17,6 +17,9 @@ export default function Footer() {
           <Link href="/how-it-works" className="hover:underline">
             How it works
           </Link>
+          <Link href="/schools" className="hover:underline">
+            Schools
+          </Link>
           <Link href="/sponsor" className="hover:underline">
             For Brands
           </Link>
@@ -30,13 +33,7 @@ export default function Footer() {
             Accessibility
           </Link>
           <Link href="/rules" className="hover:underline">
-            Battle Rules
-          </Link>
-          <Link href="/instrumentals" className="hover:underline">
-            Beat Library
-          </Link>
-          <Link href="/instrumentals/upload" className="hover:underline">
-            Producers: Upload a Beat
+            Rules
           </Link>
           <a href="mailto:support@boutcasts.com" className="hover:underline">
             Contact

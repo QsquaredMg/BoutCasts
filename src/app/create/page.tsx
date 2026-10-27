@@ -1,36 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import GoalChooser, { HOST_GOALS, COMPETE_GOALS, type Goal } from "@/components/GoalChooser";
 
 export const metadata: Metadata = {
-  title: "Create",
-  description: "Host a live vote, enter a head-to-head matchup, or join a debate on BoutCasts.",
+  title: "Host or compete",
+  description: "Run a school election, a live vote, a prediction game or trivia night, or enter a head-to-head matchup on BoutCasts.",
 };
 
-type Option = { href: string; icon: string; title: string; body: string; tag?: string };
-
-// One "Create" button, one place to pick a format.
-const FOR_EVERYONE: Option[] = [
-  {
-    href: "/live-vote/new",
-    icon: "🗳️",
-    title: "Host a Live Vote",
-    body: "Class elections, homecoming court, halftime crowd votes, talent nights. One link, one vote each, live results.",
-    tag: "Free to start",
-  },
-  {
-    href: "/submit",
-    icon: "🥊",
-    title: "Enter a head-to-head",
-    body: "Submit your clip — band, dance, rap, singing and more. We match you with an opponent and the crowd decides.",
-  },
-  {
-    href: "/debates",
-    icon: "🎙️",
-    title: "Join a debate",
-    body: "Pick a side on an open topic, record your argument, and go head to head in rounds.",
-  },
-];
+type Option = Goal;
 
 const FOR_ADMINS: Option[] = [
   { href: "/showcase/new", icon: "🎬", title: "Showcase", body: "One video with up to 16 groups. Voters pick a favorite." },
@@ -57,10 +35,10 @@ export default async function CreatePage() {
   return (
     <div className="mx-auto max-w-[900px] px-5 py-8">
       <h1 className="mb-1 text-3xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-        Create
+        What do you want to do?
       </h1>
       <p className="mb-6 text-sm" style={{ color: "var(--text-dim)" }}>
-        What do you want to put to a vote?
+        Pick a goal and we&apos;ll take you to the right tool.
       </p>
 
       {myEvents > 0 && (
@@ -75,10 +53,9 @@ export default async function CreatePage() {
         </Link>
       )}
 
-      <div className="flex flex-col gap-3">
-        {FOR_EVERYONE.map((o) => (
-          <OptionCard key={o.href} o={o} />
-        ))}
+      <GoalChooser goals={HOST_GOALS} heading="Host something" />
+      <div className="mt-8">
+        <GoalChooser goals={COMPETE_GOALS} heading="Compete" />
       </div>
 
       {isAdmin && (

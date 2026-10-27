@@ -1,6 +1,7 @@
 import { isPublicBout, PUBLIC_BOUT_FIELDS } from "@/lib/publicBouts";
 import type { Metadata } from "next";
 import Image from "next/image";
+import GoalChooser, { HOST_GOALS } from "@/components/GoalChooser";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LIVE_VOTE_TIERS, ORGANIZER_PRO, PRO_ADDON_CENTS, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -220,6 +221,13 @@ export default async function HostPage() {
           <ProofItem icon={<BarsIcon />} text="Public tally, updated in real time" />
           <ProofItem icon={<CardIcon />} text="Free to start · pay per event or go Pro" />
         </div>
+      </section>
+
+      {/* ================= GOAL CHOOSER ================= */}
+      <section className="mx-auto max-w-[1280px] px-5 pt-14 sm:px-8 lg:px-12 lg:pt-20">
+        <h2 className="lp-display mb-2 text-[32px] sm:text-[44px]">What do you want to run?</h2>
+        <p className="mb-6 max-w-[640px] text-[17px]" style={{ color: "var(--lp-muted)" }}>Pick the goal and we&apos;ll open the right tool.</p>
+        <GoalChooser goals={HOST_GOALS} compact />
       </section>
 
       {/* ================= USE CASES ================= */}

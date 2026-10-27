@@ -34,13 +34,13 @@ export type FunnelProps = {
   secondary?: Cta;
   fine?: string;
   visual: ReactNode;
-  ticker: string[];
+  ticker?: string[];
   stepsTitle: string;
   stepsLede: string;
   steps: { title: string; body: string }[];
-  featuresTitle: string;
-  featuresLede: string;
-  features: { icon: string; title: string; body: string; span?: 2 | 3; hot?: boolean; href?: string }[];
+  featuresTitle?: string;
+  featuresLede?: string;
+  features?: { icon: string; title: string; body: string; span?: 2 | 3; hot?: boolean; href?: string }[];
   usesTitle: string;
   uses: { emoji: string; title: string; body: string; href?: string }[];
   tiers?: {
@@ -81,7 +81,7 @@ export default function Funnel(p: FunnelProps) {
     "--ink": "#0a0e1a",
     "--cols": p.tiers?.cards.length ?? 3,
   } as CSSProperties;
-  const ticker = [...p.ticker, ...p.ticker];
+  const ticker = p.ticker ? [...p.ticker, ...p.ticker] : [];
 
   return (
     <div className={`${s.root} ${cond.variable}`} style={vars}>
@@ -120,7 +120,7 @@ export default function Funnel(p: FunnelProps) {
         </div>
       </section>
 
-      <div className={s.ticker} aria-hidden="true">
+      {ticker.length > 0 && <div className={s.ticker} aria-hidden="true">
         <div className={s.tickTrack}>
           {ticker.map((w, i) => (
             <span key={i}>
@@ -128,7 +128,7 @@ export default function Funnel(p: FunnelProps) {
             </span>
           ))}
         </div>
-      </div>
+      </div>}
 
       {p.midSlot && (
         <section className={`${s.sec} ${s.paper}`}>
@@ -136,13 +136,14 @@ export default function Funnel(p: FunnelProps) {
         </section>
       )}
 
+      {p.features && p.features.length > 0 && (
       <section className={`${s.sec} ${s.night}`}>
         <div className={s.wrap}>
           <p className={s.eyebrow}>What you get</p>
           <h2 className={s.secTitle}>{p.featuresTitle}</h2>
           <p className={s.secLede}>{p.featuresLede}</p>
           <div className={s.bento}>
-            {p.features.map((f) => {
+            {(p.features ?? []).map((f) => {
               const cls = `${s.card} ${f.span === 3 ? s.b3 : s.b2} ${f.hot ? s.cardHot : ""}`;
               const inner = (
                 <>
@@ -169,6 +170,7 @@ export default function Funnel(p: FunnelProps) {
           </div>
         </div>
       </section>
+      )}
 
       <section className={`${s.sec} ${s.paper}`}>
         <div className={s.wrap}>

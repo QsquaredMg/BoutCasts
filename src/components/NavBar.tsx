@@ -14,16 +14,16 @@ type Tab = { key: string; label: string; href: string; icon: (active: boolean) =
 
 const VOTE_PREFIXES = [
   "/join", "/vote", "/discover", "/debates", "/leaderboard", "/c/", "/bracket", "/bout/",
-  "/showcase/", "/competitions", "/search", "/boutcard", "/how-it-works", "/trivia/",
+  "/showcase/", "/competitions", "/search", "/boutcard", "/how-it-works",
 ];
 
-const PREDICTION_PREFIXES = ["/predictions"];
-const HOST_PREFIXES = ["/host", "/schools", "/live-vote", "/trivia/play", "/trivia/packs", "/sponsor"];
+const PLAY_PREFIXES = ["/play", "/predictions", "/trivia"];
+const HOST_PREFIXES = ["/host", "/create", "/submit", "/schools", "/school-election", "/live-vote", "/trivia/packs", "/sponsor"];
 const ME_PREFIXES = ["/profile/", "/wallet", "/activity", "/challenges", "/welcome"];
 
 const startsWithAny = (p: string, list: string[]) => list.some((x) => p === x || p.startsWith(x.endsWith("/") ? x : `${x}/`));
 
-// Four places to be, plus one button to make something. Everything else lives in the menu.
+// Three places to be (Vote, Play, Host) plus your profile. Everything else lives in the menu.
 function tabs(profileHref: string): Tab[] {
   return [
     {
@@ -31,28 +31,21 @@ function tabs(profileHref: string): Tab[] {
       label: "Vote",
       href: "/discover",
       icon: (a) => <CompassIcon filled={a} />,
-      match: (p) => !startsWithAny(p, HOST_PREFIXES) && !startsWithAny(p, PREDICTION_PREFIXES) && startsWithAny(p, VOTE_PREFIXES),
+      match: (p) => !startsWithAny(p, HOST_PREFIXES) && !startsWithAny(p, PLAY_PREFIXES) && startsWithAny(p, VOTE_PREFIXES),
     },
     {
-      key: "predictions",
-      label: "Predict",
-      href: "/predictions",
+      key: "play",
+      label: "Play",
+      href: "/play",
       icon: (a) => <TargetIcon filled={a} />,
-      match: (p) => startsWithAny(p, PREDICTION_PREFIXES),
-    },
-    {
-      key: "create",
-      label: "Create",
-      href: "/create",
-      icon: () => <PlusIcon />,
-      match: (p) => ["/create", "/submit", "/live-vote/new", "/showcase/new", "/debates/new"].includes(p),
+      match: (p) => !startsWithAny(p, HOST_PREFIXES) && !/^\/trivia\/[^/]+\/host/.test(p) && startsWithAny(p, PLAY_PREFIXES),
     },
     {
       key: "host",
       label: "Host",
       href: "/host",
       icon: (a) => <MicIcon filled={a} />,
-      match: (p) => startsWithAny(p, HOST_PREFIXES),
+      match: (p) => startsWithAny(p, HOST_PREFIXES) || /^\/trivia\/[^/]+\/host/.test(p),
     },
     {
       key: "me",
@@ -162,7 +155,7 @@ export default function NavBar() {
               className="hidden items-center gap-1 rounded-full p-1 md:flex"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
             >
-              {TABS.filter((t) => t.key !== "create").map((t) => {
+              {TABS.map((t) => {
                 const active = t.match(pathname);
                 return (
                   <Link
@@ -220,17 +213,10 @@ export default function NavBar() {
               )}
               <Link
                 href="/join"
-                className="rounded-full border px-3.5 py-1.5 text-sm font-bold"
-                style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--surface)" }}
-              >
-                Enter code
-              </Link>
-              <Link
-                href="/create"
-                className="hidden rounded-full px-4 py-1.5 text-sm font-bold text-white md:inline-block"
+                className="rounded-full px-3.5 py-1.5 text-sm font-bold text-white"
                 style={{ background: "var(--red)" }}
               >
-                Create
+                Enter code
               </Link>
               {!loading && !user && (
                 <Link href="/login" className="bc-btn-solid rounded-full px-4 py-1.5 text-sm">
@@ -255,14 +241,13 @@ export default function NavBar() {
               <div className="mx-auto grid max-w-[1440px] gap-x-6 gap-y-3 px-4 py-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
                 <MenuGroup title="Play">
                   <MenuLink href="/join" strong>🔒 Join with a code or link</MenuLink>
-                  <MenuLink href="/predictions">🎯 Bout Predictions</MenuLink>
-                  <MenuLink href="/trivia">❓ Live Trivia</MenuLink>
-                  <MenuLink href="/paid-bouts">💵 Paid Bouts</MenuLink>
+                  <MenuLink href="/play">🎯 Play: predictions &amp; trivia</MenuLink>
                   <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
                   <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>
                 </MenuGroup>
                 <MenuGroup title="Host">
                   <MenuLink href="/host" strong>🎤 Host a vote or trivia night</MenuLink>
+                  <MenuLink href="/create">🧭 What do you want to do?</MenuLink>
                   <MenuLink href="/schools">🎓 Schools, colleges &amp; universities</MenuLink>
                   <MenuLink href="/sponsor">🤝 Brands &amp; sponsors</MenuLink>
                   {user && <MenuLink href="/live-vote">🗳️ My Live Votes</MenuLink>}
@@ -317,21 +302,9 @@ export default function NavBar() {
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div className="mx-auto grid max-w-md grid-cols-5">
+        <div className="mx-auto grid max-w-md grid-cols-4">
           {TABS.map((t) => {
             const active = t.match(pathname);
-            if (t.key === "create") {
-              return (
-                <Link key={t.key} href={t.href} className="flex flex-col items-center justify-center py-1.5" aria-label="Create">
-                  <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-white"
-                    style={{ background: "var(--red)", boxShadow: "0 4px 12px rgba(27,79,228,0.35)" }}
-                  >
-                    {t.icon(active)}
-                  </span>
-                </Link>
-              );
-            }
             return (
               <Link
                 key={t.key}
@@ -411,13 +384,6 @@ function TargetIcon({ filled }: { filled: boolean }) {
       <circle cx="12" cy="12" r="4.5" strokeWidth={filled ? 2.4 : 2} />
       <circle cx="12" cy="12" r="1.2" fill="currentColor" />
     </>
-  );
-}
-function PlusIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" aria-hidden>
-      <path d="M12 5v14M5 12h14" />
-    </svg>
   );
 }
 function MicIcon({ filled }: { filled: boolean }) {

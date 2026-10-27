@@ -233,24 +233,36 @@ export function DebateVisual() {
   );
 }
 
-export function VoteVisual() {
+export type LiveBoutSample = { aName: string; bName: string; pctA: number; pctB: number; total: number };
+
+/** A real live matchup when one is passed in; otherwise a clearly labeled example with no made-up counts. */
+export function VoteVisual({ bout }: { bout?: LiveBoutSample | null }) {
+  const real = !!bout && bout.total > 0;
+  const aName = bout?.aName ?? "Team Red";
+  const bName = bout?.bName ?? "Team Blue";
+  const pctA = real ? bout!.pctA : 58;
+  const pctB = real ? bout!.pctB : 42;
   return (
     <div className={s.vCard} style={tilt(-2)}>
       <div className={s.vBar}>
-        <span>Sample matchup</span>
-        <span className={s.vLive}>
-          <span className={s.dot} /> Voting live
-        </span>
+        <span>{bout ? "Live matchup" : "Example matchup"}</span>
+        {bout && (
+          <span className={s.vLive}>
+            <span className={s.dot} /> Voting live
+          </span>
+        )}
       </div>
       <div className={s.vBody}>
         <div className={s.brkCol}>
-          <div className={`${s.slot} ${s.slotWin}`}>
-            Team Red<small>58%</small>
-            <div className={s.vbar}><i style={{ width: "58%" }} /></div>
+          <div className={`${s.slot} ${pctA >= pctB ? s.slotWin : ""}`}>
+            {aName}
+            <small>{real || !bout ? `${pctA}%` : ""}</small>
+            <div className={s.vbar}><i style={{ width: `${pctA}%`, opacity: pctA >= pctB ? 1 : 0.4 }} /></div>
           </div>
-          <div className={s.slot}>
-            Team Blue<small>42%</small>
-            <div className={s.vbar}><i style={{ width: "42%", opacity: 0.4 }} /></div>
+          <div className={`${s.slot} ${pctB > pctA ? s.slotWin : ""}`}>
+            {bName}
+            <small>{real || !bout ? `${pctB}%` : ""}</small>
+            <div className={s.vbar}><i style={{ width: `${pctB}%`, opacity: pctB > pctA ? 1 : 0.4 }} /></div>
           </div>
         </div>
       </div>
@@ -258,14 +270,12 @@ export function VoteVisual() {
         <small>One fair vote</small>
         Per person
       </div>
-      <div className={`${s.vChip} ${s.vChipA}`}>
-        <em>Share link</em>
-        boutcasts.com/bout/…
-      </div>
-      <div className={`${s.vChip} ${s.vChipB}`}>
-        <em>Votes so far</em>
-        1,204
-      </div>
+      {real && (
+        <div className={`${s.vChip} ${s.vChipB}`}>
+          <em>Votes so far</em>
+          {bout!.total.toLocaleString()}
+        </div>
+      )}
     </div>
   );
 }

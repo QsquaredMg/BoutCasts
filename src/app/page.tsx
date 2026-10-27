@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isPublicBout, PUBLIC_BOUT_FIELDS } from "@/lib/publicBouts";
 import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import Funnel, { type Theme } from "@/components/funnel/Funnel";
-import { VoteVisual } from "@/components/funnel/FunnelVisuals";
+import { VoteVisual, type LiveBoutSample } from "@/components/funnel/FunnelVisuals";
 
 // Home: built on the same funnel layout as every product page. What's live comes right
 // under the hero, then how it works, the products, and the door for organizers (/host).
@@ -59,10 +59,23 @@ async function loadData() {
   const bouts = ((boutRows ?? []) as unknown as BoutRow[]).filter(isPublicBout).slice(0, 8);
 
   const tallies = new Map<string, number>();
+  const sideA = new Map<string, number>();
   if (bouts.length) {
-    const { data: votes } = await supabase.from("votes").select("bout_id").in("bout_id", bouts.map((b) => b.id));
-    for (const v of votes ?? []) tallies.set(v.bout_id, (tallies.get(v.bout_id) ?? 0) + 1);
+    const { data: votes } = await supabase.from("votes").select("bout_id, side").in("bout_id", bouts.map((b) => b.id));
+    for (const v of votes ?? []) {
+      tallies.set(v.bout_id, (tallies.get(v.bout_id) ?? 0) + 1);
+      if (v.side === "a") sideA.set(v.bout_id, (sideA.get(v.bout_id) ?? 0) + 1);
+    }
   }
+  // Hero shows the most-voted live matchup, with its real numbers.
+  const top = [...bouts].sort((x, y) => (tallies.get(y.id) ?? 0) - (tallies.get(x.id) ?? 0))[0];
+  const heroBout: LiveBoutSample | null = top
+    ? (() => {
+        const total = tallies.get(top.id) ?? 0;
+        const pctA = total ? Math.round(((sideA.get(top.id) ?? 0) / total) * 100) : 50;
+        return { aName: top.competitor_a_name, bName: top.competitor_b_name, pctA, pctB: 100 - pctA, total };
+      })()
+    : null;
 
   const liveVotes = ((lvRows ?? []) as LiveVoteRow[]).filter((r) => r.status === "live").slice(0, 4);
 
@@ -76,7 +89,7 @@ async function loadData() {
       .neq("status", "closed");
     myEvents = count ?? 0;
   }
-  return { bouts, tallies, liveVotes, signedIn: !!user, myEvents };
+  return { bouts, tallies, liveVotes, signedIn: !!user, myEvents, heroBout };
 }
 
 const theme: Theme = {
@@ -94,22 +107,13 @@ const theme: Theme = {
 };
 
 const DOORS: { emoji: string; name: string; line: string; cta: string; href: string }[] = [
-  { emoji: "🗳️", name: "Vote", line: "Pick a side in a live matchup, bracket or event. One tap, no account for your first vote.", cta: "See what's live", href: "/matchups" },
+  { emoji: "🗳️", name: "Vote", line: "Pick a side in a live matchup, bracket or event. One tap, no account for your first vote.", cta: "See what's live", href: "/discover" },
+  { emoji: "🎯", name: "Play", line: "Call the winner and the score with friends, or join a live trivia night. Free, with leaderboards.", cta: "Start playing", href: "/play" },
   { emoji: "📣", name: "Host", line: "Run a vote for your school, band, league or event. Share one link and watch the tally live.", cta: "Host a vote", href: "/host" },
-  { emoji: "🔮", name: "Predict", line: "Call the winner and the score with friends. Free to play, with leaderboards and tournament brackets.", cta: "Start predicting", href: "/predictions/play" },
-];
-
-const MORE: { name: string; href: string }[] = [
-  { name: "Live Trivia", href: "/trivia/play" },
-  { name: "Competitions", href: "/competitions/play" },
-  { name: "Showcases", href: "/showcase/play" },
-  { name: "Debates", href: "/debates/play" },
-  { name: "Paid Bouts", href: "/paid-bouts/play" },
-  { name: "Schools", href: "/schools" },
 ];
 
 export default async function Home() {
-  const { bouts, tallies, liveVotes, signedIn, myEvents } = await loadData();
+  const { bouts, tallies, liveVotes, signedIn, myEvents, heroBout } = await loadData();
   const firstBout = bouts[0];
   const liveCount = bouts.length + liveVotes.length;
   const ink = { fontFamily: "var(--cond), 'Arial Narrow', sans-serif", textTransform: "uppercase" as const, fontWeight: 900, color: "#0a0e1a" };
@@ -176,7 +180,7 @@ export default async function Home() {
 
       <section>
         <h2 className="mb-1 text-[2rem] leading-none sm:text-[2.6rem]" style={ink}>Three ways in</h2>
-        <p className="mb-5 text-sm" style={{ color: "#4a5163" }}>Vote on it, host it, or predict it.</p>
+        <p className="mb-5 text-sm" style={{ color: "#4a5163" }}>Vote on it, play along, or host your own.</p>
         <div className="grid gap-3 md:grid-cols-3">
           {DOORS.map((d) => (
             <Link key={d.name} href={d.href} className="bc-card flex flex-col gap-2 p-5 transition-transform hover:-translate-y-0.5" style={{ borderRadius: 22 }}>
@@ -187,12 +191,6 @@ export default async function Home() {
             </Link>
           ))}
         </div>
-        <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm" style={{ color: "#4a5163" }}>
-          <span className="font-bold">More formats:</span>
-          {MORE.map((m) => (
-            <Link key={m.name} href={m.href} className="font-semibold underline-offset-2 hover:underline" style={{ color: "#0a0e1a" }}>{m.name}</Link>
-          ))}
-        </p>
       </section>
     </div>
   );
@@ -203,13 +201,12 @@ export default async function Home() {
       kicker={liveCount > 0 ? `${liveCount} live now` : "Live voting"}
       live
       title={["Who won?", "[[You decide.]]"]}
-      lede="The live voting platform for schools, bands, leagues and events. Put any showdown to the crowd, get a winner in minutes, and share the result."
+      lede="Fair, live voting for school events: band battles, class elections, homecoming courts and halftime shows. Put it to the crowd, get a winner in minutes, and share the result."
       primary={{ label: "Watch & vote", href: firstBout ? `/bout/${firstBout.id}` : "/discover" }}
       secondary={{ label: myEvents > 0 ? `Your events (${myEvents})` : "Host a vote", href: myEvents > 0 ? "/live-vote" : "/host" }}
       fine={signedIn ? "No account needed for your first vote." : "No account needed for your first vote. Got a code? Join a private event at boutcasts.com/join."}
-      visual={<VoteVisual />}
+      visual={<VoteVisual bout={heroBout} />}
       midSlot={live}
-      ticker={["Band battles", "Dance-offs", "Debates", "Halftime shows", "Class elections", "Talent shows", "Step shows", "Brackets", "Predictions"]}
       stepsTitle="How it works"
       stepsLede="Four steps from link to winner. No sign-up wall before your first vote."
       steps={[
@@ -218,19 +215,10 @@ export default async function Home() {
         { title: "Share your pick", body: "Send it to friends so the crowd keeps growing." },
         { title: "See the result", body: "Winners advance automatically when voting closes." },
       ]}
-      featuresTitle="One place for every vote"
-      featuresLede="Fans get a simple ballot. Organizers get a link, a tally and fair rules."
-      features={[
-        { icon: "🥊", title: "Head-to-head bouts", body: "Two sides, one winner, live percentages as the crowd votes.", span: 3, hot: true, href: "/discover?view=matchups" },
-        { icon: "🏆", title: "Brackets that run themselves", body: "Winners advance automatically when each round's voting closes.", span: 3, href: "/discover" },
-        { icon: "🗳️", title: "Live Vote events", body: "Elections, halftime polls and talent shows with a live tally for the big screen.", span: 2, href: "/discover?view=events" },
-        { icon: "🔮", title: "Predictions", body: "Call winners and scores with friends and climb a leaderboard.", span: 2, href: "/predictions/play" },
-        { icon: "🛡️", title: "Fair by design", body: "One vote per account or device per matchup, with repeat-vote checks and a live tally organizers can watch.", span: 2, href: "/how-it-works" },
-      ]}
-      usesTitle="Built for"
+      usesTitle="Built for schools first"
       uses={[
+        { emoji: "🏫", title: "Schools and universities", body: "Class elections, homecoming courts and student votes, with kiosk mode.", href: "/schools" },
         { emoji: "🎺", title: "Bands and halftime shows", body: "Settle the battle with a real crowd vote.", href: "/discover?view=matchups" },
-        { emoji: "🏫", title: "Schools", body: "Class elections and homecoming courts.", href: "/schools" },
         { emoji: "💃", title: "Dance and step shows", body: "Let the crowd pick the champion.", href: "/competitions/play" },
         { emoji: "🎤", title: "Talent shows", body: "One link, one fair vote each.", href: "/showcase/play" },
         { emoji: "🏟️", title: "Leagues and venues", body: "Fan polls and bracket challenges.", href: "/predictions/play" },
@@ -241,18 +229,17 @@ export default async function Home() {
         { q: "Is it free?", a: "Voting is free. Hosting a vote is free to start; see the Host page for what paid plans add." },
         { q: "How do you keep votes fair?", a: "Each signed-in account gets one vote per matchup, and guest votes are tied to the device they were cast on. We also check for repeat voting, and organizers can see the tally as it happens. Nothing is perfect, so for high-stakes events we recommend requiring sign-in." },
         { q: "I have a code from my school or event.", a: "Use Join a private event at boutcasts.com/join and enter the code." },
-        { q: "Can I run my own?", a: "Yes. Start a Live Vote free, run a competition, or ask about showcases, debates and Paid Bouts." },
+        { q: "Can I run my own?", a: "Yes. Start a Live Vote free, run a competition, or browse the other formats from the Host page." },
       ]}
       closing={{
-        headline: "Ready to pick a side?",
-        body: "Jump into a live matchup, or start your own vote in minutes.",
-        primary: { label: "Watch & vote", href: firstBout ? `/bout/${firstBout.id}` : "/discover" },
-        secondary: { label: "Host a vote", href: "/host" },
+        headline: "Running an event at your school?",
+        body: "Set up a fair vote in minutes: class elections, homecoming, band battles. Free to start.",
+        primary: { label: "Set up a school vote", href: "/schools" },
+        secondary: { label: "Enter a code", href: "/join" },
       }}
       crossLinks={[
         { label: "Schools", href: "/schools" },
-        { label: "Sponsors", href: "/sponsor/play" },
-        { label: "How it works", href: "/how-it-works" },
+                { label: "How it works", href: "/how-it-works" },
         ...(signedIn ? [] : [{ label: "Log in", href: "/login" }]),
       ]}
     />
