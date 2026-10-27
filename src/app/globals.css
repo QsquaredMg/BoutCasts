@@ -37,6 +37,12 @@
   --font-display: var(--font-display);
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip; /* one wide element must never make the whole page wider than a phone */
+}
+
 body {
   background: var(--bg);
   color: var(--text);

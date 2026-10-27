@@ -186,14 +186,14 @@ export default function AdminLiveVoteManager({
           return (
             <div
               key={e.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+              className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
               style={{ borderColor: "var(--border)", background: "var(--surface)" }}
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+              <div className="w-full min-w-0 sm:w-auto sm:min-w-[16rem] sm:flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <a
                     href={e.organizer_id === currentUserId ? `/live-vote/${e.id}` : `/vote/${e.id}`}
-                    className="truncate text-sm font-semibold hover:underline"
+                    className="break-words text-base font-semibold hover:underline sm:text-sm"
                   >
                     {e.title}
                   </a>
@@ -204,7 +204,7 @@ export default function AdminLiveVoteManager({
                     {e.status}
                   </span>
                 </div>
-                <div className="text-xs" style={{ color: "var(--text-faint)" }}>
+                <div className="mt-0.5 text-sm sm:text-xs" style={{ color: "var(--text-faint)" }}>
                   {e.organizer_username ? `@${e.organizer_username}` : "unknown organizer"} &middot; {e.tier} &middot; $
                   {(e.price_cents / 100).toFixed(2)}
                   {e.status === "live" && (

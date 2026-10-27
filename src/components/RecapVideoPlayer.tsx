@@ -52,6 +52,34 @@ function roundRect(
   ctx.closePath();
 }
 
+/** Split text into at most `maxLines` lines that fit `maxW`, ending the last line with an ellipsis when cut. */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = "";
+  for (let i = 0; i < words.length; i++) {
+    const next = cur ? `${cur} ${words[i]}` : words[i];
+    if (ctx.measureText(next).width <= maxW || !cur) {
+      cur = next;
+    } else {
+      lines.push(cur);
+      cur = words[i];
+      if (lines.length === maxLines - 1) {
+        cur = words.slice(i).join(" ");
+        break;
+      }
+    }
+  }
+  if (cur) lines.push(cur);
+  const out = lines.slice(0, maxLines);
+  let last = out[out.length - 1] ?? "";
+  if (ctx.measureText(last).width > maxW) {
+    while (last.length > 1 && ctx.measureText(`${last}…`).width > maxW) last = last.slice(0, -1);
+    out[out.length - 1] = `${last.trimEnd()}…`;
+  }
+  return out;
+}
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -159,10 +187,11 @@ function drawFrame(
     }
 
     // name
-    ctx.font = "bold 22px system-ui, sans-serif";
+    ctx.font = "bold 20px system-ui, sans-serif";
     ctx.fillStyle = COLOR_TEXT;
     ctx.textAlign = "center";
-    ctx.fillText(name, cx, panelY + 175);
+    const nameLines = wrapText(ctx, name, panelW - 40, 2);
+    nameLines.forEach((ln, li) => ctx.fillText(ln, cx, panelY + (nameLines.length === 1 ? 175 : 153) + li * 24));
 
     // pct chip
     const pctLabel = `${pct}%`;

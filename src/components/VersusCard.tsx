@@ -45,9 +45,9 @@ export default function VersusCard({
         >
           {initials(name)}
         </span>
-        <span className="line-clamp-2 w-full break-words text-center text-xs font-bold">{name}</span>
+        <span className="line-clamp-3 w-full break-words text-center text-sm font-bold leading-snug">{name}</span>
         <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+          className="rounded-full px-2.5 py-0.5 text-xs font-bold"
           style={{ background: "var(--surface)", color }}
         >
           {pct}%
@@ -66,7 +66,7 @@ export default function VersusCard({
           {categoryName}
         </span>
       </div>
-      <div className="truncate px-4 pt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
+      <div className="break-words px-4 pt-1 text-xs leading-snug" style={{ color: "var(--text-faint)" }}>
         {levelText}
       </div>
       <div className="flex items-stretch gap-2 p-4">
