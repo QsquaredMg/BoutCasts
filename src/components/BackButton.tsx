@@ -4,34 +4,53 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 // "Back" under the top bar on every page except the home page. It returns to the page the person
-// just came from. If this visit started on the current page (a shared link, a bookmark, the installed
-// app opening straight to it) there is no previous BoutCasts page to return to, so it goes home.
-const KEY = "bc_in_app_nav";
+// just came from. If there is no earlier BoutCasts page in this visit (a shared link, a bookmark, the
+// installed app opening straight to this page, or they have already backed up to where they started)
+// it reads "Home" and goes to the home page, so Back never walks out of the site.
+//
+// depth = how many BoutCasts pages sit behind the current one: +1 for each forward navigation, -1 for
+// each browser back (popstate). It lives in sessionStorage so it survives a reload.
+const KEY = "bc_nav_depth";
 
-function seenNavigation(): boolean {
+function readDepth(): number {
   try {
-    return sessionStorage.getItem(KEY) === "1";
+    return Math.max(0, Number(sessionStorage.getItem(KEY)) || 0);
   } catch {
-    return false;
+    return 0;
+  }
+}
+
+function writeDepth(n: number) {
+  try {
+    sessionStorage.setItem(KEY, String(Math.max(0, n)));
+  } catch {
+    // storage blocked: Back falls back to home
   }
 }
 
 export default function BackButton() {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
-  const first = useRef(pathname);
+  const last = useRef(pathname);
+  const popped = useRef(false);
   const [hasPrev, setHasPrev] = useState(false);
 
   useEffect(() => {
-    if (pathname !== first.current) {
-      try {
-        sessionStorage.setItem(KEY, "1");
-      } catch {
-        // storage blocked: Back falls back to home
-      }
+    const onPop = () => {
+      popped.current = true;
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    if (pathname !== last.current) {
+      last.current = pathname;
+      writeDepth(readDepth() + (popped.current ? -1 : 1));
+      popped.current = false;
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHasPrev(seenNavigation());
+    setHasPrev(readDepth() > 0);
   }, [pathname]);
 
   if (pathname === "/") return null;
