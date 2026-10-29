@@ -15,6 +15,7 @@ const KINDS: Record<string, { label: string; href?: string }> = {
   event_sponsorship: { label: "Event sponsorship", href: "/admin/event-sponsorships" },
   org_license: { label: "School & League License", href: "/admin/licenses" },
   school_election: { label: "School election", href: "/admin/school-elections" },
+  admin_custom: { label: "Custom payment link" },
   organizer_pro: { label: "Organizer Pro" },
   organizer_gold: { label: "Organizer Gold" },
 };

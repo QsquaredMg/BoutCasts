@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 
   const origin = req.headers.get("origin") ?? new URL(req.url).origin;
   const session = await getStripe().checkout.sessions.create({
+    allow_promotion_codes: true,
     mode: "subscription",
     payment_method_types: ["card"],
     customer_email: user.email ?? undefined,
