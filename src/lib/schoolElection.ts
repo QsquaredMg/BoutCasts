@@ -87,8 +87,7 @@ export type ElectionRow = {
   forum_enabled: boolean;
 };
 
-// Signed-in organizer (or admin) who owns the election, else an error response to return.
-export async function requireElectionOwner(id: string) {
+async function loadElectionAccess(id: string) {
   if (!UUID.test(id)) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -98,8 +97,30 @@ export async function requireElectionOwner(id: string) {
   if (!election) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
   const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
   const isAdmin = !!me?.is_admin;
-  if (election.organizer_id !== auth.user.id && !isAdmin) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
-  return { admin, election: election as ElectionRow, user: auth.user, isAdmin } as const;
+  const isOwner = election.organizer_id === auth.user.id;
+  let isMod = false;
+  if (!isOwner && !isAdmin) {
+    const { data: ok } = await supabase.rpc("school_election_can_moderate", { p_id: id });
+    isMod = ok === true;
+  }
+  return { admin, election: election as ElectionRow, user: auth.user, isAdmin, isOwner, isMod } as const;
+}
+
+// Signed-in organizer (or admin) who owns the election, else an error response to return.
+// Money and destructive actions use this: a moderator is turned away.
+export async function requireElectionOwner(id: string) {
+  const r = await loadElectionAccess(id);
+  if (r.error) return { error: r.error } as const;
+  if (!r.isOwner && !r.isAdmin) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
+  return { admin: r.admin, election: r.election, user: r.user, isAdmin: r.isAdmin } as const;
+}
+
+// Owner, admin or an invited moderator. Day-to-day running of the election.
+export async function requireElectionAccess(id: string) {
+  const r = await loadElectionAccess(id);
+  if (r.error) return { error: r.error } as const;
+  if (!r.isOwner && !r.isAdmin && !r.isMod) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
+  return { admin: r.admin, election: r.election, user: r.user, isAdmin: r.isAdmin, viewerRole: r.isOwner ? ("owner" as const) : r.isAdmin ? ("admin" as const) : ("moderator" as const) } as const;
 }
 
 // Whether the election is open for voting right now.
@@ -156,7 +177,7 @@ export async function requireDeskAccess(req: Request, id: string, allow: StaffRo
     if (!allow.includes(role)) return { error: NextResponse.json({ error: "Your seat can't do that." }, { status: 403 }) } as const;
     return { admin, role, staffId: data.id as string, label: data.label as string } as const;
   }
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner && owner.error) return { error: owner.error } as const;
   if (!("admin" in owner)) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
   return { admin: owner.admin, role: "owner" as const, staffId: null, label: "Organizer" } as const;

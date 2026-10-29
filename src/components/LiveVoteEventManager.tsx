@@ -11,6 +11,7 @@ import EventSponsorManager from "@/components/EventSponsorManager";
 import EventSponsorSales from "@/components/EventSponsorSales";
 import SuperVotesManager from "@/components/SuperVotesManager";
 import TimeAddOn from "@/components/TimeAddOn";
+import EventAccessPanel from "@/components/EventAccessPanel";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import EventBrandingEditor from "@/components/EventBrandingEditor";
@@ -82,6 +83,8 @@ export default function LiveVoteEventManager({
   const [addPro, setAddPro] = useState(false);
   const [togglingDemo, setTogglingDemo] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // A moderator runs the event but does not see billing, Super Vote settings or earnings.
+  const [isMod, setIsMod] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareBrand, setShareBrand] = useState<QrBrand | undefined>(undefined);
   const [shareWhiteLabel, setShareWhiteLabel] = useState(false);
@@ -134,11 +137,20 @@ export default function LiveVoteEventManager({
       .eq("id", eventId)
       .maybeSingle();
 
-    if (!eventRow || eventRow.organizer_id !== user.id) {
+    let moderator = false;
+    let allowedNonOwner = false;
+    if (eventRow && eventRow.organizer_id !== user.id) {
+      const { data: rel } = await supabase.rpc("event_role_for_me", { p_kind: "live_vote", p_event_id: eventId });
+      moderator = rel === "moderator" || rel === "admin";
+      allowedNonOwner = moderator;
+      moderator = rel === "moderator";
+    }
+    if (!eventRow || (eventRow.organizer_id !== user.id && !allowedNonOwner)) {
       setNotFoundOrForbidden(true);
       setLoading(false);
       return;
     }
+    setIsMod(moderator);
 
     setEvent(eventRow);
     if (checkoutStatus === "success" && eventRow.status === "live" && !autoShared.current) {
@@ -518,10 +530,11 @@ export default function LiveVoteEventManager({
       ) : (
         <>
           <EventSponsorManager eventId={event.id} editable={event.status !== "closed"} />
-          <EventSponsorSales eventId={event.id} editable={event.status !== "closed"} />
+          {!isMod && <EventSponsorSales eventId={event.id} editable={event.status !== "closed"} />}
         </>
       )}
 
+      {!isMod && (
       <SuperVotesManager
         eventId={event.id}
         status={event.status}
@@ -532,6 +545,7 @@ export default function LiveVoteEventManager({
         isAdmin={isAdmin}
         onChanged={load}
       />
+      )}
 
       {event.scoring_mode === "crowd" && event.status !== "closed" && (
         <label
@@ -566,7 +580,13 @@ export default function LiveVoteEventManager({
         </p>
       )}
 
-      {event.status === "draft" && (
+      {event.status === "draft" && isMod && (
+        <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+          You are a moderator. Set up the candidates and look. The owner chooses the size and opens voting.
+        </p>
+      )}
+
+      {event.status === "draft" && !isMod && (
         <div className="flex flex-col gap-2">
           <label className="mb-1 flex items-center justify-between gap-3 text-sm">
             <span className="font-semibold">Tier</span>
@@ -706,7 +726,7 @@ export default function LiveVoteEventManager({
               ? `Voting closes ${formatWhen(event.closes_at, getZone(), { withYear: true })}`
               : "No end time — voting stays open until you close it."}
           </p>
-          {event.status === "live" && event.closes_at && <TimeAddOn eventId={event.id} />}
+          {event.status === "live" && event.closes_at && !isMod && <TimeAddOn eventId={event.id} />}
           {isAdmin && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
               <span className="w-full text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>
@@ -772,6 +792,8 @@ export default function LiveVoteEventManager({
           <LiveVoteAnalyticsPanel eventId={event.id} eventTitle={event.title} />
         </div>
       )}
+
+      {!isMod && <EventAccessPanel kind="live_vote" eventId={event.id} />}
     </div>
   );
 }

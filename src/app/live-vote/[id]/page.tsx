@@ -26,11 +26,12 @@ export default async function LiveVoteEventPage({
   const { data: auth } = await supabase.auth.getUser();
   let allowed = false;
   if (auth.user) {
-    const [{ data: ev }, { data: me }] = await Promise.all([
+    const [{ data: ev }, { data: me }, { data: rel }] = await Promise.all([
       supabase.from("live_vote_events").select("organizer_id").eq("id", id).maybeSingle(),
       supabase.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle(),
+      supabase.rpc("event_role_for_me", { p_kind: "live_vote", p_event_id: id }),
     ]);
-    allowed = ev?.organizer_id === auth.user.id || !!me?.is_admin;
+    allowed = ev?.organizer_id === auth.user.id || !!me?.is_admin || rel === "moderator";
   }
   if (!allowed) redirect(`/vote/${id}`);
 

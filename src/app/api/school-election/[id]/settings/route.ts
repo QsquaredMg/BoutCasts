@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireElectionOwner } from "@/lib/schoolElection";
+import { requireElectionAccess } from "@/lib/schoolElection";
 
 // Organizer settings for the civics features: voter registration, the public campaign page and the forum.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   if (owner.election.status === "closed") return NextResponse.json({ error: "Voting has closed." }, { status: 400 });
   const body = await req.json().catch(() => null);

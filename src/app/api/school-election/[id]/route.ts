@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireElectionOwner } from "@/lib/schoolElection";
+import { requireElectionAccess } from "@/lib/schoolElection";
 
 // Organizer view of one election: setup, turnout and (only after it closes) results.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
-  const { admin, election, isAdmin } = owner;
+  const { admin, election, isAdmin, viewerRole } = owner;
 
   const [{ data: races }, { data: kiosks }, { count: total }, { count: voted }, { count: registered }] = await Promise.all([
     admin.from("live_vote_events").select("id, title, election_sort").eq("election_id", id).order("election_sort"),
@@ -44,6 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json({
     election: safe,
     viewerIsAdmin: isAdmin,
+    viewerRole,
     interim,
     closed,
     turnout: { total: total ?? 0, voted: voted ?? 0, registered: registered ?? 0 },

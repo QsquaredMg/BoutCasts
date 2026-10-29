@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
-import { generateUniqueCodes, normName, requireElectionOwner } from "@/lib/schoolElection";
+import { generateUniqueCodes, normName, requireElectionAccess } from "@/lib/schoolElection";
 
 // Add students to the roster. Each one gets a random single-use code.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const { admin, election } = owner;
   if (election.status === "closed") return NextResponse.json({ error: "This election is closed." }, { status: 400 });
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 // Remove every student who has not voted yet (to re-upload a corrected roster).
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const { admin, election } = owner;
   if (election.status === "closed") return NextResponse.json({ error: "This election is closed." }, { status: 400 });

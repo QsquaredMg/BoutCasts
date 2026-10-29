@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { newKioskToken, requireElectionOwner } from "@/lib/schoolElection";
+import { newKioskToken, requireElectionAccess } from "@/lib/schoolElection";
 
 // Pair an iPad. The link is shown once; open it on the iPad to turn that iPad into a kiosk.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const { admin, election } = owner;
   if (election.status === "closed") return NextResponse.json({ error: "This election is closed." }, { status: 400 });
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const kioskId = new URL(req.url).searchParams.get("kioskId");
   if (!kioskId) return NextResponse.json({ error: "Missing kioskId" }, { status: 400 });

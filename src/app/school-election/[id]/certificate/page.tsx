@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import PrintButton from "@/components/PrintButton";
-import { requireElectionOwner } from "@/lib/schoolElection";
+import { requireElectionAccess } from "@/lib/schoolElection";
 
 export const dynamic = "force-dynamic";
 
 // Printable certificate of results for a certified election. Organizer only.
 export default async function CertificatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) notFound();
   const { admin, election } = owner;
   if (election.status !== "closed" || !election.certified_at || election.is_practice) notFound();

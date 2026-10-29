@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import SignInCard from "@/components/SignInCard";
 import Link from "next/link";
 import OrganizerProCard from "@/components/OrganizerProCard";
+import SharedWithMe from "@/components/SharedWithMe";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, tierPriceLabel, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
@@ -94,6 +95,8 @@ export default function LiveVoteEventsPage() {
           + Create a vote
         </Link>
       </div>
+
+      {signedIn && <SharedWithMe />}
 
       {signedIn && (
         <section className="mb-8">

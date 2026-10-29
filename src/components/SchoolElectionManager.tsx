@@ -7,11 +7,13 @@ import ElectionFundraiserPanel from "@/components/ElectionFundraiserPanel";
 import ElectionCampaignPanel from "@/components/ElectionCampaignPanel";
 import ElectionForumPanel from "@/components/ElectionForumPanel";
 import ElectionIncidentLog from "@/components/ElectionIncidentLog";
+import EventAccessPanel from "@/components/EventAccessPanel";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
   interim?: boolean;
   viewerIsAdmin?: boolean;
+  viewerRole?: "owner" | "admin" | "moderator";
   election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number; registered?: number };
@@ -136,6 +138,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   if (!data) return <p className="text-sm">Loading…</p>;
 
   const { election: e, closed, turnout, kiosks, races } = data;
+  const isMod = data.viewerRole === "moderator";
   const box = { borderColor: "var(--border)", background: "var(--surface)" } as const;
   const status = closed ? "Closed" : e.status === "live" ? "Live" : "Draft";
   const tier = LIVE_VOTE_TIERS[e.tier];
@@ -155,7 +158,14 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
       {notice && <p className="rounded-lg border p-3 text-sm" style={box}>{notice}</p>}
       {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
 
-      {e.status === "draft" && (
+      {e.status === "draft" && isMod && (
+        <div className="rounded-xl border p-4" style={box}>
+          <p className="font-bold">Getting ready</p>
+          <p className="text-sm" style={{ color: "var(--text-dim)" }}>You are a moderator. Add the roster, pair the kiosks and set up the ballot. The owner opens voting.</p>
+        </div>
+      )}
+
+      {e.status === "draft" && !isMod && (
         <div className="rounded-xl border p-4" style={box}>
           <p className="font-bold">Ready to start?</p>
           <p className="mb-3 text-sm" style={{ color: "var(--text-dim)" }}>Add your student roster below, then {e.price_cents === 0 ? "open voting" : `pay ${money(e.price_cents)} to open voting`} for {e.days} day{e.days === 1 ? "" : "s"}. Pair your iPads before or after paying.</p>
@@ -257,7 +267,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
 
       <ElectionCampaignPanel id={id} closed={closed} races={races} requireRegistration={!!e.require_registration} registrationClosesAt={e.registration_closes_at ?? null} campaignPageEnabled={!!e.campaign_page_enabled} registered={turnout.registered ?? 0} total={turnout.total} onChanged={load} />
 
-      {!e.is_practice && e.status !== "draft" && <ElectionFundraiserPanel id={id} closed={closed} started={e.status === "live"} />}
+      {!isMod && !e.is_practice && e.status !== "draft" && <ElectionFundraiserPanel id={id} closed={closed} started={e.status === "live"} />}
 
       <div className="rounded-xl border p-4" style={box}>
         <p className="font-bold">Results</p>
@@ -272,7 +282,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
                 ))}
               </div>
             )}
-            {e.status === "live" && e.is_practice && (
+            {e.status === "live" && e.is_practice && !isMod && (
               <button onClick={async () => { if (confirm("Reset this practice election? Every practice vote is erased and everyone can vote again.")) { await call("reset", `/api/school-election/${id}/reset`, { method: "POST" }); setNotice("Practice election reset. Everyone can vote again."); load(); } }} disabled={busy !== null} className="mr-2 rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Reset practice</button>
             )}
             {e.status === "live" && (
@@ -282,7 +292,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         ) : (
           <div className="mt-2 grid gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              {e.is_practice && (
+              {e.is_practice && !isMod && (
                 <button onClick={async () => { if (confirm("Reset this practice election? Every practice vote is erased and everyone can vote again.")) { await call("reset", `/api/school-election/${id}/reset`, { method: "POST" }); setNotice("Practice election reset. Everyone can vote again."); load(); } }} disabled={busy !== null} className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Reset and run again</button>
               )}
               <a href={`/api/school-election/${id}/graphic`} target="_blank" rel="noreferrer" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">View winners graphic</a>
@@ -331,6 +341,8 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           {races.map((r) => <li key={r.id}>{r.title}: {r.options.map((o) => o.name).join(", ")}</li>)}
         </ul>
       </div>
+
+      {!isMod && <EventAccessPanel kind="school_election" eventId={id} />}
     </div>
   );
 }

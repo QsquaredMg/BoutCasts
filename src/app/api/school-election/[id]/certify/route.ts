@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireElectionOwner } from "@/lib/schoolElection";
+import { requireElectionAccess } from "@/lib/schoolElection";
 
 // The sign-off step of a real election: after voting closes, an adult reviews the turnout and the audit
 // trail and certifies the result. A certified election shows an official stamp on the winners graphic.
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const { election, admin, user } = owner;
   if (election.is_practice) return NextResponse.json({ error: "Practice elections aren't certified." }, { status: 400 });

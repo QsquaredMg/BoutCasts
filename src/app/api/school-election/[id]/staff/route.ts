@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { newStaffCode, requireElectionOwner, STAFF_ROLES, type StaffRole } from "@/lib/schoolElection";
+import { newStaffCode, requireElectionAccess, STAFF_ROLES, type StaffRole } from "@/lib/schoolElection";
 
 // Optional staff seats: codes that open the booth desk for a teacher without the organizer's login.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const { data } = await owner.admin.from("election_staff").select("id, label, role, created_at").eq("election_id", id).is("revoked_at", null).order("created_at");
   return NextResponse.json({ staff: data ?? [] }, { headers: { "Cache-Control": "no-store" } });
@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const body = await req.json().catch(() => null);
   const label = typeof body?.label === "string" ? body.label.trim().slice(0, 60) : "";
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const staffId = new URL(req.url).searchParams.get("staffId") ?? "";
   const { error } = await owner.admin.from("election_staff").update({ revoked_at: new Date().toISOString() }).eq("id", staffId).eq("election_id", id);

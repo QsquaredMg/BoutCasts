@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireElectionOwner, UUID } from "@/lib/schoolElection";
+import { requireElectionAccess, UUID } from "@/lib/schoolElection";
 
 const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 // Candidate campaign profiles: a slogan and up to three platform points per candidate.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const { data } = await owner.admin.from("election_candidate_profiles").select("option_id, slogan, platform").eq("election_id", id);
   return NextResponse.json({ profiles: data ?? [] }, { headers: { "Cache-Control": "no-store" } });
@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const owner = await requireElectionOwner(id);
+  const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   if (owner.election.status === "closed") return NextResponse.json({ error: "Voting has closed." }, { status: 400 });
   const body = await req.json().catch(() => null);
