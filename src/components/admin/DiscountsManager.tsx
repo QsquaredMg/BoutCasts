@@ -47,7 +47,8 @@ function PromoSection({ codes, err, reload }: { codes: Code[] | null; err: strin
         code,
         ...(kind === "percent" ? { percentOff: n } : { amountOffCents: Math.round(n * 100) }),
         maxRedemptions: max ? Number(max) : undefined,
-        expiresAt: expires || undefined,
+        // datetime-local has no zone; convert here so it is the admin's own local time, not the server's.
+        expiresAt: expires ? new Date(expires).toISOString() : undefined,
       }),
     }).then((x) => x.json()).catch(() => ({ error: "Network problem." }));
     setBusy(false);
@@ -96,7 +97,7 @@ function PromoSection({ codes, err, reload }: { codes: Code[] | null; err: strin
           </div>
         ))}
       </div>
-      <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Buyers see an &ldquo;Add promotion code&rdquo; link at checkout. Codes work on organizer purchases, not on fan Super Votes, paid bout entries or donations.</p>
+      <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Buyers see an &ldquo;Add promotion code&rdquo; link at checkout. Codes work on organizer purchases, not on fan Super Votes, paid bout entries, donations or event sponsorships (the organizer&rsquo;s share is based on the full package price).</p>
     </section>
   );
 }
