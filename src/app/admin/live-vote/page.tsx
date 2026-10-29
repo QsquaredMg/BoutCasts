@@ -10,7 +10,7 @@ export default async function AdminLiveVotePage() {
 
   const { data: events } = await supabase
     .from("live_vote_events")
-    .select("id, title, description, status, tier, price_cents, ads_enabled, created_at, organizer_id, closes_at")
+    .select("id, title, description, status, tier, price_cents, ads_enabled, created_at, organizer_id, closes_at, pro_enabled, super_votes_enabled")
     .is("archived_at", null)
     .is("election_id", null)
     .order("created_at", { ascending: false });

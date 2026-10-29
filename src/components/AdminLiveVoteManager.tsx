@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import CompUpgrades from "@/components/admin/CompUpgrades";
 import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
 import { getZone } from "@/lib/time/pref";
 import { formatWhen, wallToIso } from "@/lib/time/zones";
@@ -18,6 +19,8 @@ type EventRow = {
   organizer_id: string;
   organizer_username: string | null;
   closes_at: string | null;
+  pro_enabled: boolean;
+  super_votes_enabled: boolean;
 };
 
 const STATUS_STYLE: Record<EventRow["status"], { bg: string; fg: string }> = {
@@ -324,6 +327,25 @@ export default function AdminLiveVoteManager({
                   className="h-4 w-4"
                 />
               </label>
+              <CompUpgrades
+                eventId={e.id}
+                proEnabled={e.pro_enabled}
+                superVotesEnabled={e.super_votes_enabled}
+                canAddTime={e.status === "live" && !!e.closes_at}
+                onGranted={(u) =>
+                  setEvents((prev) =>
+                    prev.map((x) =>
+                      x.id !== e.id
+                        ? x
+                        : u === "pro"
+                          ? { ...x, pro_enabled: true }
+                          : u === "super_votes"
+                            ? { ...x, super_votes_enabled: true }
+                            : x
+                    )
+                  )
+                }
+              />
             </div>
           );
         })}
