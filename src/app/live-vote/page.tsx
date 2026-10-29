@@ -142,11 +142,14 @@ export default function LiveVoteEventsPage() {
               {events
                 .filter((e) => e.is_private === (tab === "private"))
                 .map((event) => (
-                  <Link
+                  <div
                     key={event.id}
-                    href={`/live-vote/${event.id}`}
-                    className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 transition hover:-translate-y-0.5 hover:shadow-md"
+                    className="flex items-center gap-2 rounded-2xl border pr-3 transition hover:shadow-md"
                     style={{ borderColor: "var(--border)", background: "var(--surface)", borderLeft: "5px solid #7a1f3d" }}
+                  >
+                  <Link
+                    href={`/live-vote/${event.id}`}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3.5"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{event.title}</p>
@@ -170,6 +173,16 @@ export default function LiveVoteEventsPage() {
                       {STATUS_LABEL[event.status]}
                     </span>
                   </Link>
+                  {event.status !== "closed" && (
+                    <Link
+                      href={`/live-vote/${event.id}/edit`}
+                      className="flex-shrink-0 rounded-full border px-4 py-1.5 text-xs font-bold"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      ✎ Edit
+                    </Link>
+                  )}
+                  </div>
                 ))}
             </div>
           )}

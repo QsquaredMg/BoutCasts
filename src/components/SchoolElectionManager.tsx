@@ -162,7 +162,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
       <div>
         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>{e.school_name ?? "School election"} · {e.is_practice ? "Practice · " : ""}{status}{e.certified_at ? " · Certified" : ""}</p>
         <h1 className="text-3xl font-extrabold">{e.title}</h1>
-        {!closed && <Link href={`/school-election/${id}/edit`} className="mt-1 inline-block text-sm font-bold underline">Edit election</Link>}
+        {!closed && <Link href={`/school-election/${id}/edit`} className="mt-2 inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>✎ Edit election</Link>}
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>
           {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {e.kiosks} kiosk{e.kiosks === 1 ? "" : "s"} · {e.open_ended ? "no end time" : e.tier === "free" && e.days === 1 ? "12 hours" : `${e.days} day${e.days === 1 ? "" : "s"}`} · {e.price_cents ? money(e.price_cents) : "Free"}
           {e.open_ended && !closed && " · stays open until you close it"}

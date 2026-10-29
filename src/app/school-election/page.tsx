@@ -55,8 +55,8 @@ export default async function MySchoolElections() {
           {elections.map((e) => {
             const st = STATUS[e.status] ?? STATUS.draft;
             return (
-              <li key={e.id}>
-                <Link href={`/school-election/${e.id}`} className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <li key={e.id} className="flex items-center gap-2 rounded-xl border pr-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                <Link href={`/school-election/${e.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3">
                   <span className="min-w-0">
                     <span className="block truncate font-bold">{e.title}</span>
                     <span className="block truncate text-xs" style={{ color: "var(--text-faint)" }}>
@@ -65,6 +65,9 @@ export default async function MySchoolElections() {
                   </span>
                   <span className="shrink-0 text-xs font-bold" style={{ color: st.color }}>{st.label}</span>
                 </Link>
+                {e.status !== "closed" && (
+                  <Link href={`/school-election/${e.id}/edit`} className="shrink-0 rounded-full border px-4 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>✎ Edit</Link>
+                )}
               </li>
             );
           })}

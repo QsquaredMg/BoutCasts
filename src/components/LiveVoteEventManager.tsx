@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import LiveVoteRoster from "@/components/LiveVoteRoster";
 import { useEffect, useState, useCallback, useRef } from "react";
 import RankedResults from "@/components/RankedResults";
@@ -436,6 +437,11 @@ export default function LiveVoteEventManager({
       <h1 className="mb-2">
         {event.title}
       </h1>
+      {!isMod && event.status !== "closed" && (
+        <Link href={`/live-vote/${event.id}/edit`} className="mb-3 inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>
+          ✎ Edit title, description &amp; options
+        </Link>
+      )}
       {event.description && (
         <p className="mb-4 text-sm" style={{ color: "var(--text-faint)" }}>
           {event.description}
