@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Archivo } from "next/font/google";
 import NavBar from "@/components/NavBar";
+import BackButton from "@/components/BackButton";
 import Footer from "@/components/Footer";
 import GuestClaim from "@/components/GuestClaim";
 import AdInterstitial from "@/components/AdInterstitial";
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <GuestClaim />
         <ToastProvider>
           <NavBar />
+          <BackButton />
           <main id="main-content" tabIndex={-1} className="flex-1 outline-none">{children}</main>
           <Footer />
           <AdInterstitial />
