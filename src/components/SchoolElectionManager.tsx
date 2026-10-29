@@ -195,6 +195,15 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
       )}
 
       <div className="rounded-xl border p-4" style={box}>
+        <p className="font-bold">Instructions (PDF)</p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Short step-by-step guides you can download and hand to the teachers running the election.</p>
+        <div className="flex flex-wrap gap-2">
+          <a href="/guides/school-election-vote-by-link.pdf" download className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>⬇ Vote by link guide</a>
+          <a href="/guides/school-election-kiosk-mode.pdf" download className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>⬇ Kiosk mode guide</a>
+        </div>
+      </div>
+
+      <div className="rounded-xl border p-4" style={box}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="font-bold">Roster and turnout</p>
           <p className="text-sm" style={{ color: "var(--text-dim)" }}>{turnout.voted.toLocaleString()} of {turnout.total.toLocaleString()} voted</p>

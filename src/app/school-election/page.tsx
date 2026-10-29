@@ -44,6 +44,13 @@ export default async function MySchoolElections() {
         <Link href="/school-election/new" className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold">New school election</Link>
       </div>
 
+      <p className="mb-4 text-sm" style={{ color: "var(--text-dim)" }}>
+        Instructions:{" "}
+        <a href="/guides/school-election-vote-by-link.pdf" download className="font-semibold underline">Vote by link guide (PDF)</a>
+        {" · "}
+        <a href="/guides/school-election-kiosk-mode.pdf" download className="font-semibold underline">Kiosk mode guide (PDF)</a>
+      </p>
+
       <SharedWithMe kind="school_election" />
 
       {elections.length === 0 ? (
