@@ -1,5 +1,6 @@
 "use client";
 
+import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 import { roomThemeVars } from "@/lib/liveVoteEvents/roomTheme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fingerprint, load, post, save, type Manifest, type QueueItem, type Race } from "@/lib/kioskOffline";
@@ -427,6 +428,9 @@ export default function KioskApp({ token, preview }: { token: string; preview?: 
                 </button>
                 {o.video_url && (
                   <video src={o.video_url} controls playsInline preload="none" className="max-h-64 w-full bg-black" aria-label={`${o.name} speech`} />
+                )}
+                {!o.video_url && o.clip_url && online && (
+                  <div className="px-3 pb-3"><EmbeddedClipPlayer sourceUrl={o.clip_url} label={`${o.name} video`} privacy /></div>
                 )}
               </div>
             );

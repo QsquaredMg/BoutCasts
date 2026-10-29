@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkKioskPin, voterHash } from "@/lib/schoolElection";
+import { addClipUrls, checkKioskPin, voterHash } from "@/lib/schoolElection";
 
 // A teacher (PIN) loads the ballot and a list of check-in fingerprints onto the iPad, so students can still
 // check in and vote if the Wi-Fi drops. Fingerprints are salted hashes of code + name for students who have
@@ -23,8 +23,9 @@ export async function POST(req: NextRequest) {
       return (el.require_registration ? q.not("registered_at", "is", null) : q).limit(50000);
     })(),
   ]);
+  const fullBallot = await addClipUrls(r.admin, ballot);
   return NextResponse.json(
-    { ok: true, electionId: r.electionId, ballot, closesAt: el.closes_at, hashes: (voters ?? []).map((v) => voterHash(r.electionId, v.code, v.name)), preparedAt: new Date().toISOString() },
+    { ok: true, electionId: r.electionId, ballot: fullBallot, closesAt: el.closes_at, hashes: (voters ?? []).map((v) => voterHash(r.electionId, v.code, v.name)), preparedAt: new Date().toISOString() },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

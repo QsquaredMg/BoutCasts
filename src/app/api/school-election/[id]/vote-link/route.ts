@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { UUID } from "@/lib/schoolElection";
+import { UUID, addClipUrls } from "@/lib/schoolElection";
 
 // Public: vote by link. A student enters their own code and name, then votes each office once.
 // See docs/sql/election_link_voting.sql. Choices are never tied to the student.
@@ -48,13 +48,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
   if (!data?.ok) return NextResponse.json({ ok: false, error: MESSAGES[data?.error as string] ?? "Couldn't check you in.", code: data?.error }, { status: 400 });
   // The ballot carries uploaded videos already; add pasted links (YouTube, Vimeo, Drive...) so they can play inline.
-  type B = { race_id: string; options: { id: string; clip_url?: string | null }[] }[];
-  const ballot = (data.ballot ?? []) as B;
-  const ids = ballot.flatMap((r) => r.options.map((o) => o.id));
-  if (ids.length > 0) {
-    const { data: links } = await admin.from("live_vote_options").select("id, source_url").in("id", ids).eq("source_type", "link");
-    const byId = new Map((links ?? []).map((l) => [l.id as string, l.source_url as string | null]));
-    for (const r of ballot) for (const o of r.options) o.clip_url = byId.get(o.id) ?? null;
-  }
+  const ballot = await addClipUrls(admin, data.ballot);
   return NextResponse.json({ ...data, ballot }, { headers: { "Cache-Control": "no-store" } });
 }

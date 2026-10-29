@@ -34,6 +34,7 @@ export default async function KioskPreviewPage({ params }: { params: Promise<{ i
       id: o.id as string, name: o.name as string, description: (o.description as string | null) ?? null,
       image_url: (o.image_url as string | null) ?? null,
       video_url: o.source_type === "upload" || o.source_type === "record" ? ((o.source_url as string | null) ?? null) : null,
+      clip_url: o.source_type === "link" ? ((o.source_url as string | null) ?? null) : null,
     })),
   }));
 

@@ -205,3 +205,17 @@ export async function getElectionBrand(id: string): Promise<ElectionBrand | null
     .maybeSingle();
   return (data as ElectionBrand | null) ?? null;
 }
+
+/** Adds `clip_url` (a pasted YouTube/Vimeo/Drive link) to every candidate on a ballot that has one. */
+export async function addClipUrls<T extends { options: { id: string; clip_url?: string | null }[] }>(
+  admin: { from: (t: string) => any }, // eslint-disable-line @typescript-eslint/no-explicit-any
+  ballot: T[] | null | undefined,
+): Promise<T[]> {
+  const rows = Array.isArray(ballot) ? ballot : [];
+  const ids = rows.flatMap((r) => r.options.map((o) => o.id));
+  if (ids.length === 0) return rows;
+  const { data } = await admin.from("live_vote_options").select("id, source_url").in("id", ids).eq("source_type", "link");
+  const byId = new Map<string, string | null>(((data ?? []) as { id: string; source_url: string | null }[]).map((l) => [l.id, l.source_url]));
+  for (const r of rows) for (const o of r.options) o.clip_url = byId.get(o.id) ?? null;
+  return rows;
+}

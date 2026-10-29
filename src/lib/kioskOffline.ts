@@ -3,7 +3,7 @@
 //   loaded by a teacher with the PIN. Lets a student check in with no connection.
 // - queue: finished ballots waiting to be sent. Each carries a request id so a send can safely repeat.
 
-export type Race = { race_id: string; title: string; options: { id: string; name: string; description: string | null; image_url: string | null; video_url?: string | null }[] };
+export type Race = { race_id: string; title: string; options: { id: string; name: string; description: string | null; image_url: string | null; video_url?: string | null; clip_url?: string | null }[] };
 export type QueueItem = { requestId: string; code: string; name: string; choices: Record<string, string | null>; castAt: string; problem?: string };
 export type Manifest = { electionId: string; ballot: Race[]; hashes: string[]; preparedAt: string; closesAt: string | null };
 
