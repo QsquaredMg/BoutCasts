@@ -53,6 +53,7 @@ export default async function AdminDashboardPage() {
   const totalGoal = (pools ?? []).reduce((sum, p) => sum + p.goal_amount, 0);
 
   const cards: { label: string; value: number | string; href: string }[] = [
+    { label: "Purchases and refunds", value: "Open", href: "/admin/purchases" },
     { label: "Unread support mail", value: unreadMail, href: "/admin/inbox" },
     { label: "Pending submissions", value: pendingSubmissions ?? 0, href: "/admin/moderation" },
     { label: "Open reports", value: openReports ?? 0, href: "/admin/moderation" },

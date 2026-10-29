@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendSaleAlert } from "@/lib/saleAlert";
 import { getStripe } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LIVE_VOTE_TIERS, SUPER_VOTES, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
@@ -78,6 +79,8 @@ export async function POST(req: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata ?? {};
+
+    await sendSaleAlert(session);
 
     if (metadata.kind === "sponsorship") {
       const admin = createAdminClient();
