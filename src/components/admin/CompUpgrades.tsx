@@ -14,7 +14,7 @@ export default function CompUpgrades({
   proEnabled: boolean;
   superVotesEnabled: boolean;
   canAddTime: boolean;
-  onGranted: (upgrade: "pro" | "super_votes" | "time") => void;
+  onGranted: (upgrade: "pro" | "super_votes" | "time", closesAt?: string | null) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [days, setDays] = useState(1);
@@ -29,11 +29,11 @@ export default function CompUpgrades({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventId, upgrade, days }),
       });
-      const r = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      const r = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; closesAt?: string | null };
       if (!r.ok) setMsg({ ok: false, text: r.error ?? "Could not add the upgrade." });
       else {
         setMsg({ ok: true, text: `${label} added, free.` });
-        onGranted(upgrade);
+        onGranted(upgrade, r.closesAt);
       }
     } catch {
       setMsg({ ok: false, text: "Network problem. Try again." });

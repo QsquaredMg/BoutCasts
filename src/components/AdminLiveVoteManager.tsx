@@ -332,7 +332,7 @@ export default function AdminLiveVoteManager({
                 proEnabled={e.pro_enabled}
                 superVotesEnabled={e.super_votes_enabled}
                 canAddTime={e.status === "live" && !!e.closes_at}
-                onGranted={(u) =>
+                onGranted={(u, closesAt) =>
                   setEvents((prev) =>
                     prev.map((x) =>
                       x.id !== e.id
@@ -341,7 +341,9 @@ export default function AdminLiveVoteManager({
                           ? { ...x, pro_enabled: true }
                           : u === "super_votes"
                             ? { ...x, super_votes_enabled: true }
-                            : x
+                            : closesAt !== undefined
+                              ? { ...x, closes_at: closesAt }
+                              : x
                     )
                   )
                 }
