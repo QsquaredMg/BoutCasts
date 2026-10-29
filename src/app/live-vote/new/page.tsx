@@ -1,5 +1,6 @@
 "use client";
 
+import VenueFields, { EMPTY_VENUE, venueCols, type Venue } from "@/components/VenueFields";
 import { useEffect, useState } from "react";
 import SignInCard from "@/components/SignInCard";
 import { useRouter } from "next/navigation";
@@ -72,6 +73,7 @@ export default function NewLiveVoteEventPage() {
   const [brandBgColor, setBrandBgColor] = useState<string | null>(null);
   const [whiteLabel, setWhiteLabel] = useState(false);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [venue, setVenue] = useState<Venue>(EMPTY_VENUE);
   const [brandBgImageUrl, setBrandBgImageUrl] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
@@ -189,6 +191,7 @@ export default function NewLiveVoteEventPage() {
         white_label: isFree ? false : whiteLabel,
         brand_bg_image_url: isFree ? null : brandBgImageUrl,
         cover_image_url: coverImageUrl,
+        ...venueCols(venue),
         shared_source_type: sharedVideo ? sharedClip.sourceType : null,
         shared_source_url: sharedVideo ? sharedClip.sourceUrl : null,
       })
@@ -306,6 +309,13 @@ export default function NewLiveVoteEventPage() {
             A banner across the top of your voting page — a team photo, school building, flyer or event poster.
           </p>
           <ImageField value={coverImageUrl} onChange={setCoverImageUrl} label="cover photo" wide />
+        </div>
+
+        <div>
+          <label className={labelClass} style={labelStyle}>
+            Where is it happening? (optional)
+          </label>
+          <VenueFields value={venue} onChange={setVenue} />
         </div>
 
         <div>

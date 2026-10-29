@@ -5,6 +5,8 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import LocalTime from "@/components/LocalTime";
 import PredTeam from "@/components/PredTeam";
+import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
+import { getEmbedInfo } from "@/lib/clipSource";
 import { useNow } from "@/lib/predictions/useNow";
 import type { BracketTeam, PredGame } from "@/lib/predictions/types";
 
@@ -32,6 +34,7 @@ export default function BracketVotePanel({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [askTie, setAskTie] = useState(false);
+  const [watching, setWatching] = useState<string | null>(null);
 
   const homeId = game.home_team_id, awayId = game.away_team_id;
   const ready = !!homeId && !!awayId;
@@ -98,12 +101,35 @@ export default function BracketVotePanel({
     );
   }
 
+  const clipOf = (id: string | null) => (id ? teams.get(id)?.clip_url ?? null : null);
+  const watchBtn = (id: string | null) => {
+    const clip = clipOf(id);
+    if (!clip) return <span />;
+    const on = watching === id;
+    return (
+      <button type="button" onClick={() => setWatching(on ? null : id)} aria-expanded={on} className="mt-1 w-full rounded-full border px-2 py-1 text-xs font-bold" style={{ borderColor: "var(--border)" }}>
+        {on ? "Hide clip" : "▶ Watch clip"}
+      </button>
+    );
+  };
+  const playing = watching ? clipOf(watching) : null;
+
   return (
     <div>
       <div className="grid grid-cols-2 gap-2">
-        {side(homeId, game.home_name, game.home_logo, home)}
-        {side(awayId, game.away_name, game.away_logo, away)}
+        <div className="min-w-0">{side(homeId, game.home_name, game.home_logo, home)}{watchBtn(homeId)}</div>
+        <div className="min-w-0">{side(awayId, game.away_name, game.away_logo, away)}{watchBtn(awayId)}</div>
       </div>
+      {playing && (
+        <div className="mt-2">
+          <p className="mb-1 text-xs font-bold" style={{ color: "var(--text-dim)" }}>{teams.get(watching!)?.name}</p>
+          {getEmbedInfo(playing) ? (
+            <EmbeddedClipPlayer sourceUrl={playing} label={`${teams.get(watching!)?.name ?? "Contestant"} clip`} />
+          ) : (
+            <video src={playing} controls playsInline preload="metadata" className="w-full rounded-xl" style={{ background: "#000" }} />
+          )}
+        </div>
+      )}
 
       <p className="mt-2 text-center text-xs" style={{ color: "var(--text-faint)" }}>
         {!ready && "Waiting on the earlier round."}

@@ -38,6 +38,9 @@ type EventRow = {
   cover_image_url: string | null;
   is_private: boolean;
   ads_enabled: boolean;
+  venue_lat?: number | null;
+  venue_lng?: number | null;
+  venue_state?: string | null;
   post_vote_graphic_url: string | null;
   voting_method: "single" | "ranked";
   scoring_mode: "crowd" | "judges";
@@ -135,7 +138,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
 
     const { data: eventRow } = await supabase
       .from("live_vote_events")
-      .select("id, title, description, shared_source_url, voter_mode, status, tier, closes_at, brand_name, brand_logo_url, cover_image_url, is_private, post_vote_graphic_url, ads_enabled, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, super_votes_platinum_cents, categories(name), subcategories(name)")
+      .select("id, title, description, shared_source_url, voter_mode, status, tier, closes_at, brand_name, brand_logo_url, cover_image_url, is_private, post_vote_graphic_url, ads_enabled, venue_lat, venue_lng, venue_state, voting_method, scoring_mode, collect_demographics, super_votes_enabled, super_votes_mode, super_votes_platinum_cents, categories(name), subcategories(name)")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -535,7 +538,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
           style={{ borderColor: "var(--border)" }}
         />
       )}
-      {event.ads_enabled && <AdBanner placement="live_vote" />}
+      {event.ads_enabled && <AdBanner placement="live_vote" near={event.venue_lat != null && event.venue_lng != null ? { lat: event.venue_lat, lng: event.venue_lng, region: event.venue_state ?? undefined } : event.venue_state ? { region: event.venue_state } : undefined} />}
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span

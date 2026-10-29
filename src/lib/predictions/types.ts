@@ -50,7 +50,7 @@ export type PredSlate = {
   vote_hours: number | null;
 };
 
-export type BracketTeam = { id: string; seed: number; name: string; logo: string | null };
+export type BracketTeam = { id: string; seed: number; name: string; logo: string | null; clip_url?: string | null };
 
 export const SLATE_FIELDS = "id, title, created_by, kind, tier, status, closes_at, locks_at, bracket_size, brand_name, brand_logo_url, brand_color, white_label, visibility, invite_code, scoring_mode, entrant_cap, advance_mode, vote_hours";
 

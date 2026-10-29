@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import TeamPicker from "@/components/TeamPicker";
 import LogoUploadField from "@/components/LogoUploadField";
+import FileUploadPicker from "@/components/FileUploadPicker";
+import { normalizeVideoLink } from "@/lib/clipSource";
 import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
 import { TOURNEY_TIERS, money, roundLabel, roundPoints } from "@/lib/predictions/pricing";
 import { getZone } from "@/lib/time/pref";
@@ -27,7 +29,8 @@ export default function TourneyBuilder({ initialMode = "score" }: { initialMode?
   const [voteHours, setVoteHours] = useState<number>(24);
   const [title, setTitle] = useState("");
   const [size, setSize] = useState<(typeof SIZES)[number]>(8);
-  const [slots, setSlots] = useState<{ name: string; logo: string }[]>(() => Array.from({ length: 8 }, () => ({ name: "", logo: "" })));
+  const [uploaded, setUploaded] = useState<Record<number, boolean>>({});
+  const [slots, setSlots] = useState<{ name: string; logo: string; clip: string }[]>(() => Array.from({ length: 8 }, () => ({ name: "", logo: "", clip: "" })));
   const [paste, setPaste] = useState("");
   const [showPaste, setShowPaste] = useState(false);
   const [starts, setStarts] = useState<string[]>(["", "", ""]);
@@ -53,17 +56,17 @@ export default function TourneyBuilder({ initialMode = "score" }: { initialMode?
 
   function changeSize(n: (typeof SIZES)[number]) {
     setSize(n);
-    setSlots((a) => Array.from({ length: n }, (_, i) => a[i] ?? { name: "", logo: "" }));
+    setSlots((a) => Array.from({ length: n }, (_, i) => a[i] ?? { name: "", logo: "", clip: "" }));
     setStarts((s) => Array.from({ length: rounds(n) }, (_, i) => s[i] ?? ""));
   }
 
-  function setSlot(i: number, v: Partial<{ name: string; logo: string }>) {
+  function setSlot(i: number, v: Partial<{ name: string; logo: string; clip: string }>) {
     setSlots((a) => a.map((x, j) => (j === i ? { ...x, ...v } : x)));
   }
 
   function applyPaste() {
     const names = paste.split("\n").map((t) => t.trim()).filter(Boolean).slice(0, size);
-    setSlots((a) => a.map((x, i) => (names[i] !== undefined ? { name: names[i], logo: "" } : x)));
+    setSlots((a) => a.map((x, i) => (names[i] !== undefined ? { name: names[i], logo: "", clip: "" } : x)));
     setPaste("");
     setShowPaste(false);
   }
@@ -71,6 +74,13 @@ export default function TourneyBuilder({ initialMode = "score" }: { initialMode?
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (votes) {
+      const badClip = slots.findIndex((t, i) => t.clip.trim() && !uploaded[i] && !normalizeVideoLink(t.clip));
+      if (badClip >= 0) {
+        setError(`The clip link for contestant ${badClip + 1} isn't one we can play. Use a YouTube, Vimeo, TikTok, Instagram or Google Drive link, or upload a video.`);
+        return;
+      }
+    }
     if (teams.length !== size) {
       setError(`You listed ${teams.length} ${teams.length === 1 ? "team" : "teams"}. A ${size}-team bracket needs exactly ${size}, one per line.`);
       return;
@@ -97,7 +107,7 @@ export default function TourneyBuilder({ initialMode = "score" }: { initialMode?
     try {
       const { data, error: rpcErr } = await createClient().rpc("create_pred_bracket", {
         p_title: title,
-        p_teams: slots.map((t) => ({ name: t.name.trim(), logo: t.logo || null })),
+        p_teams: slots.map((t, i) => ({ name: t.name.trim(), logo: t.logo || null, clip: votes && t.clip ? (uploaded[i] ? t.clip : normalizeVideoLink(t.clip)) : null })),
         p_round_starts: startIso,
         p_cap: votes ? 1000 : cap,
         p_private: isPrivate,
@@ -182,7 +192,20 @@ export default function TourneyBuilder({ initialMode = "score" }: { initialMode?
               </div>
               <div className="ml-8 mt-1">
                 {votes ? (
-                  <LogoUploadField value={t.logo} onChange={(url) => setSlot(i, { logo: url })} noun="photo" folder="applications" compact />
+                  <>
+                    <LogoUploadField value={t.logo} onChange={(url) => setSlot(i, { logo: url })} noun="photo" folder="applications" compact />
+                    <div className="mt-2 grid gap-1 text-xs font-semibold">Clip (optional, up to 2 minutes)
+                      {t.clip && uploaded[i] ? (
+                        <span className="flex items-center gap-2 font-normal">Video uploaded <button type="button" className="underline" onClick={() => { setSlot(i, { clip: "" }); setUploaded((u) => ({ ...u, [i]: false })); }}>Remove</button></span>
+                      ) : (
+                        <>
+                          {!t.clip.trim() && <FileUploadPicker mediaOnly maxSeconds={120} onUploaded={(u) => { setSlot(i, { clip: u ?? "" }); setUploaded((x) => ({ ...x, [i]: !!u })); }} />}
+                          <input value={t.clip} onChange={(e) => { setSlot(i, { clip: e.target.value }); setUploaded((u) => ({ ...u, [i]: false })); }} placeholder="Or paste a link (YouTube, Vimeo, TikTok, Instagram, Google Drive)" className="h-9 rounded-xl border bg-transparent px-3 text-sm font-normal" style={border} />
+                          {t.clip.trim() && !normalizeVideoLink(t.clip) && <span className="font-normal" style={{ color: "var(--danger)" }}>We can&apos;t play that link.</span>}
+                        </>
+                      )}
+                    </div>
+                  </>
                 ) : (
                   <TeamPicker label="Pick a team" onPick={(p) => setSlot(i, { name: p.name, logo: p.logo })} />
                 )}

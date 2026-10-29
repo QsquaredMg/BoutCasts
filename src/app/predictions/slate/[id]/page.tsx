@@ -47,7 +47,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const [{ data: gameRows }, { data: lb }, { data: teamRows }, { data: me }, { data: sponsorRows }, { data: entrantStand }] = await Promise.all([
     supabase.from("pred_games").select(GAME_FIELDS).eq("slate_id", id).neq("status", "cancelled").order("starts_at"),
     isTourney ? supabase.rpc("tourney_leaderboard", { p_slate: id, p_limit: 100 }) : supabase.rpc("pred_leaderboard", { p_scope: "season", p_slate: id, p_limit: 25 }),
-    isElim ? supabase.from("pred_bracket_teams").select("id, seed, name, logo").eq("bracket_id", id).order("seed") : Promise.resolve({ data: [] }),
+    isElim ? supabase.from("pred_bracket_teams").select("id, seed, name, logo, clip_url").eq("bracket_id", id).order("seed") : Promise.resolve({ data: [] }),
     user ? supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.rpc("get_pred_sponsors", { p_bracket: id }),
     isTourney || isElim ? Promise.resolve({ data: [] }) : supabase.rpc("pred_entrant_standings", { p_slate: id }),

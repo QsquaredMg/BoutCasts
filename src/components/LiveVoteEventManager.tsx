@@ -12,6 +12,7 @@ import EventSponsorSales from "@/components/EventSponsorSales";
 import SuperVotesManager from "@/components/SuperVotesManager";
 import TimeAddOn from "@/components/TimeAddOn";
 import EventAccessPanel from "@/components/EventAccessPanel";
+import EventVenuePanel from "@/components/EventVenuePanel";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import EventBrandingEditor from "@/components/EventBrandingEditor";
@@ -793,6 +794,14 @@ export default function LiveVoteEventManager({
         </div>
       )}
 
+      {!isMod && (
+        <section className="mb-6 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <h2 className="font-bold">Big screen</h2>
+          <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Put this on a projector or stadium board: a giant scan-to-vote QR code with live results. No login needed on the display.</p>
+          <a href={`/live-vote/${event.id}/screen`} target="_blank" rel="noreferrer" className="inline-block rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Open big screen</a>
+        </section>
+      )}
+      <EventVenuePanel eventId={event.id} />
       {!isMod && <EventAccessPanel kind="live_vote" eventId={event.id} />}
     </div>
   );
