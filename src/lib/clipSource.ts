@@ -22,6 +22,9 @@ export function getClipSourceTag(
       if (host.includes("youtube.com") || host.includes("youtu.be")) {
         return { label: "YouTube", icon: "▶️", isAudio: false };
       }
+      if (host === "drive.google.com" || host === "docs.google.com") {
+        return { label: "Google Drive", icon: "📁", isAudio: false };
+      }
       if (host.includes("tiktok.com")) {
         return { label: "TikTok", icon: "🎵", isAudio: false };
       }
@@ -67,6 +70,15 @@ export type EmbedInfo =
   | { kind: "tiktok"; url: string }
   | { kind: "instagram"; url: string };
 
+// Google Drive share links: /file/d/<id>/view, /open?id=<id>, /uc?id=<id>. The file must be shared as
+// "Anyone with the link" or the embedded player shows a sign-in screen to viewers.
+function extractDriveId(u: URL): string | null {
+  const m = u.pathname.match(/\/file\/(?:u\/\d+\/)?d\/([A-Za-z0-9_-]{10,})/);
+  if (m) return m[1];
+  const id = u.searchParams.get("id");
+  return id && /^[A-Za-z0-9_-]{10,}$/.test(id) ? id : null;
+}
+
 function extractYouTubeId(u: URL): string | null {
   const host = u.hostname.replace(/^www\./, "");
   if (host === "youtu.be") {
@@ -95,6 +107,11 @@ export function getEmbedInfo(sourceUrl: string | null | undefined): EmbedInfo | 
   if (host.includes("youtube.com") || host === "youtu.be") {
     const id = extractYouTubeId(u);
     return id ? { kind: "iframe", src: `https://www.youtube.com/embed/${id}`, layout: "video" } : null;
+  }
+
+  if (host === "drive.google.com" || host === "docs.google.com") {
+    const id = extractDriveId(u);
+    return id ? { kind: "iframe", src: `https://drive.google.com/file/d/${id}/preview`, layout: "video" } : null;
   }
 
   if (host.includes("vimeo.com")) {

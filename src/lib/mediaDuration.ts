@@ -156,6 +156,7 @@ export async function linkDuration(url: string): Promise<{ seconds: number | nul
     return { seconds: id ? await youTubeDuration(id) : null, site: "YouTube" };
   }
   if (host.includes("vimeo.com")) return { seconds: await vimeoDuration(url), site: "Vimeo" };
+  if (host === "drive.google.com" || host === "docs.google.com") return { seconds: null, site: "Google Drive" };
   if (host.includes("tiktok.com")) return { seconds: null, site: "TikTok" };
   if (host.includes("instagram.com")) return { seconds: null, site: "Instagram" };
   if (/\.(mp4|mov|webm|m4v|mp3|m4a|wav)(\?|$)/i.test(url)) return { seconds: await mediaElementDuration(url), site: "video file" };
