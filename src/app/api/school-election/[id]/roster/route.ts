@@ -11,11 +11,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (election.status === "closed") return NextResponse.json({ error: "This election is closed." }, { status: 400 });
 
   const body = await req.json().catch(() => null);
-  const rows: { name?: unknown; ref?: unknown }[] = Array.isArray(body?.voters) ? body.voters : [];
+  const rows: { name?: unknown; ref?: unknown; email?: unknown }[] = Array.isArray(body?.voters) ? body.voters : [];
   const voters = rows
     .map((r) => ({
       name: typeof r.name === "string" ? r.name.trim().replace(/\s+/g, " ").slice(0, 120) : "",
       ref: typeof r.ref === "string" && r.ref.trim() ? r.ref.trim().slice(0, 60) : null,
+      email: typeof r.email === "string" && /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(r.email.trim()) ? r.email.trim().toLowerCase().slice(0, 200) : null,
     }))
     .filter((r) => r.name);
   if (!voters.length) return NextResponse.json({ error: "No student names found." }, { status: 400 });
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const codes = generateUniqueCodes(voters.length, new Set((existing ?? []).map((r) => r.code)));
   const { error } = await admin
     .from("election_voters")
-    .insert(voters.map((v, i) => ({ election_id: id, name: v.name, name_norm: normName(v.name), student_ref: v.ref, code: codes[i] })));
+    .insert(voters.map((v, i) => ({ election_id: id, name: v.name, name_norm: normName(v.name), student_ref: v.ref, email: v.email, code: codes[i] })));
   if (error) {
     console.error("school-election: roster insert failed", error);
     return NextResponse.json({ error: "Couldn't save the roster. Please try again." }, { status: 500 });

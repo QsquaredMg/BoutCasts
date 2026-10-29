@@ -13,6 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const patch: Record<string, unknown> = {};
   if (typeof body.requireRegistration === "boolean") patch.require_registration = body.requireRegistration;
   if (typeof body.campaignPageEnabled === "boolean") patch.campaign_page_enabled = body.campaignPageEnabled;
+  if (typeof body.linkVoting === "boolean") patch.link_voting = body.linkVoting;
   if (typeof body.forumEnabled === "boolean") patch.forum_enabled = body.forumEnabled;
   if ("registrationClosesAt" in body) {
     if (body.registrationClosesAt === null || body.registrationClosesAt === "") patch.registration_closes_at = null;

@@ -8,7 +8,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if ("error" in owner) return owner.error;
   const { data, error } = await owner.admin
     .from("election_voters")
-    .select("id, name, student_ref, code, voted_at, registered_at")
+    .select("id, name, student_ref, code, voted_at, registered_at, email, emailed_at")
     .eq("election_id", id)
     .order("name", { ascending: true })
     .limit(5000);

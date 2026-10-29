@@ -14,7 +14,7 @@ type Data = {
   interim?: boolean;
   viewerIsAdmin?: boolean;
   viewerRole?: "owner" | "admin" | "moderator";
-  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; link_voting?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number; registered?: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -24,15 +24,15 @@ type Data = {
 const money = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
 // Minimal CSV/line parser: "Name" or "Name, ID" per line; a header row of Name/ID is skipped.
-function parseRoster(text: string): { name: string; ref: string | null }[] {
-  const rows: { name: string; ref: string | null }[] = [];
+function parseRoster(text: string): { name: string; ref: string | null; email: string | null }[] {
+  const rows: { name: string; ref: string | null; email: string | null }[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
     const cells = line.match(/("([^"]|"")*"|[^,]*)(,|$)/g)?.map((c) => c.replace(/,$/, "").replace(/^"|"$/g, "").replace(/""/g, '"').trim()) ?? [line];
-    const [name, ref] = cells;
+    const [name, ref, email] = cells;
     if (!name || /^(student )?name$/i.test(name)) continue;
-    rows.push({ name, ref: ref || null });
+    rows.push({ name, ref: ref || null, email: email || null });
   }
   return rows;
 }
@@ -122,12 +122,26 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
     }
   }
 
+  async function toggleLink(on: boolean) {
+    const r = await call("link", `/api/school-election/${id}/settings`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ linkVoting: on }) });
+    if (r) load();
+  }
+
+  async function emailCodes(resend: boolean) {
+    if (resend && !confirm("Email everyone who has an email on file and hasn't voted yet, including students already emailed?")) return;
+    const r = await call("emailcodes", `/api/school-election/${id}/link-invites`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resend }) });
+    if (r) {
+      setNotice(`Emailed ${r.sent} student${r.sent === 1 ? "" : "s"}${r.failed ? `, ${r.failed} failed` : ""}${r.remaining ? `. ${r.remaining} more are waiting: press the button again.` : "."}`);
+      load();
+    }
+  }
+
   async function downloadCodes() {
     const res = await fetch(`/api/school-election/${id}/voters`, { cache: "no-store" });
     if (!res.ok) return setError("Couldn't load the roster.");
-    const { voters } = (await res.json()) as { voters: { name: string; student_ref: string | null; code: string; voted_at: string | null }[] };
+    const { voters } = (await res.json()) as { voters: { name: string; student_ref: string | null; code: string; voted_at: string | null; email: string | null }[] };
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-    const body = ["Name,Student ID,Code,Voted", ...voters.map((v) => [esc(v.name), esc(v.student_ref ?? ""), v.code, v.voted_at ? "yes" : "no"].join(","))].join("\n");
+    const body = ["Name,Student ID,Code,Voted,Email", ...voters.map((v) => [esc(v.name), esc(v.student_ref ?? ""), v.code, v.voted_at ? "yes" : "no", esc(v.email ?? "")].join(","))].join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([body], { type: "text/csv" }));
     a.download = "election-roster-codes.csv";
@@ -186,7 +200,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         </div>
         {!closed && (
           <>
-            <p className="mb-2 mt-1 text-xs" style={{ color: "var(--text-faint)" }}>One student per line: &quot;Name&quot; or &quot;Name, Student ID&quot;. Each gets a random 6-character code a teacher hands out at the booth.</p>
+            <p className="mb-2 mt-1 text-xs" style={{ color: "var(--text-faint)" }}>One student per line: &quot;Name&quot;, &quot;Name, Student ID&quot; or &quot;Name, Student ID, email&quot;. Each gets a random 6-character code a teacher hands out at the booth. Add an email to send them their code for voting by link.</p>
             <textarea value={paste} onChange={(e) => setPaste(e.target.value)} rows={4} placeholder={"Jordan Smith, 1042\nAvery Johnson, 1043"} className="w-full rounded-[10px] border px-3 py-2 text-sm" style={box} />
             <div className="mt-2 flex flex-wrap gap-2">
               <button onClick={() => addRoster(paste)} disabled={busy !== null || !paste.trim()} className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold disabled:opacity-50">Add students</button>
@@ -202,6 +216,33 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           <div className="mt-3 flex flex-wrap gap-3 text-sm font-bold">
             <Link href={`/school-election/${id}/desk`} className="underline">Open the booth desk (teachers)</Link>
             <button onClick={downloadCodes} className="underline">Download roster with codes</button>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border p-4" style={box}>
+        <p className="font-bold">Vote by link</p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>One school-wide link. Each student enters their own code and name, then votes once for each office. They can come back until voting closes, and kiosks keep working too. A student who votes at a booth can&apos;t vote again by link.</p>
+        {!closed && (
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" checked={!!e.link_voting} disabled={busy !== null} onChange={(ev) => toggleLink(ev.target.checked)} />
+            Let students vote by link
+          </label>
+        )}
+        {e.link_voting && (
+          <div className="mt-3 grid gap-2">
+            <p className="break-all rounded-lg border p-2 text-xs" style={box}>{typeof window !== "undefined" ? window.location.origin : ""}/school-election/{id}/vote</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/school-election/${id}/vote`)} className="rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>Copy link</button>
+              {!closed && e.status === "live" && (
+                <>
+                  <button onClick={() => emailCodes(false)} disabled={busy !== null} className="bc-btn-solid rounded-full px-3 py-1.5 text-xs font-bold disabled:opacity-50">{busy === "emailcodes" ? "Sending…" : "Email codes to students"}</button>
+                  <button onClick={() => emailCodes(true)} disabled={busy !== null} className="rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>Email everyone again</button>
+                </>
+              )}
+              {turnout.total > 0 && <button onClick={downloadCodes} className="rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>Download codes list</button>}
+            </div>
+            {e.status === "draft" && <p className="text-xs" style={{ color: "var(--text-faint)" }}>Emails can be sent once voting is open. Students need a code, so add the roster first.</p>}
           </div>
         )}
       </div>

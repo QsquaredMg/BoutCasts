@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
       show_tally: showTally,
       open_ended: body.openEnded === true && !!me?.is_admin,
       is_practice: practice,
+      link_voting: body.linkVoting === true,
       ...brand,
     })
     .select("id")

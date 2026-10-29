@@ -32,6 +32,7 @@ export default function NewSchoolElectionPage() {
   const [accent, setAccent] = useState<string | null>(null);
   const [bgColor, setBgColor] = useState<string | null>(null);
   const [showTally, setShowTally] = useState(true);
+  const [linkVoting, setLinkVoting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [openEnded, setOpenEnded] = useState(false);
   const [practice, setPractice] = useState(false);
@@ -78,6 +79,7 @@ export default function NewSchoolElectionPage() {
           brandColor: accent,
           brandBgColor: bgColor,
           showTally,
+          linkVoting,
           openEnded: isAdmin && openEnded,
           practice,
           races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds, videoLink: c.videoLink })) })),
@@ -151,6 +153,10 @@ export default function NewSchoolElectionPage() {
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={practice} onChange={(e) => { setPractice(e.target.checked); if (e.target.checked) { setTier("free"); setKiosks(1); setDays(1); } }} className="mt-1" />
           <span><span className="font-semibold">This is a practice election.</span> <span style={{ color: "var(--text-faint)" }}>Free, one kiosk, and you can reset it and run it again as often as you like. Use it to rehearse with a class before the real vote. It can&apos;t raise money or be certified.</span></span>
+        </label>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" checked={linkVoting} onChange={(e) => setLinkVoting(e.target.checked)} className="mt-1" />
+          <span><span className="font-semibold">Also let students vote by link.</span> <span style={{ color: "var(--text-faint)" }}>One school-wide link; each student types their own code and name and votes once per office. Use it alongside the kiosks or on its own. You can turn it on or off later. Codes can be emailed to students or handed out.</span></span>
         </label>
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={showTally} onChange={(e) => setShowTally(e.target.checked)} className="mt-1" />

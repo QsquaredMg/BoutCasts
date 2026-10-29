@@ -85,6 +85,7 @@ export type ElectionRow = {
   registration_closes_at: string | null;
   campaign_page_enabled: boolean;
   forum_enabled: boolean;
+  link_voting: boolean;
 };
 
 async function loadElectionAccess(id: string) {
