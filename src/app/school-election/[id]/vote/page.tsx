@@ -17,7 +17,7 @@ export default async function VoteLinkPage({ params, searchParams }: { params: P
   // Vote by link is off: only the organizer's team gets to see the page (as a preview).
   // Organizer preview (?preview=1): the real ballot, any code and name works, nothing is saved.
   let previewOnly = false;
-  let previewBallot: { race_id: string; title: string; options: { id: string; name: string; description: string | null; image_url: string | null; video_url: string | null }[] }[] | undefined;
+  let previewBallot: { race_id: string; title: string; options: { id: string; name: string; description: string | null; image_url: string | null; video_url: string | null; clip_url: string | null }[] }[] | undefined;
   if (preview === "1" || !election.link_voting) {
     const access = await requireElectionAccess(id);
     if ("error" in access) notFound();
@@ -35,7 +35,8 @@ export default async function VoteLinkPage({ params, searchParams }: { params: P
         options: (opts ?? []).filter((o) => o.event_id === r.id).map((o) => ({
           id: o.id as string, name: o.name as string, description: (o.description as string | null) ?? null,
           image_url: (o.image_url as string | null) ?? null,
-          video_url: o.source_type === "upload" ? ((o.source_url as string | null) ?? null) : null,
+          video_url: o.source_type === "upload" || o.source_type === "record" ? ((o.source_url as string | null) ?? null) : null,
+          clip_url: o.source_type === "link" ? ((o.source_url as string | null) ?? null) : null,
         })),
       }));
     }

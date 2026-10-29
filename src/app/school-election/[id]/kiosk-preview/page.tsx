@@ -24,15 +24,16 @@ export default async function KioskPreviewPage({ params }: { params: Promise<{ i
   const { data: races } = await admin.from("live_vote_events").select("id, title").eq("election_id", id).order("election_sort");
   const raceIds = (races ?? []).map((r) => r.id as string);
   const { data: opts } = raceIds.length
-    ? await admin.from("live_vote_options").select("id, event_id, name, description, image_url, source_url, sort_order").in("event_id", raceIds).order("sort_order")
-    : { data: [] as { id: string; event_id: string; name: string; description: string | null; image_url: string | null; source_url: string | null }[] };
+    ? await admin.from("live_vote_options").select("id, event_id, name, description, image_url, source_url, source_type, sort_order").in("event_id", raceIds).order("sort_order")
+    : { data: [] as { id: string; event_id: string; name: string; description: string | null; image_url: string | null; source_url: string | null; source_type: string | null }[] };
 
   const ballot = (races ?? []).map((r) => ({
     race_id: r.id as string,
     title: r.title as string,
     options: (opts ?? []).filter((o) => o.event_id === r.id).map((o) => ({
       id: o.id as string, name: o.name as string, description: (o.description as string | null) ?? null,
-      image_url: (o.image_url as string | null) ?? null, video_url: null,
+      image_url: (o.image_url as string | null) ?? null,
+      video_url: o.source_type === "upload" || o.source_type === "record" ? ((o.source_url as string | null) ?? null) : null,
     })),
   }));
 

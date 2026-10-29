@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
 
-type Opt = { id: string; name: string; description: string | null; image_url: string | null; video_url: string | null };
+type Opt = { id: string; name: string; description: string | null; image_url: string | null; video_url: string | null; clip_url?: string | null };
 type Race = { race_id: string; title: string; options: Opt[] };
 type Session = { voterName: string; ballot: Race[]; voted: string[]; closesAt: string | null };
 
@@ -112,6 +113,7 @@ export default function LinkVote({ id, title, school, previewBallot }: { id: str
                         <span className="block font-bold">{o.name}</span>
                         {o.description && <span className="block text-sm" style={{ color: "var(--text-dim)" }}>{o.description}</span>}
                         {o.video_url && <video src={o.video_url} controls preload="none" playsInline className="mt-2 w-full rounded-lg" />}
+                        {!o.video_url && o.clip_url && <div className="mt-2"><EmbeddedClipPlayer sourceUrl={o.clip_url} label={`${o.name} video`} privacy /></div>}
                       </span>
                     </label>
                   ))}
