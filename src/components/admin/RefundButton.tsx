@@ -29,6 +29,8 @@ export default function RefundButton({ paymentIntentId, remainingCents, buyer, w
     }
     setBusy(false);
     if (!r.ok) return setError(r.error ?? "Could not refund.");
+    // This refund is done; the next one (even for the same amount) is a new attempt.
+    attemptId.current = crypto.randomUUID();
     setOpen(false);
     router.refresh();
   }
