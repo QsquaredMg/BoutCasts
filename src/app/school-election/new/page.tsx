@@ -6,7 +6,7 @@ import SignInCard from "@/components/SignInCard";
 import ImageField from "@/components/ImageField";
 import FileUploadPicker from "@/components/FileUploadPicker";
 import { createClient } from "@/lib/supabase/client";
-import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, ORG_LICENSE, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
 type Cand = { key: string; name: string; description: string; photoUrl: string | null; videoUrl: string | null; videoSeconds: number | null };
 type RaceDraft = { key: string; title: string; candidates: Cand[] };
@@ -108,6 +108,10 @@ export default function NewSchoolElectionPage() {
       <h1 className="text-3xl font-extrabold">New school election</h1>
       <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>
         One ballot with several offices. Students vote at a kiosk (an iPad at a booth) with a code a teacher hands them. Results stay hidden until voting closes.
+      </p>
+      <p className="mt-2 rounded-xl p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
+        You are buying this election on its own, with no license needed. Running several votes a year? The{" "}
+        <a href="/org" className="font-bold underline">School &amp; League License</a> covers them all for ${ORG_LICENSE.priceCents / 100}/year.
       </p>
 
       <section className="mt-6 grid gap-3">

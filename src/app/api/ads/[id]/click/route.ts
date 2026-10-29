@@ -21,6 +21,7 @@ export async function POST(
     path: pathFromReferer(req.headers.get("referer")),
     device: deviceFromUa(ua),
     country: req.headers.get("x-vercel-ip-country"),
+    region: req.headers.get("x-vercel-ip-country") === "US" ? req.headers.get("x-vercel-ip-country-region") : null,
   });
 
   if (error) {

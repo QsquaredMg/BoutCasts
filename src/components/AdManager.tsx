@@ -8,6 +8,7 @@ import { normalizeEmbedInput } from "@/lib/clipSource";
 import ZonedDateTimeInput from "@/components/ZonedDateTimeInput";
 import { getZone } from "@/lib/time/pref";
 import { wallToIso } from "@/lib/time/zones";
+import GeoTargetFields, { EMPTY_GEO, describeGeo, geoFromColumns, geoToColumns, type GeoColumns, type GeoTarget } from "@/components/GeoTargetFields";
 
 type Sponsor = { id: string; name: string };
 
@@ -27,7 +28,7 @@ type AdCreative = {
   starts_at: string | null;
   ends_at: string | null;
   created_at: string;
-};
+} & Partial<GeoColumns>;
 
 type Stats = { impressions: number; clicks: number };
 
@@ -66,6 +67,9 @@ export default function AdManager({
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<"upload" | "link" | "embed">("upload");
   const [embedInput, setEmbedInput] = useState("");
+  const [geo, setGeo] = useState<GeoTarget>(EMPTY_GEO);
+  const [editGeoId, setEditGeoId] = useState<string | null>(null);
+  const [editGeo, setEditGeo] = useState<GeoTarget>(EMPTY_GEO);
 
   function sponsorName(id: string) {
     return sponsors.find((s) => s.id === id)?.name ?? "Unknown sponsor";
@@ -119,6 +123,11 @@ export default function AdManager({
       return;
     }
 
+    const g = geoToColumns(geo);
+    if (!g.ok) {
+      setError(g.error);
+      return;
+    }
     setCreating(true);
     const { data, error } = await supabase
       .from("ad_creatives")
@@ -133,6 +142,7 @@ export default function AdManager({
         max_impressions: form.max_impressions ? Math.max(1, Math.floor(Number(form.max_impressions))) : null,
         starts_at: form.starts_at ? wallToIso(form.starts_at, getZone()) : null,
         ends_at: form.ends_at ? wallToIso(form.ends_at, getZone()) : null,
+        ...g.cols,
       })
       .select()
       .single();
@@ -144,6 +154,7 @@ export default function AdManager({
     }
     setAds((prev) => [data as AdCreative, ...prev]);
     setForm({ ...EMPTY_FORM, sponsor_id: sponsors[0]?.id ?? "" });
+    setGeo(EMPTY_GEO);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -176,6 +187,24 @@ export default function AdManager({
       return;
     }
     setAds((prev) => prev.map((a) => (a.id === id ? { ...a, max_impressions: value } : a)));
+  }
+
+  async function saveGeo(id: string) {
+    setError(null);
+    const g = geoToColumns(editGeo);
+    if (!g.ok) {
+      setError(g.error);
+      return;
+    }
+    setBusyId(id);
+    const { error } = await supabase.from("ad_creatives").update(g.cols).eq("id", id);
+    setBusyId(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, ...g.cols } : a)));
+    setEditGeoId(null);
   }
 
   async function deleteAd(id: string) {
@@ -352,6 +381,8 @@ export default function AdManager({
             className="rounded border border-neutral-300 px-3 py-2 text-sm"
           />
 
+          <GeoTargetFields value={geo} onChange={setGeo} />
+
           <div className="flex flex-wrap gap-3">
             <label className="flex flex-col gap-1 text-xs text-neutral-500">
               Flight starts (optional)
@@ -453,6 +484,35 @@ export default function AdManager({
                         />
                       </label>
                     </p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+                      <span>Where: {describeGeo(ad)}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editGeoId === ad.id) setEditGeoId(null);
+                          else {
+                            setEditGeo(geoFromColumns(ad));
+                            setEditGeoId(ad.id);
+                          }
+                        }}
+                        className="font-semibold underline"
+                      >
+                        {editGeoId === ad.id ? "Cancel" : "Change"}
+                      </button>
+                    </p>
+                    {editGeoId === ad.id && (
+                      <div className="mt-2 flex flex-col gap-2">
+                        <GeoTargetFields value={editGeo} onChange={setEditGeo} />
+                        <button
+                          type="button"
+                          onClick={() => saveGeo(ad.id)}
+                          disabled={busyId === ad.id}
+                          className="self-start rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+                        >
+                          Save targeting
+                        </button>
+                      </div>
+                    )}
                     {ad.status === "pending" && (
                       <p className="mt-0.5 text-xs text-amber-700">
                         Submitted by the sponsor. Set a weight and cap if needed, then approve to start serving.

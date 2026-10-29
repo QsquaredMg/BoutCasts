@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { LIVE_VOTE_TIERS, ORG_LICENSE, ORGANIZER_PRO, SUPER_VOTES, SCHOOL_ELECTION, TIME_ADDON, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, ORG_LICENSE, ORGANIZER_PRO, SUPER_VOTES, SCHOOL_ELECTION, schoolElectionPriceCents, TIME_ADDON, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import SchoolBallotDemo, { type DemoRealEvent } from "@/components/SchoolBallotDemo";
 
 export const metadata: Metadata = {
@@ -385,7 +385,50 @@ export default async function SchoolsPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-5 lg:mt-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-6">
+          {/* buy by the module */}
+          <div className="mt-10 lg:mt-14">
+            <h3 className="lp-title text-[26px] lg:text-[32px]" style={{ color: DEEP }}>Or buy one module at a time</h3>
+            <p className="mt-2 max-w-[720px] text-[16px] leading-relaxed" style={{ color: "var(--lp-muted)" }}>
+              No license needed. Pick the piece you want, pay for just that, and add more later.
+            </p>
+            <div className="mt-5 grid gap-5 lg:grid-cols-3">
+              {[
+                {
+                  name: "Kiosk school election",
+                  price: money(schoolElectionPriceCents("free", 1, 1)),
+                  note: `Student council, homecoming and class votes on a kiosk with one-time codes. Free for 25 students; Small is ${money(LIVE_VOTE_TIERS.small.priceCents)}, Medium ${money(LIVE_VOTE_TIERS.medium.priceCents)}, Large ${money(LIVE_VOTE_TIERS.large.priceCents)}. Extra kiosk ${money(SCHOOL_ELECTION.extraKioskCents)}, extra day ${money(SCHOOL_ELECTION.extraDayCents)}.`,
+                  cta: "Set up a school election",
+                  href: "/school-election/new",
+                },
+                {
+                  name: "Open live vote",
+                  price: money(LIVE_VOTE_TIERS.small.priceCents),
+                  note: "Spirit week, talent night, best-of votes from any phone. Free for small votes, paid by size for bigger crowds.",
+                  cta: "Start a live vote",
+                  href: CREATE_HREF,
+                },
+                {
+                  name: "Vote Smart civics unit",
+                  price: "Free",
+                  note: "The teacher unit for grades K-12. Run its election phase as a kiosk school election above.",
+                  cta: "Request the unit",
+                  href: UNIT_HREF,
+                },
+              ].map((m) => (
+                <div key={m.name} className="flex flex-col gap-3 rounded-3xl bg-white p-7" style={{ border: "2px solid var(--lp-line)" }}>
+                  <p className="text-[14px] font-bold" style={{ color: MAROON }}>Per module</p>
+                  <h4 className="text-[20px] font-extrabold" style={{ color: DEEP }}>{m.name}</h4>
+                  <p className="lp-display text-[40px]" style={{ color: DEEP, lineHeight: 1 }}>
+                    {m.price.startsWith("Free") ? "Free" : <>from {m.price}</>}
+                  </p>
+                  <p className="text-[15px] leading-relaxed" style={{ color: "var(--lp-muted)" }}>{m.note}</p>
+                  <a href={m.href} className="lp-btn mt-auto px-6 py-3 text-[16px]" style={{ background: GOLD, color: DEEP }}>{m.cta}</a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-12 grid gap-5 lg:mt-16 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-6">
             {/* featured: school license */}
             <div className="flex flex-col gap-5 rounded-3xl p-8 lg:p-10" style={{ background: DEEP, color: "#fff" }}>
               <div className="flex items-center justify-between gap-3">

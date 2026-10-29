@@ -18,12 +18,23 @@ type AdPayload = {
 // reuse this slot for a different ad_creatives placement value (e.g. the
 // admin-gated "live_vote" placement on a Live Vote ballot) — defaults to
 // "banner" to preserve every existing call site.
-export default function AdBanner({ placement = "banner" }: { placement?: string }) {
+//
+// `near` is for pages that know where they are (a venue or school): it is used for local
+// sponsor targeting instead of the visitor's IP location.
+export type AdNear = { lat?: number; lng?: number; region?: string };
+
+export default function AdBanner({ placement = "banner", near }: { placement?: string; near?: AdNear }) {
   const [ad, setAd] = useState<AdPayload | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/ads/serve?placement=${encodeURIComponent(placement)}`)
+    const q = new URLSearchParams({ placement });
+    if (near?.lat != null && near?.lng != null) {
+      q.set("lat", String(near.lat));
+      q.set("lng", String(near.lng));
+    }
+    if (near?.region) q.set("region", near.region);
+    fetch(`/api/ads/serve?${q.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled && data.ad) setAd(data.ad);
@@ -34,7 +45,7 @@ export default function AdBanner({ placement = "banner" }: { placement?: string 
     return () => {
       cancelled = true;
     };
-  }, [placement]);
+  }, [placement, near?.lat, near?.lng, near?.region]);
 
   if (!ad) return null;
 
