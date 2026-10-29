@@ -69,7 +69,7 @@ export default function LiveVoteEventsPage() {
       <SignInCard
         eyebrow="Live Vote"
         title="Let the crowd decide"
-        body="Sign in to create and manage Live Votes — class elections, event polls, halftime votes and talent shows with a live tally. Start free."
+        body="Sign in to create and manage Live Votes — event polls, halftime votes, fan choice and talent shows with a live tally. Start free. Running a school election? Use the Schools page instead."
         next="/live-vote"
       />
     );
@@ -96,7 +96,7 @@ export default function LiveVoteEventsPage() {
         </Link>
       </div>
 
-      {signedIn && <SharedWithMe />}
+      {signedIn && <SharedWithMe kind="live_vote" />}
 
       {signedIn && (
         <section className="mb-8">

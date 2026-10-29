@@ -250,6 +250,7 @@ export default function NavBar() {
                   <MenuLink href="/create">🧭 What do you want to do?</MenuLink>
                   <MenuLink href="/schools">🎓 Schools, colleges &amp; universities</MenuLink>
                   <MenuLink href="/sponsor">🤝 Brands &amp; sponsors</MenuLink>
+                  {user && <MenuLink href="/school-election">🏫 My School Elections</MenuLink>}
                   {user && <MenuLink href="/live-vote">🗳️ My Live Votes</MenuLink>}
                 </MenuGroup>
                 <MenuGroup title="Profile">

@@ -10,16 +10,16 @@ type Invite = { id: string; kind: EventKind; event_id: string; role: "moderator"
 type Shared = { kind: EventKind; event_id: string; title: string | null; status: string | null };
 
 // Invitations waiting for the signed-in user, and the events they moderate.
-export default function SharedWithMe() {
+export default function SharedWithMe({ kind }: { kind?: EventKind }) {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [events, setEvents] = useState<Shared[]>([]);
 
   const load = useCallback(async () => {
     const supabase = createClient();
     const [a, b] = await Promise.all([supabase.rpc("my_event_invites"), supabase.rpc("my_shared_events")]);
-    setInvites((a.data ?? []) as Invite[]);
-    setEvents((b.data ?? []) as Shared[]);
-  }, []);
+    setInvites(((a.data ?? []) as Invite[]).filter((i) => !kind || i.kind === kind));
+    setEvents(((b.data ?? []) as Shared[]).filter((e) => !kind || e.kind === kind));
+  }, [kind]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

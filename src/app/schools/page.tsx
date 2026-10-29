@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 // Re-read the sample school every few minutes so new photos show up without a deploy.
 export const revalidate = 300;
 
-const CREATE_HREF = "/live-vote/new";
+const SCHOOL_HREF = "/school-election/new";
+const LIVE_HREF = "/live-vote/new";
 const MAIL_HREF = `mailto:support@boutcasts.com?subject=${encodeURIComponent("School license question")}`;
 
 const UNIT_HREF = `mailto:support@boutcasts.com?subject=${encodeURIComponent("Vote Smart civics unit")}`;
@@ -188,8 +189,8 @@ export default async function SchoolsPage() {
               {Math.round(SUPER_VOTES.organizerShare * 100)}% of what is raised.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href={CREATE_HREF} className="lp-btn px-7 py-4 text-[17px]" style={{ background: GOLD, color: DEEP }}>
-                Start a free vote
+              <Link href={SCHOOL_HREF} className="lp-btn px-7 py-4 text-[17px]" style={{ background: GOLD, color: DEEP }}>
+                Set up a school election
               </Link>
               <div className="lg:hidden">
                 <a href="#ballot" className="lp-btn w-full border-2 px-7 py-4 text-[17px]" style={{ borderColor: "rgba(255,255,255,0.5)", color: "#fff" }}>
@@ -401,11 +402,11 @@ export default async function SchoolsPage() {
                   href: "/school-election/new",
                 },
                 {
-                  name: "Open live vote",
+                  name: "Open live vote (polls, not elections)",
                   price: money(LIVE_VOTE_TIERS.small.priceCents),
                   note: "Spirit week, talent night, best-of votes from any phone. Free for small votes, paid by size for bigger crowds.",
-                  cta: "Start a live vote",
-                  href: CREATE_HREF,
+                  cta: "Start an open poll",
+                  href: LIVE_HREF,
                 },
                 {
                   name: "Vote Smart civics unit",
@@ -541,12 +542,12 @@ export default async function SchoolsPage() {
           <div className="max-w-[720px]">
             <h2 className="lp-display text-[42px] sm:text-[60px] lg:text-[72px]">Open the polls this week</h2>
             <p className="mt-4 text-[17px] leading-relaxed lg:text-[19px]" style={{ color: "#ecd5de" }}>
-              Start a free vote in a few minutes, or tell us what your school needs and we&apos;ll help you set it up.
+              Set up a school election in a few minutes (free for 25 students), or tell us what your school needs and we&apos;ll help you set it up.
             </p>
           </div>
           <div className="flex w-full shrink-0 flex-col gap-3 lg:w-[320px]">
-            <Link href={CREATE_HREF} className="lp-btn py-5 text-[18px]" style={{ background: GOLD, color: DEEP }}>
-              Start a free vote
+            <Link href={SCHOOL_HREF} className="lp-btn py-5 text-[18px]" style={{ background: GOLD, color: DEEP }}>
+              Set up a school election
             </Link>
             <a href={MAIL_HREF} className="lp-btn border-2 py-[18px] text-[18px]" style={{ borderColor: "rgba(255,255,255,0.55)", color: "#fff" }}>
               Email us
