@@ -12,7 +12,7 @@ const IDLE_MS = 90_000;
 const DONE_MS = 6_000;
 
 // Full-screen voting booth for an iPad. One student at a time: code + name -> one office per screen -> review -> done.
-export default function KioskApp({ token }: { token: string }) {
+export default function KioskApp({ token, preview }: { token: string; preview?: { status: Status; ballot: Race[] } }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [missing, setMissing] = useState(false);
   const [step, setStep] = useState<Step>("welcome");
@@ -50,6 +50,7 @@ export default function KioskApp({ token }: { token: string }) {
   }, [token]);
 
   const loadStatus = useCallback(async () => {
+    if (preview) return setStatus(preview.status);
     try {
       const res = await fetch(`/api/kiosk/status?token=${encodeURIComponent(token)}`, { cache: "no-store" });
       if (res.status === 404) return setMissing(true);
@@ -62,7 +63,7 @@ export default function KioskApp({ token }: { token: string }) {
     } catch {
       setOnline(false); // keep the last known state
     }
-  }, [token]);
+  }, [token, preview]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -110,7 +111,7 @@ export default function KioskApp({ token }: { token: string }) {
 
   // Send saved ballots. Safe to repeat: the request id means a ballot is never counted twice.
   const sync = useCallback(async () => {
-    if (syncing.current) return;
+    if (preview || syncing.current) return;
     syncing.current = true;
     try {
       let items = load<QueueItem[]>(token, "queue", []);
@@ -132,7 +133,7 @@ export default function KioskApp({ token }: { token: string }) {
     } finally {
       syncing.current = false;
     }
-  }, [token, persistQueue]);
+  }, [token, persistQueue, preview]);
 
   useEffect(() => {
     const t = setInterval(sync, 10000);
@@ -173,6 +174,7 @@ export default function KioskApp({ token }: { token: string }) {
   }
 
   async function verify() {
+    if (preview) return startBallot(preview.ballot, name.trim() || "Preview voter", false);
     setBusy(true);
     setMsg(null);
     try {
@@ -208,6 +210,7 @@ export default function KioskApp({ token }: { token: string }) {
   }
 
   async function submit() {
+    if (preview) return setStep("done");
     setStep("sending");
     if (offlineChecked.current) return enqueue();
     const castAt = new Date().toISOString();
@@ -292,7 +295,7 @@ export default function KioskApp({ token }: { token: string }) {
       <h1 className="px-8 pt-1 text-3xl font-extrabold">{status.title}</h1>
     </div>
   );
-  const pinLink = (
+  const pinLink = preview ? null : (
     <button onClick={() => { setPin(""); setPinMsg(null); setStep("pin"); }} className="absolute bottom-3 right-4 text-xs opacity-40">Teacher</button>
   );
 
