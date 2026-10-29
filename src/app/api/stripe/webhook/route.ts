@@ -162,6 +162,12 @@ export async function POST(req: NextRequest) {
         // Either already activated by an earlier delivery of this event,
         // or the draft was deleted/changed — either way, nothing to do.
         console.warn("Stripe webhook: live_vote_event already processed or missing", eventId);
+        // If a different payment already switched this event on (or it no longer exists), this one is a
+        // duplicate: give the money back. The same session arriving again is just a repeat delivery.
+        const { data: row } = await admin.from("live_vote_events").select("status, stripe_checkout_session_id").eq("id", eventId).maybeSingle();
+        if (!row || (row.status !== "draft" && row.stripe_checkout_session_id !== session.id)) {
+          await refundDuplicate(session, `live-vote-dup-${session.id}`);
+        }
       }
 
       return NextResponse.json({ received: true });
@@ -236,6 +242,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid school_election metadata" }, { status: 400 });
       }
       const admin = createAdminClient();
+      // A different payment already opened this election: this one is a duplicate, so refund it.
+      const { data: el } = await admin.from("school_elections").select("status, stripe_checkout_session_id").eq("id", metadata.election_id).maybeSingle();
+      if (!el || (el.status !== "draft" && el.stripe_checkout_session_id !== session.id)) {
+        await refundDuplicate(session, `election-dup-${session.id}`);
+        return NextResponse.json({ received: true });
+      }
       // Idempotent: only a draft election goes live, so a repeated delivery does nothing.
       const { error } = await admin.rpc("apply_school_election_payment", {
         p_election_id: metadata.election_id,
@@ -384,4 +396,20 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+// Refund a payment that turned out to be a second payment for something already paid for.
+// Never throws: a failed refund is logged (and shows on the Purchases page) rather than failing the webhook.
+async function refundDuplicate(session: Stripe.Checkout.Session, idempotencyKey: string) {
+  const pi = typeof session.payment_intent === "string" ? session.payment_intent : null;
+  if (!pi) return;
+  try {
+    await getStripe().refunds.create(
+      { payment_intent: pi, reason: "duplicate", metadata: { source: "boutcasts_auto_duplicate", session: session.id } },
+      { idempotencyKey },
+    );
+    console.warn("Stripe webhook: refunded duplicate payment", session.id);
+  } catch (e) {
+    console.error("Stripe webhook: could not refund duplicate payment", session.id, e instanceof Error ? e.message : e);
+  }
 }
