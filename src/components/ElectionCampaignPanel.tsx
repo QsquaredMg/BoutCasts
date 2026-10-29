@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 type Race = { id: string; title: string; options: { id: string; name: string }[] };
-type Profile = { slogan: string; platform: string[] };
+type Profile = { slogan: string; platform: string[]; video: string };
 
 type Props = {
   id: string;
@@ -37,8 +37,11 @@ export default function ElectionCampaignPanel({ id, closed, races, requireRegist
   const loadProfiles = useCallback(async () => {
     const res = await fetch(`/api/school-election/${id}/profiles`, { cache: "no-store" });
     if (!res.ok) return;
-    const { profiles: rows } = (await res.json()) as { profiles: { option_id: string; slogan: string | null; platform: string[] }[] };
-    setProfiles(Object.fromEntries(rows.map((r) => [r.option_id, { slogan: r.slogan ?? "", platform: [...r.platform, "", "", ""].slice(0, 3) }])));
+    const { profiles: rows, videos = {} } = (await res.json()) as { profiles: { option_id: string; slogan: string | null; platform: string[] }[]; videos?: Record<string, string> };
+    setProfiles({
+      ...Object.fromEntries(Object.entries(videos).map(([oid, v]) => [oid, { slogan: "", platform: ["", "", ""], video: v }])),
+      ...Object.fromEntries(rows.map((r) => [r.option_id, { slogan: r.slogan ?? "", platform: [...r.platform, "", "", ""].slice(0, 3), video: videos[r.option_id] ?? "" }])),
+    });
   }, [id]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -62,11 +65,11 @@ export default function ElectionCampaignPanel({ id, closed, races, requireRegist
   }
 
   async function saveProfile(optionId: string) {
-    const p = profiles[optionId] ?? { slogan: "", platform: ["", "", ""] };
+    const p = profiles[optionId] ?? { slogan: "", platform: ["", "", ""], video: "" };
     setSaving(optionId);
     setError(null);
     try {
-      const res = await fetch(`/api/school-election/${id}/profiles`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, slogan: p.slogan, platform: p.platform }) });
+      const res = await fetch(`/api/school-election/${id}/profiles`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, slogan: p.slogan, platform: p.platform, videoLink: p.video }) });
       const out = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(out.error || "Couldn't save.");
     } catch (err) {
@@ -77,7 +80,7 @@ export default function ElectionCampaignPanel({ id, closed, races, requireRegist
   }
 
   const edit = (optionId: string, fn: (p: Profile) => Profile) =>
-    setProfiles((cur) => ({ ...cur, [optionId]: fn(cur[optionId] ?? { slogan: "", platform: ["", "", ""] }) }));
+    setProfiles((cur) => ({ ...cur, [optionId]: fn(cur[optionId] ?? { slogan: "", platform: ["", "", ""], video: "" }) }));
 
   return (
     <div className="rounded-xl border p-4" style={box}>
@@ -118,7 +121,7 @@ export default function ElectionCampaignPanel({ id, closed, races, requireRegist
                 <p className="text-sm font-bold">{r.title}</p>
                 <div className="mt-2 grid gap-3">
                   {r.options.map((o) => {
-                    const p = profiles[o.id] ?? { slogan: "", platform: ["", "", ""] };
+                    const p = profiles[o.id] ?? { slogan: "", platform: ["", "", ""], video: "" };
                     return (
                       <div key={o.id} className="rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
                         <p className="text-sm font-semibold">{o.name}</p>
@@ -126,6 +129,7 @@ export default function ElectionCampaignPanel({ id, closed, races, requireRegist
                         {[0, 1, 2].map((i) => (
                           <input key={i} value={p.platform[i] ?? ""} maxLength={140} onChange={(e) => edit(o.id, (cur) => ({ ...cur, platform: cur.platform.map((x, j) => (j === i ? e.target.value : x)) }))} placeholder={`Promise ${i + 1}`} className="mt-1.5 w-full rounded-[10px] border px-3 py-2 text-sm" style={box} />
                         ))}
+                        <input value={p.video} onChange={(e) => edit(o.id, (cur) => ({ ...cur, video: e.target.value }))} placeholder="Video link (YouTube, Vimeo, TikTok, Instagram), optional" className="mt-1.5 w-full rounded-[10px] border px-3 py-2 text-sm" style={box} />
                         <button onClick={() => saveProfile(o.id)} disabled={saving !== null} className="mt-2 rounded-full border px-3 py-1.5 text-xs font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>{saving === o.id ? "Saving…" : "Save"}</button>
                       </div>
                     );

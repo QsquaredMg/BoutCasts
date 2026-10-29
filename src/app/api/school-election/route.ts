@@ -4,9 +4,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import { isHexColor } from "@/lib/liveVoteEvents/roomTheme";
 import { hashPin } from "@/lib/schoolElection";
+import { normalizeVideoLink } from "@/lib/clipSource";
 
 // Create a school election (a draft): its races, candidates, size, kiosks and days. Paying activates it.
-type Candidate = { name?: unknown; description?: unknown; photoUrl?: unknown; videoUrl?: unknown; videoSeconds?: unknown };
+type Candidate = { name?: unknown; description?: unknown; photoUrl?: unknown; videoUrl?: unknown; videoSeconds?: unknown; videoLink?: unknown };
 type Race = { title?: unknown; candidates?: unknown };
 
 const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -51,12 +52,16 @@ export async function POST(req: NextRequest) {
         description: clean(c.description, 200) || null,
         photo: httpsUrl(c.photoUrl),
         video: httpsUrl(c.videoUrl),
+        link: typeof c.videoLink === "string" && c.videoLink.trim() ? normalizeVideoLink(c.videoLink) : null,
+        badLink: typeof c.videoLink === "string" && c.videoLink.trim() !== "" && !normalizeVideoLink(c.videoLink),
         seconds: Number.isFinite(Number(c.videoSeconds)) && Number(c.videoSeconds) > 0 ? Math.min(Math.round(Number(c.videoSeconds)), 600) : null,
       }))
       .filter((c) => c.name);
     return { title: clean(r.title, 120), candidates: cands };
   });
   for (const r of parsed) {
+    const bad = r.candidates.find((c) => c.badLink);
+    if (bad) return NextResponse.json({ error: `The video link for ${bad.name} isn't one we can play. Use a YouTube, Vimeo, TikTok or Instagram link.` }, { status: 400 });
     if (!r.title) return NextResponse.json({ error: "Every office needs a title." }, { status: 400 });
     if (r.candidates.length < 2 || r.candidates.length > 12) return NextResponse.json({ error: `"${r.title}" needs 2 to 12 candidates.` }, { status: 400 });
   }
@@ -118,7 +123,7 @@ export async function POST(req: NextRequest) {
       if (evErr || !ev) throw evErr ?? new Error("race insert failed");
       const { error: optErr } = await admin
         .from("live_vote_options")
-        .insert(race.candidates.map((c, j) => ({ event_id: ev.id, name: c.name, description: c.description, sort_order: j, image_url: c.photo, ...(c.video ? { source_type: "upload", source_url: c.video, media_seconds: c.seconds } : {}) })));
+        .insert(race.candidates.map((c, j) => ({ event_id: ev.id, name: c.name, description: c.description, sort_order: j, image_url: c.photo, ...(c.video ? { source_type: "upload", source_url: c.video, media_seconds: c.seconds } : c.link ? { source_type: "link", source_url: c.link } : {}) })));
       if (optErr) throw optErr;
     }
   } catch (err) {

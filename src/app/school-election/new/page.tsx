@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeVideoLink } from "@/lib/clipSource";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SignInCard from "@/components/SignInCard";
@@ -8,11 +9,11 @@ import FileUploadPicker from "@/components/FileUploadPicker";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, ORG_LICENSE, schoolElectionPriceCents, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 
-type Cand = { key: string; name: string; description: string; photoUrl: string | null; videoUrl: string | null; videoSeconds: number | null };
+type Cand = { key: string; name: string; description: string; photoUrl: string | null; videoUrl: string | null; videoSeconds: number | null; videoLink: string };
 type RaceDraft = { key: string; title: string; candidates: Cand[] };
 
 const k = () => Math.random().toString(36).slice(2);
-const newCand = (): Cand => ({ key: k(), name: "", description: "", photoUrl: null, videoUrl: null, videoSeconds: null });
+const newCand = (): Cand => ({ key: k(), name: "", description: "", photoUrl: null, videoUrl: null, videoSeconds: null, videoLink: "" });
 const newRace = (): RaceDraft => ({ key: k(), title: "", candidates: [newCand(), newCand()] });
 const dollars = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
@@ -79,7 +80,7 @@ export default function NewSchoolElectionPage() {
           showTally,
           openEnded: isAdmin && openEnded,
           practice,
-          races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds })) })),
+          races: races.map((r) => ({ title: r.title, candidates: r.candidates.map((c) => ({ name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds, videoLink: c.videoLink })) })),
         }),
       });
       const data = await res.json();
@@ -236,7 +237,13 @@ export default function NewSchoolElectionPage() {
                             <button type="button" className="underline" onClick={() => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, videoUrl: null, videoSeconds: null } : y)) }))}>Remove</button>
                           </span>
                         ) : (
-                          <FileUploadPicker mediaOnly maxSeconds={120} onUploaded={(u, secs) => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, videoUrl: u, videoSeconds: secs ?? null } : y)) }))} />
+                          <>
+                            {!c.videoLink.trim() && (
+                              <FileUploadPicker mediaOnly maxSeconds={120} onUploaded={(u, secs) => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, videoUrl: u, videoSeconds: secs ?? null } : y)) }))} />
+                            )}
+                            <input className={input} style={inputStyle} value={c.videoLink} placeholder="Or paste a video link (YouTube, Vimeo, TikTok, Instagram)" onChange={(e) => patchRace(r.key, (x) => ({ ...x, candidates: x.candidates.map((y) => (y.key === c.key ? { ...y, videoLink: e.target.value } : y)) }))} />
+                            {c.videoLink.trim() && !normalizeVideoLink(c.videoLink) && <span className="font-normal" style={{ color: "var(--danger)" }}>We can&apos;t play that link. Use a YouTube, Vimeo, TikTok or Instagram video link.</span>}
+                          </>
                         )}
                       </div>
                     </div>

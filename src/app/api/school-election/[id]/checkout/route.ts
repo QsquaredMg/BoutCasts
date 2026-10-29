@@ -13,7 +13,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (election.status !== "draft") return NextResponse.json({ error: "This election is already paid for." }, { status: 400 });
 
   const { count } = await admin.from("election_voters").select("id", { count: "exact", head: true }).eq("election_id", id);
-  if (!count) return NextResponse.json({ error: "Add your student roster before paying." }, { status: 400 });
+  // A platform admin can open the election with no charge before the roster is in; everyone else adds it first.
+  if (!count && !(body?.comp === true && isAdmin)) return NextResponse.json({ error: "Add your student roster before paying." }, { status: 400 });
 
   const tierCfg = LIVE_VOTE_TIERS[election.tier];
   const total = schoolElectionPriceCents(election.tier, election.kiosks, election.days);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BRACKET_PRICING, money, tourneyCents } from "@/lib/predictions/pricing";
 
 // Organizer pays to open a pick'em ($10 for 8 days, $25 for the season), a private pool ($5 each),
@@ -60,6 +61,20 @@ export async function POST(req: NextRequest) {
   }
 
   const origin = req.headers.get("origin") ?? new URL(req.url).origin;
+
+  // Platform admins open any pick'em, private pool or bracket with no charge. Same activation the
+  // Stripe webhook runs after a payment, so nothing shows up in Purchases or revenue.
+  const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", userData.user.id).maybeSingle();
+  if (me?.is_admin) {
+    const comp = `admin-comp-${crypto.randomUUID()}`;
+    const { error } =
+      mode === "upgrade"
+        ? await createAdminClient().rpc("upgrade_pred_bracket", { p_id: bracket.id, p_session: comp })
+        : await createAdminClient().rpc("activate_pred_bracket", { p_id: bracket.id, p_session: comp, p_tier: tier });
+    if (error) return NextResponse.json({ error: "Couldn't open it for free. Please try again." }, { status: 500 });
+    return NextResponse.json({ url: `${origin}/predictions/slate/${bracket.id}?checkout=success`, free: true });
+  }
+
   const session = await getStripe().checkout.sessions.create({
     mode: "payment",
     // Card also covers Apple Pay and Link; Cash App Pay is one-time payments in USD.

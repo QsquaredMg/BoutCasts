@@ -12,9 +12,12 @@ import { safeHttpUrl } from "@/lib/safeUrl";
 export default function EmbeddedClipPlayer({
   sourceUrl,
   label,
+  privacy = false,
 }: {
   sourceUrl: string;
   label: string;
+  /** Student-facing pages: YouTube without tracking cookies and without "related videos" from other channels. */
+  privacy?: boolean;
 }) {
   const info = getEmbedInfo(sourceUrl);
   if (!info) return null;
@@ -23,7 +26,7 @@ export default function EmbeddedClipPlayer({
     return (
       <div className="overflow-hidden rounded-xl" style={{ background: "#000" }}>
         <iframe
-          src={info.src}
+          src={privacy ? info.src.replace("://www.youtube.com/embed/", "://www.youtube-nocookie.com/embed/") + (info.src.includes("youtube.com") ? "?rel=0" : "") : info.src}
           title={label}
           allow="autoplay; encrypted-media; picture-in-picture; clipboard-write"
           allowFullScreen

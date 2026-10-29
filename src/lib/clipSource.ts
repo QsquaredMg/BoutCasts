@@ -155,3 +155,13 @@ export function normalizeEmbedInput(input: string): string | null {
   if (tt) raw = `https://www.tiktok.com/video/${tt[1]}`;
   return getEmbedInfo(raw) ? raw : null;
 }
+
+// A candidate's speech video from a pasted link or embed code: video platforms only
+// (YouTube, Vimeo, TikTok, Instagram), never audio-only links.
+export function normalizeVideoLink(input: string): string | null {
+  const url = normalizeEmbedInput(input);
+  if (!url) return null;
+  const info = getEmbedInfo(url);
+  if (!info || (info.kind === "iframe" && info.layout === "audio")) return null;
+  return url;
+}

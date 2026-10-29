@@ -1,3 +1,5 @@
+import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
+import { getEmbedInfo } from "@/lib/clipSource";
 import { notFound } from "next/navigation";
 import ElectionBrandFrame from "@/components/ElectionBrandFrame";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -17,7 +19,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const { data: races } = await admin.from("live_vote_events").select("id, title, election_sort").eq("election_id", id).order("election_sort");
   const raceIds = (races ?? []).map((r) => r.id);
   const [{ data: options }, { data: profiles }] = await Promise.all([
-    raceIds.length ? admin.from("live_vote_options").select("id, event_id, name, description, image_url, source_url, sort_order").in("event_id", raceIds).order("sort_order") : Promise.resolve({ data: [] }),
+    raceIds.length ? admin.from("live_vote_options").select("id, event_id, name, description, image_url, source_type, source_url, sort_order").in("event_id", raceIds).order("sort_order") : Promise.resolve({ data: [] }),
     admin.from("election_candidate_profiles").select("option_id, slogan, platform").eq("election_id", id),
   ]);
   const byOption = new Map((profiles ?? []).map((p) => [p.option_id, p]));
@@ -50,7 +52,13 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                           {p.platform.map((pt: string, i: number) => <li key={i}>{pt}</li>)}
                         </ol>
                       )}
-                      {o.source_url && <a href={o.source_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-bold underline">Watch the candidate video</a>}
+                      {o.source_url && o.source_type === "link" && getEmbedInfo(o.source_url) ? (
+                        <div className="mt-3"><EmbeddedClipPlayer sourceUrl={o.source_url} label={`${o.name} video`} privacy /></div>
+                      ) : o.source_url && (o.source_type === "upload" || o.source_type === "record") ? (
+                        <video src={o.source_url} controls playsInline preload="none" className="mt-3 w-full rounded-lg bg-black" aria-label={`${o.name} speech`} />
+                      ) : o.source_url ? (
+                        <a href={o.source_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-bold underline">Watch the candidate video</a>
+                      ) : null}
                     </article>
                   );
                 })}

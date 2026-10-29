@@ -173,7 +173,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
             {busy === "pay" ? "Starting…" : e.price_cents === 0 ? "Open voting (free)" : `Pay ${money(e.price_cents)} and open voting`}
           </button>
           {data.viewerIsAdmin && e.price_cents > 0 && (
-            <button onClick={comp} disabled={busy !== null || turnout.total === 0} className="ml-2 rounded-full border px-5 py-2.5 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Open with no charge (admin)</button>
+            <button onClick={comp} disabled={busy !== null} className="ml-2 rounded-full border px-5 py-2.5 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Open with no charge (admin)</button>
           )}
           {turnout.total === 0 && <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Add at least one student first.</p>}
         </div>
