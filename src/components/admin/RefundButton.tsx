@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // Two-step refund: press Refund, check the amount, then confirm. Full by default, or a smaller amount.
@@ -9,6 +9,8 @@ export default function RefundButton({ paymentIntentId, remainingCents, buyer, w
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState((remainingCents / 100).toFixed(2));
   const [busy, setBusy] = useState(false);
+  // Stays the same across retries of this refund so a lost response cannot cause a second refund.
+  const attemptId = useRef(crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
@@ -20,7 +22,7 @@ export default function RefundButton({ paymentIntentId, remainingCents, buyer, w
     setError(null);
     let r: { ok?: boolean; error?: string };
     try {
-      const res = await fetch("/api/admin/refunds", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentIntentId, amountCents: cents }) });
+      const res = await fetch("/api/admin/refunds", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentIntentId, amountCents: cents, attemptId: attemptId.current }) });
       r = await res.json();
     } catch {
       r = { error: "Network problem. Check Stripe before trying again." };

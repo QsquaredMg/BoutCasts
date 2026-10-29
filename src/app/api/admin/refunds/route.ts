@@ -15,9 +15,14 @@ export async function POST(req: Request) {
   if (!prof?.is_admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
   if (!process.env.STRIPE_SECRET_KEY) return NextResponse.json({ error: "Stripe is not set up." }, { status: 501 });
 
-  const body = (await req.json().catch(() => null)) as { paymentIntentId?: string; amountCents?: number } | null;
+  const body = (await req.json().catch(() => null)) as { paymentIntentId?: string; amountCents?: number; attemptId?: string } | null;
   const pi = body?.paymentIntentId;
   if (!pi || !/^pi_[A-Za-z0-9_]+$/.test(pi)) return NextResponse.json({ error: "Bad request" }, { status: 400 });
+
+  // One attemptId per admin click-through. A retry after a lost response reuses it, so Stripe returns the
+  // first refund instead of creating a second one, even though the charge's refunded balance has changed.
+  const attemptId = body?.attemptId;
+  if (!attemptId || !/^[A-Za-z0-9-]{8,64}$/.test(attemptId)) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   const stripe = getStripe();
   try {
@@ -38,8 +43,7 @@ export async function POST(req: Request) {
         reason: "requested_by_customer",
         metadata: { refunded_by: u.user.email ?? u.user.id, source: "boutcasts_admin" },
       },
-      // A double click or retry with the same amount against the same balance is one refund, not two.
-      { idempotencyKey: `admin-refund-${pi}-${charge.amount_refunded}-${wanted}` },
+      { idempotencyKey: `admin-refund-${pi}-${attemptId}-${wanted}` },
     );
     return NextResponse.json({ ok: true, refundedCents: refund.amount, status: refund.status });
   } catch (e) {
