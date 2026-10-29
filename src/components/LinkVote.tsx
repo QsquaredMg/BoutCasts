@@ -6,7 +6,7 @@ type Opt = { id: string; name: string; description: string | null; image_url: st
 type Race = { race_id: string; title: string; options: Opt[] };
 type Session = { voterName: string; ballot: Race[]; voted: string[]; closesAt: string | null };
 
-export default function LinkVote({ id, title, school }: { id: string; title: string; school: string | null }) {
+export default function LinkVote({ id, title, school, previewBallot }: { id: string; title: string; school: string | null; previewBallot?: Race[] }) {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [s, setS] = useState<Session | null>(null);
@@ -24,6 +24,7 @@ export default function LinkVote({ id, title, school }: { id: string; title: str
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
+    if (previewBallot) return setS({ voterName: name.trim() || "Preview voter", ballot: previewBallot, voted: [], closesAt: null });
     setBusy("in");
     setError(null);
     try {
@@ -40,6 +41,7 @@ export default function LinkVote({ id, title, school }: { id: string; title: str
     const optionId = pick[r.race_id];
     if (!optionId || !s) return;
     const who = r.options.find((o) => o.id === optionId)?.name ?? "this candidate";
+    if (previewBallot) return setS({ ...s, voted: [...s.voted, r.race_id] });
     if (!confirm(`Lock in your vote for ${who} as ${r.title}? You can't change it.`)) return;
     setBusy(r.race_id);
     setError(null);
@@ -75,7 +77,7 @@ export default function LinkVote({ id, title, school }: { id: string; title: str
             <input value={name} onChange={(ev) => setName(ev.target.value)} maxLength={120} autoComplete="off" className="rounded-[10px] border px-3 py-2.5 text-base" style={box} />
           </label>
           {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
-          <button type="submit" disabled={busy !== null || !code.trim() || !name.trim()} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-50">{busy ? "Checking…" : "Start voting"}</button>
+          <button type="submit" disabled={!previewBallot && (busy !== null || !code.trim() || !name.trim())} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-50">{busy ? "Checking…" : "Start voting"}</button>
         </form>
       </div>
     );

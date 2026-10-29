@@ -65,7 +65,7 @@ export default async function MySchoolElections() {
                   </span>
                   <span className="shrink-0 text-xs font-bold" style={{ color: st.color }}>{st.label}</span>
                 </Link>
-                <Link href={`/school-election/${e.id}/vote`} target="_blank" className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>👁 View poll</Link>
+                <Link href={`/school-election/${e.id}/vote?preview=1`} target="_blank" className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>👁 View poll</Link>
                 <Link href={`/school-election/${e.id}/kiosk-preview`} target="_blank" className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>📱 View kiosk</Link>
                 {e.status !== "closed" && (
                   <Link href={`/school-election/${e.id}/edit`} className="shrink-0 rounded-full border px-4 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>✎ Edit</Link>
