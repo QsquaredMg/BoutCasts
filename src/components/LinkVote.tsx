@@ -1,20 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
+import { BallotHeader, CandidateCard, ProgressBar, ballotTheme, type BallotBrand, type BallotCandidate } from "@/components/ballot/BallotKit";
 
-type Opt = { id: string; name: string; description: string | null; image_url: string | null; video_url: string | null; clip_url?: string | null };
-type Race = { race_id: string; title: string; options: Opt[] };
+type Race = { race_id: string; title: string; options: BallotCandidate[] };
 type Session = { voterName: string; ballot: Race[]; voted: string[]; closesAt: string | null };
 
-export default function LinkVote({ id, title, school, previewBallot }: { id: string; title: string; school: string | null; previewBallot?: Race[] }) {
+// Vote by link: sign in with your own code, then one office per screen with a progress bar.
+export default function LinkVote({ id, title, school, brand, previewBallot }: { id: string; title: string; school: string | null; brand?: BallotBrand | null; previewBallot?: Race[] }) {
+  const theme = ballotTheme(brand);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [s, setS] = useState<Session | null>(null);
+  const [idx, setIdx] = useState(0);
+  const [finished, setFinished] = useState(false);
   const [pick, setPick] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const box = { borderColor: "var(--border)", background: "var(--surface)" } as const;
 
   async function post(payload: Record<string, unknown>) {
     const res = await fetch(`/api/school-election/${id}/vote-link`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, name, ...payload }) });
@@ -25,12 +27,20 @@ export default function LinkVote({ id, title, school, previewBallot }: { id: str
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
-    if (previewBallot) return setS({ voterName: name.trim() || "Preview voter", ballot: previewBallot, voted: [], closesAt: null });
+    if (previewBallot) {
+      setS({ voterName: name.trim() || "Preview voter", ballot: previewBallot, voted: [], closesAt: null });
+      return;
+    }
     setBusy("in");
     setError(null);
     try {
       const b = await post({ action: "open" });
-      setS({ voterName: b.voter_name, ballot: b.ballot, voted: b.voted ?? [], closesAt: b.closes_at });
+      const ballot = b.ballot as Race[];
+      const voted = (b.voted ?? []) as string[];
+      setS({ voterName: b.voter_name, ballot, voted, closesAt: b.closes_at });
+      const first = ballot.findIndex((r) => !voted.includes(r.race_id));
+      setIdx(first === -1 ? 0 : first);
+      setFinished(ballot.length > 0 && first === -1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -41,13 +51,14 @@ export default function LinkVote({ id, title, school, previewBallot }: { id: str
   async function cast(r: Race) {
     const optionId = pick[r.race_id];
     if (!optionId || !s) return;
-    const who = r.options.find((o) => o.id === optionId)?.name ?? "this candidate";
-    if (previewBallot) return setS({ ...s, voted: [...s.voted, r.race_id] });
-    if (!confirm(`Lock in your vote for ${who} as ${r.title}? You can't change it.`)) return;
+    if (!previewBallot) {
+      const who = r.options.find((o) => o.id === optionId)?.name ?? "this candidate";
+      if (!confirm(`Lock in your vote for ${who} as ${r.title}? You can't change it.`)) return;
+    }
     setBusy(r.race_id);
     setError(null);
     try {
-      await post({ action: "cast", raceId: r.race_id, optionId });
+      if (!previewBallot) await post({ action: "cast", raceId: r.race_id, optionId });
       setS({ ...s, voted: [...s.voted, r.race_id] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -56,74 +67,104 @@ export default function LinkVote({ id, title, school, previewBallot }: { id: str
     }
   }
 
-  const header = (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>{school ?? "School election"}</p>
-      <h1 className="text-3xl font-extrabold">{title}</h1>
+  const btn = "w-full rounded-2xl py-3.5 text-[16px] font-extrabold disabled:opacity-40";
+  const accentBtn = { background: theme.accent, color: theme.onAccent } as const;
+  const ghostBtn = { background: "transparent", color: theme.ink, border: `2px solid ${theme.ink}55` } as const;
+  const inputCls = "w-full rounded-xl border-2 px-3.5 py-3 text-base";
+  const inputStyle = { background: "#fff", color: "#111", borderColor: "rgba(0,0,0,0.15)" } as const;
+
+  const shell = (kicker: string, body: React.ReactNode) => (
+    <div className="min-h-screen px-4 pb-10 pt-6" style={theme.page}>
+      <div className="mx-auto max-w-xl overflow-hidden rounded-[22px]" style={{ background: theme.paper, boxShadow: "0 24px 60px rgba(0,0,0,0.25)", border: `1px solid ${theme.ink}22` }}>
+        <BallotHeader theme={theme} brand={brand} school={school} kicker={kicker} />
+        <div className="px-5 pb-6 pt-5" style={{ color: theme.ink }}>{body}</div>
+      </div>
+      <p className="mt-4 text-center text-[11px]" style={{ color: theme.ink, opacity: 0.6 }}>
+        Powered by <a href="https://www.boutcasts.com" className="font-semibold underline">BoutCasts</a>
+      </p>
     </div>
   );
 
   if (!s) {
-    return (
+    return shell(
+      "Student ballot",
       <div className="grid gap-4">
-        {header}
-        <p className="text-sm" style={{ color: "var(--text-dim)" }}>Enter the personal code your teacher gave you (or emailed to you) and your name as it appears on the class list. You vote once for each office, and results stay hidden until voting closes.</p>
+        <h1 className="text-[26px] font-extrabold leading-tight">{title}</h1>
+        <p className="text-sm" style={{ opacity: 0.75 }}>Enter the personal code your teacher gave you (or emailed to you) and your name as it appears on the class list. You vote once for each office, and results stay hidden until voting closes.</p>
         <form onSubmit={signIn} className="grid gap-3">
           <label className="grid gap-1 text-sm font-semibold">
             Your code
-            <input value={code} onChange={(ev) => setCode(ev.target.value.toUpperCase())} maxLength={12} autoComplete="off" autoCapitalize="characters" className="rounded-[10px] border px-3 py-2.5 font-mono text-lg tracking-widest" style={box} />
+            <input value={code} onChange={(ev) => setCode(ev.target.value.toUpperCase())} maxLength={12} autoComplete="off" autoCapitalize="characters" className={`${inputCls} font-mono text-lg tracking-widest`} style={inputStyle} />
           </label>
           <label className="grid gap-1 text-sm font-semibold">
             Your first and last name
-            <input value={name} onChange={(ev) => setName(ev.target.value)} maxLength={120} autoComplete="off" className="rounded-[10px] border px-3 py-2.5 text-base" style={box} />
+            <input value={name} onChange={(ev) => setName(ev.target.value)} maxLength={120} autoComplete="off" className={inputCls} style={inputStyle} />
           </label>
-          {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
-          <button type="submit" disabled={!previewBallot && (busy !== null || !code.trim() || !name.trim())} className="bc-btn-solid rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-50">{busy ? "Checking…" : "Start voting"}</button>
+          {error && <p className="text-sm font-semibold" style={{ color: theme.danger }}>{error}</p>}
+          <button type="submit" disabled={!previewBallot && (busy !== null || !code.trim() || !name.trim())} className={btn} style={accentBtn}>{busy ? "Checking…" : "Start voting"}</button>
         </form>
-      </div>
+      </div>,
     );
   }
 
-  const done = s.ballot.length > 0 && s.ballot.every((r) => s.voted.includes(r.race_id));
-  return (
-    <div className="grid gap-5">
-      {header}
-      <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-        Hi {s.voterName}. {done ? "You've voted for every office. Thank you! Results are shown when voting closes." : "Pick one candidate for each office, then lock in that vote. You can come back later for the offices you skip" + (s.closesAt ? ` until ${new Date(s.closesAt).toLocaleString()}.` : ".")}
-      </p>
-      {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
-      {s.ballot.map((r) => {
-        const voted = s.voted.includes(r.race_id);
-        return (
-          <section key={r.race_id} className="rounded-xl border p-4" style={box}>
-            <h2 className="text-lg font-extrabold">{r.title}</h2>
-            {voted ? (
-              <p className="mt-2 text-sm font-semibold">✓ Your vote is in.</p>
-            ) : (
-              <>
-                <div className="mt-2 grid gap-2">
-                  {r.options.map((o) => (
-                    <label key={o.id} className="flex cursor-pointer items-start gap-3 rounded-lg border p-3" style={{ borderColor: pick[r.race_id] === o.id ? "var(--red)" : "var(--border)" }}>
-                      <input type="radio" name={r.race_id} checked={pick[r.race_id] === o.id} onChange={() => setPick({ ...pick, [r.race_id]: o.id })} className="mt-1" />
-                      {o.image_url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={o.image_url} alt="" className="h-12 w-12 rounded-full object-cover" />
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-bold">{o.name}</span>
-                        {o.description && <span className="block text-sm" style={{ color: "var(--text-dim)" }}>{o.description}</span>}
-                        {o.video_url && <video src={o.video_url} controls preload="none" playsInline className="mt-2 w-full rounded-lg" />}
-                        {!o.video_url && o.clip_url && <div className="mt-2"><EmbeddedClipPlayer sourceUrl={o.clip_url} label={`${o.name} video`} privacy /></div>}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                <button onClick={() => cast(r)} disabled={!pick[r.race_id] || busy !== null} className="bc-btn-solid mt-3 rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-50">{busy === r.race_id ? "Saving…" : "Lock in my vote"}</button>
-              </>
-            )}
-          </section>
-        );
-      })}
-    </div>
+  const total = s.ballot.length;
+  const votedCount = s.ballot.filter((r) => s.voted.includes(r.race_id)).length;
+  const allDone = total > 0 && votedCount === total;
+
+  if (finished || total === 0) {
+    const missing = s.ballot.map((r, i) => ({ r, i })).filter(({ r }) => !s.voted.includes(r.race_id));
+    return shell(
+      "Your ballot",
+      <div className="grid gap-4">
+        <h1 className="text-[26px] font-extrabold leading-tight">{allDone ? "Thank you for voting!" : `Hi ${s.voterName.split(" ")[0]}, almost there`}</h1>
+        <p className="text-sm" style={{ opacity: 0.75 }}>
+          {allDone
+            ? "You've voted for every office. Results are shown when voting closes."
+            : `You've voted for ${votedCount} of ${total} offices. You can finish the rest now, or come back later${s.closesAt ? ` until ${new Date(s.closesAt).toLocaleString()}` : ""}.`}
+        </p>
+        {missing.length > 0 && (
+          <ul className="grid gap-2">
+            {missing.map(({ r, i }) => (
+              <li key={r.race_id} className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: "#fff", color: "#111", border: "1px solid rgba(0,0,0,0.12)" }}>
+                <span className="font-bold">{r.title}</span>
+                <button type="button" onClick={() => { setFinished(false); setIdx(i); }} className="rounded-full px-4 py-1.5 text-sm font-bold" style={accentBtn}>Vote</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>,
+    );
+  }
+
+  const race = s.ballot[idx];
+  const voted = s.voted.includes(race.race_id);
+  const chosen = pick[race.race_id] ?? null;
+  const last = idx === total - 1;
+  return shell(
+    s.voterName ? `Voting as ${s.voterName}` : "Your ballot",
+    <div className="grid gap-4">
+      <ProgressBar theme={theme} step={idx + 1} total={total} label={`${votedCount} voted`} />
+      <div>
+        <h2 className="text-[26px] font-extrabold leading-tight">{race.title}</h2>
+        <p className="mt-1 text-sm" style={{ opacity: 0.7 }}>{voted ? "✓ Your vote for this office is in." : "Choose one candidate"}</p>
+      </div>
+      {error && <p className="text-sm font-semibold" style={{ color: theme.danger }}>{error}</p>}
+      <div role="radiogroup" aria-label={race.title} className="grid gap-2.5">
+        {race.options.map((o) => (
+          <CandidateCard key={o.id} c={o} theme={theme} selected={chosen === o.id} disabled={voted} onSelect={() => setPick({ ...pick, [race.race_id]: o.id })} />
+        ))}
+      </div>
+      <div className="grid gap-2.5">
+        {!voted && (
+          <button type="button" onClick={() => cast(race)} disabled={!chosen || busy !== null} className={btn} style={accentBtn}>{busy === race.race_id ? "Saving…" : "Lock in my vote"}</button>
+        )}
+        <div className="flex gap-2.5">
+          {idx > 0 && <button type="button" onClick={() => setIdx(idx - 1)} className={btn} style={ghostBtn}>Back</button>}
+          <button type="button" onClick={() => (last ? setFinished(true) : setIdx(idx + 1))} className={btn} style={voted ? accentBtn : ghostBtn}>
+            {last ? "Finish" : voted ? "Next" : "Skip for now"}
+          </button>
+        </div>
+      </div>
+    </div>,
   );
 }

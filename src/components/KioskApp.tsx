@@ -1,7 +1,6 @@
 "use client";
 
-import EmbeddedClipPlayer from "@/components/EmbeddedClipPlayer";
-import { roomThemeVars } from "@/lib/liveVoteEvents/roomTheme";
+import { BallotHeader, CandidateCard, ProgressBar, ballotTheme } from "@/components/ballot/BallotKit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fingerprint, load, post, save, type Manifest, type QueueItem, type Race } from "@/lib/kioskOffline";
 
@@ -270,32 +269,19 @@ export default function KioskApp({ token, preview }: { token: string; preview?: 
   }
 
   const shell = "fixed inset-0 z-[100] flex flex-col overflow-auto";
-  const b = status?.brand;
-  const themed = roomThemeVars(b?.color ?? null, b?.bg ?? null, b?.bgImage ?? null) as React.CSSProperties;
-  // School colors when set at setup; otherwise the BoutCasts navy.
-  const style: React.CSSProperties = b?.bg || b?.bgImage ? { color: "#0B1020", ...themed } : { background: "#0B1020", color: "#fff", ...themed };
-  const accentBtn: React.CSSProperties = { background: "var(--red, #2352E8)", color: "#fff" };
-  const card = { background: "var(--surface, #151b30)", borderColor: "var(--border, #2a3355)" } as const;
+  const theme = ballotTheme(status?.brand);
+  const style: React.CSSProperties = { ...theme.page };
+  const accentBtn: React.CSSProperties = { background: theme.accent, color: theme.onAccent };
+  const card = { background: "#fff", color: "#111", borderColor: "rgba(0,0,0,0.15)" } as const;
+  const ghost: React.CSSProperties = { background: "transparent", color: theme.ink, borderColor: `${theme.ink}55` };
+  const errText: React.CSSProperties = { color: theme.danger };
   const big = "rounded-2xl px-8 py-5 text-2xl font-extrabold disabled:opacity-40";
-  const input = "w-full rounded-xl border px-5 py-4 text-2xl";
+  const input = "w-full rounded-xl border-2 px-5 py-4 text-2xl";
 
   if (missing) return <div className={shell} style={style}><p className="m-auto text-2xl">This kiosk link isn&apos;t valid. Ask the organizer for a new one.</p></div>;
   if (!status) return <div className={shell} style={style}><p className="m-auto text-xl">Loading…</p></div>;
 
-  const header = (
-    <div className="text-center">
-      {b?.banner && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={b.banner} alt="" className="h-28 w-full object-cover" />
-      )}
-      {b?.logo && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={b.logo} alt="" className="mx-auto mt-4 h-16 w-16 rounded-xl object-contain" />
-      )}
-      {status.school && <p className="px-8 pt-3 text-sm font-bold uppercase tracking-widest opacity-70">{status.school}</p>}
-      <h1 className="px-8 pt-1 text-3xl font-extrabold">{status.title}</h1>
-    </div>
-  );
+  const header = <BallotHeader theme={theme} brand={status.brand} school={status.school} kicker={status.title} live={status.state === "open"} />;
   const pinLink = preview ? null : (
     <button onClick={() => { setPin(""); setPinMsg(null); setStep("pin"); }} className="absolute bottom-3 right-4 text-xs opacity-40">Teacher</button>
   );
@@ -360,7 +346,7 @@ export default function KioskApp({ token, preview }: { token: string; preview?: 
               <label className="grid gap-1 text-sm font-bold">Your full name
                 <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" autoCorrect="off" className={input} style={card} />
               </label>
-              {msg && <p className="text-center text-lg font-bold text-[var(--red,#FFC72C)]" role="alert">{msg}</p>}
+              {msg && <p className="text-center text-lg font-bold " style={errText} role="alert">{msg}</p>}
               <button type="submit" disabled={busy || !code.trim() || !name.trim()} className={big} style={accentBtn}>{busy ? "Checking…" : "Start voting"}</button>
             </form>
           )}
@@ -381,7 +367,7 @@ export default function KioskApp({ token, preview }: { token: string; preview?: 
         {header}
         <div className="mx-auto w-full max-w-2xl px-6 py-6">
           <h2 className="mb-3 text-2xl font-extrabold">Review your ballot, {voter.split(" ")[0]}</h2>
-          {msg && <p className="mb-3 rounded-xl border p-3 font-bold text-[var(--red,#FFC72C)]" style={card} role="alert">{msg}</p>}
+          {msg && <p className="mb-3 rounded-xl border p-3 font-bold" style={{ ...card, color: theme.danger === "#ff8a80" ? "#c62828" : theme.danger }} role="alert">{msg}</p>}
           <ul className="grid gap-2">
             {races.map((r, i) => {
               const o = r.options.find((x) => x.id === choices[r.race_id]);
@@ -409,36 +395,24 @@ export default function KioskApp({ token, preview }: { token: string; preview?: 
     <div className={`${shell} relative`} style={style}>
       {header}
       <div className="mx-auto w-full max-w-2xl px-6 py-5">
-        <p className="text-sm font-bold opacity-70">Office {idx + 1} of {races.length}</p>
-        <h2 className="mb-3 text-3xl font-extrabold">{race.title}</h2>
-        <div className="grid gap-3">
-          {race.options.map((o) => {
-            const on = pick === o.id;
-            return (
-              <div key={o.id} className="overflow-hidden rounded-2xl border-2" style={{ ...card, borderColor: on ? "var(--red, #FFC72C)" : card.borderColor, background: on ? "var(--red-soft, #1d2a5c)" : card.background }}>
-                <button onClick={() => setChoices((c) => ({ ...c, [race.race_id]: on ? null : o.id }))} aria-pressed={on} className="flex w-full items-center gap-4 px-5 py-4 text-left">
-                  {o.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={o.image_url} alt="" className="h-24 w-24 shrink-0 rounded-xl object-cover" />
-                  )}
-                  <span>
-                    <span className="text-2xl font-extrabold">{on ? "✓ " : ""}{o.name}</span>
-                    {o.description && <span className="mt-1 block text-base opacity-80">{o.description}</span>}
-                  </span>
-                </button>
-                {o.video_url && (
-                  <video src={o.video_url} controls playsInline preload="none" className="max-h-64 w-full bg-black" aria-label={`${o.name} speech`} />
-                )}
-                {!o.video_url && o.clip_url && online && (
-                  <div className="px-3 pb-3"><EmbeddedClipPlayer sourceUrl={o.clip_url} label={`${o.name} video`} privacy /></div>
-                )}
-              </div>
-            );
-          })}
+        <ProgressBar theme={theme} step={idx + 1} total={races.length} />
+        <h2 className="mb-3 mt-3 text-3xl font-extrabold">{race.title}</h2>
+        <div role="radiogroup" aria-label={race.title} className="grid gap-3">
+          {race.options.map((o) => (
+            <CandidateCard
+              key={o.id}
+              c={o}
+              theme={theme}
+              large
+              videoOk={online}
+              selected={pick === o.id}
+              onSelect={() => setChoices((c) => ({ ...c, [race.race_id]: pick === o.id ? null : o.id }))}
+            />
+          ))}
         </div>
         <p className="mt-2 text-sm opacity-70">Tap again to clear. You can skip this office.</p>
         <div className="mt-4 flex gap-3">
-          {idx > 0 && <button onClick={() => setIdx(idx - 1)} className="rounded-2xl border px-6 py-4 text-xl font-bold" style={card}>Back</button>}
+          {idx > 0 && <button onClick={() => setIdx(idx - 1)} className="rounded-2xl border-2 px-6 py-4 text-xl font-bold" style={ghost}>Back</button>}
           <button onClick={() => (lastRace ? setStep("review") : setIdx(idx + 1))} className={`${big} flex-1`} style={accentBtn}>{lastRace ? "Review ballot" : pick ? "Next" : "Skip"}</button>
         </div>
       </div>

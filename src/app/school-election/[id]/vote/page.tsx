@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import ElectionBrandFrame from "@/components/ElectionBrandFrame";
 import LinkVote from "@/components/LinkVote";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { UUID, requireElectionAccess, type ElectionRow } from "@/lib/schoolElection";
@@ -41,21 +40,20 @@ export default async function VoteLinkPage({ params, searchParams }: { params: P
       }));
     }
   }
+  const note = previewBallot
+    ? "Preview mode: tap Start voting with anything typed in (or nothing). Votes here are not saved or counted."
+    : previewOnly
+      ? "Preview: this is the page students see. Vote by link is turned off, so no one can vote here yet."
+      : null;
+  const brand = {
+    logo: election.brand_logo_url, banner: election.cover_image_url, color: election.brand_color, bg: election.brand_bg_color, bgImage: election.brand_bg_image_url,
+  };
   return (
-    <ElectionBrandFrame id={id}>
-      <div className="mx-auto max-w-xl px-5 py-8">
-        {previewOnly && (
-          <p className="mb-4 rounded-lg border p-3 text-sm font-semibold" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            Preview: this is the page students see. Vote by link is turned off, so no one can vote here yet.
-          </p>
-        )}
-        {previewBallot && (
-          <p className="mb-4 rounded-lg border p-3 text-sm font-semibold" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            Preview mode: tap Start voting with anything typed in (or nothing). Votes here are not saved or counted.
-          </p>
-        )}
-        <LinkVote id={id} title={election.title} school={election.school_name} previewBallot={previewBallot} />
-      </div>
-    </ElectionBrandFrame>
+    <>
+      {note && (
+        <div className="sticky top-0 z-50 px-4 py-2 text-center text-sm font-bold" style={{ background: "#e0a93b", color: "#3b0d1f" }}>{note}</div>
+      )}
+      <LinkVote id={id} title={election.title} school={election.school_name} brand={brand} previewBallot={previewBallot} />
+    </>
   );
 }
