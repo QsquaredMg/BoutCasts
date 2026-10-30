@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
+    allow_promotion_codes: true,
     mode: "payment",
     // Card also covers Apple Pay and Link; Cash App Pay is one-time payments in USD.
     payment_method_types: ["card", "cashapp"],

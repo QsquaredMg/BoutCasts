@@ -43,6 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const origin = req.headers.get("origin") ?? new URL(req.url).origin;
   try {
     const session = await getStripe().checkout.sessions.create({
+      allow_promotion_codes: true,
       mode: "payment",
       payment_method_types: ["card", "cashapp"],
       customer_email: user.email ?? undefined,
