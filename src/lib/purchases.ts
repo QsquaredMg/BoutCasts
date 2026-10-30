@@ -1,5 +1,6 @@
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // What each Checkout "kind" is called in Admin, and which Admin page manages it.
 const KINDS: Record<string, { label: string; href?: string }> = {
@@ -42,6 +43,8 @@ export type Purchase = {
   paymentIntentId: string | null;
   /** Subscriptions are refunded in Stripe, not here. */
   canRefund: boolean;
+  /** Set when the buyer paid but what they bought has not switched on. Needs a person to look. */
+  attention: string | null;
 };
 
 export type PurchaseList = { mode: "live" | "test"; purchases: Purchase[]; truncated: boolean; weekCount: number; weekNetCents: number };
@@ -54,6 +57,7 @@ export async function loadPurchases(days = 90, max = 200): Promise<PurchaseList 
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   const purchases: Purchase[] = [];
   let truncated = false;
+  const checks: { table: "live_vote_events" | "school_elections"; id: string; index: number }[] = [];
   for await (const s of stripe.checkout.sessions.list({
     created: { gte: since },
     limit: 100,
@@ -78,8 +82,13 @@ export async function loadPurchases(days = 90, max = 200): Promise<PurchaseList 
       receiptUrl: charge?.receipt_url ?? null,
       paymentIntentId: pi?.id ?? null,
       canRefund: s.mode === "payment" && !!pi,
+      attention: null,
     });
+    const m = s.metadata ?? {};
+    if (m.kind === "live_vote_event" && m.event_id) checks.push({ table: "live_vote_events", id: m.event_id, index: purchases.length - 1 });
+    if (m.kind === "school_election" && m.election_id) checks.push({ table: "school_elections", id: m.election_id, index: purchases.length - 1 });
   }
+  await flagUnactivated(purchases, checks);
   const weekAgo = Math.floor(Date.now() / 1000) - 7 * 86400;
   const week = purchases.filter((p) => p.created >= weekAgo);
   return {
@@ -89,4 +98,26 @@ export async function loadPurchases(days = 90, max = 200): Promise<PurchaseList 
     weekCount: week.length,
     weekNetCents: week.reduce((n, p) => n + p.amountCents - p.refundedCents, 0),
   };
+}
+
+/** A paid event or election that is still a draft means the payment notification never switched it on. */
+async function flagUnactivated(purchases: Purchase[], checks: { table: "live_vote_events" | "school_elections"; id: string; index: number }[]) {
+  if (checks.length === 0) return;
+  try {
+    const admin = createAdminClient();
+    for (const table of ["live_vote_events", "school_elections"] as const) {
+      const mine = checks.filter((c) => c.table === table);
+      if (mine.length === 0) continue;
+      const { data } = await admin.from(table).select("id, status").in("id", mine.map((c) => c.id));
+      const draft = new Set((data ?? []).filter((r) => r.status === "draft").map((r) => r.id));
+      for (const c of mine) {
+        const p = purchases[c.index];
+        if (draft.has(c.id) && p.refundedCents < p.amountCents) {
+          p.attention = "Paid, but this is still a draft. Resend the payment notification in Stripe (Developers, Webhooks), or turn it on from its Admin page.";
+        }
+      }
+    }
+  } catch (e) {
+    console.error("purchases: could not check activation", e instanceof Error ? e.message : e);
+  }
 }
