@@ -90,7 +90,7 @@ export default function LiveVoteEventsPage() {
         <Link
           href="/live-vote/new"
           className="lp-btn px-6 py-3 text-sm"
-          style={{ background: "#e0a93b", color: "#3b0d1f", boxShadow: "0 12px 24px -12px rgba(224,169,59,.9)" }}
+          style={{ background: "var(--red)", color: "#fff", boxShadow: "0 12px 24px -12px rgba(27,79,228,.7)" }}
         >
           + Create a vote
         </Link>
@@ -113,7 +113,7 @@ export default function LiveVoteEventsPage() {
                 onClick={() => setTab(key)}
                 className="flex-1 rounded-full px-3 py-2 text-sm font-semibold"
                 style={{
-                  background: tab === key ? "#7a1f3d" : "transparent",
+                  background: tab === key ? "var(--red)" : "transparent",
                   color: tab === key ? "#fff" : "var(--text-dim)",
                 }}
               >
@@ -145,7 +145,7 @@ export default function LiveVoteEventsPage() {
                   <div
                     key={event.id}
                     className="flex items-center gap-2 rounded-2xl border pr-3 transition hover:shadow-md"
-                    style={{ borderColor: "var(--border)", background: "var(--surface)", borderLeft: "5px solid #7a1f3d" }}
+                    style={{ borderColor: "var(--border)", background: "var(--surface)", borderLeft: "5px solid var(--red)" }}
                   >
                   <Link
                     href={`/live-vote/${event.id}`}
@@ -196,12 +196,12 @@ export default function LiveVoteEventsPage() {
               <div
                 key={key}
                 className="rounded-2xl border p-4"
-                style={{ borderColor: "var(--border)", background: "var(--surface)", borderTop: "4px solid #e0a93b" }}
+                style={{ borderColor: "var(--border)", background: "var(--surface)", borderTop: "4px solid var(--red)" }}
               >
                 <p className="text-sm font-extrabold" style={{ color: "var(--text-dim)" }}>
                   {tier.label}
                 </p>
-                <p className="mt-1 text-3xl font-black" style={{ fontFamily: "var(--font-hero), sans-serif", fontStretch: "110%", color: "#7a1f3d" }}>
+                <p className="mt-1 text-3xl font-black" style={{ fontFamily: "var(--font-hero), sans-serif", fontStretch: "110%", color: "var(--red)" }}>
                   {tierPriceLabel(key)}
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>
