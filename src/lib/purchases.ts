@@ -46,9 +46,19 @@ export type Purchase = {
   canRefund: boolean;
   /** Set when the buyer paid but what they bought has not switched on. Needs a person to look. */
   attention: string | null;
+  /** Set for a sale or free grant recorded by hand (not from Stripe). */
+  manualId: string | null;
 };
 
-export type PurchaseList = { mode: "live" | "test"; purchases: Purchase[]; truncated: boolean; weekCount: number; weekNetCents: number };
+export type PurchaseList = {
+  mode: "live" | "test";
+  purchases: Purchase[];
+  truncated: boolean;
+  weekCount: number;
+  weekNetCents: number;
+  /** False when the manual-sales table hasn't been created yet. */
+  manualReady: boolean;
+};
 
 /** Paid Checkout sessions from the last `days` days, newest first. Null if Stripe isn't set up. */
 export async function loadPurchases(days = 90, max = 200): Promise<PurchaseList | null> {
@@ -84,12 +94,16 @@ export async function loadPurchases(days = 90, max = 200): Promise<PurchaseList 
       paymentIntentId: pi?.id ?? null,
       canRefund: s.mode === "payment" && !!pi,
       attention: null,
+      manualId: null,
     });
     const m = s.metadata ?? {};
     if (m.kind === "live_vote_event" && m.event_id) checks.push({ table: "live_vote_events", id: m.event_id, index: purchases.length - 1 });
     if (m.kind === "school_election" && m.election_id) checks.push({ table: "school_elections", id: m.election_id, index: purchases.length - 1 });
   }
   await flagUnactivated(purchases, checks);
+  const manual = await loadManualSales(since);
+  purchases.push(...manual.rows);
+  purchases.sort((a, b) => b.created - a.created);
   const weekAgo = Math.floor(Date.now() / 1000) - 7 * 86400;
   const week = purchases.filter((p) => p.created >= weekAgo);
   return {
@@ -98,7 +112,45 @@ export async function loadPurchases(days = 90, max = 200): Promise<PurchaseList 
     truncated,
     weekCount: week.length,
     weekNetCents: week.reduce((n, p) => n + p.amountCents - p.refundedCents, 0),
+    manualReady: manual.ready,
   };
+}
+
+/** Sales and free grants recorded by hand in Admin. Empty (and not ready) if the table hasn't been created. */
+async function loadManualSales(sinceUnix: number): Promise<{ rows: Purchase[]; ready: boolean }> {
+  try {
+    const { data, error } = await createAdminClient()
+      .from("manual_sales")
+      .select("id, sold_at, kind, what, amount_cents, method, buyer_name, buyer_email, note")
+      .is("voided_at", null)
+      .gte("sold_at", new Date(sinceUnix * 1000).toISOString())
+      .order("sold_at", { ascending: false })
+      .limit(200);
+    if (error) return { rows: [], ready: error.code !== "42P01" };
+    return {
+      ready: true,
+      rows: (data ?? []).map((r) => ({
+        id: `manual-${r.id}`,
+        created: Math.floor(new Date(r.sold_at).getTime() / 1000),
+        label: r.what,
+        detail: [r.kind === "comp" ? "Free grant" : `Recorded sale${r.method ? ` (${r.method})` : ""}`, r.note].filter(Boolean).join(" · "),
+        href: null,
+        buyerName: r.buyer_name,
+        buyerEmail: r.buyer_email,
+        amountCents: r.amount_cents,
+        refundedCents: 0,
+        currency: "usd",
+        receiptUrl: null,
+        paymentIntentId: null,
+        canRefund: false,
+        attention: null,
+        manualId: r.id,
+      })),
+    };
+  } catch (e) {
+    console.error("purchases: could not load manual sales", e instanceof Error ? e.message : e);
+    return { rows: [], ready: true };
+  }
 }
 
 /** A paid event or election that is still a draft means the payment notification never switched it on. */
