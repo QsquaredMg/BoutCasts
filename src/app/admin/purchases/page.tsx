@@ -44,6 +44,11 @@ export default async function AdminPurchasesPage() {
                   <p className="break-words text-xs" style={{ color: "var(--text-faint)" }}>
                     {when(p.created)} · {p.buyerName ? `${p.buyerName} · ` : ""}{p.buyerEmail ?? "no email"}
                   </p>
+                  {p.attention && (
+                    <p className="mt-1 rounded px-2 py-1 text-xs font-bold" style={{ background: "rgba(239,68,68,0.12)", color: "var(--red)" }}>
+                      ⚠ {p.attention}
+                    </p>
+                  )}
                   <p className="mt-1 flex flex-wrap gap-3 text-xs font-semibold">
                     {p.href && <Link href={p.href} className="underline" style={{ color: "var(--blue)" }}>Open in Admin</Link>}
                     {p.receiptUrl && <a href={p.receiptUrl} target="_blank" rel="noreferrer" className="underline" style={{ color: "var(--blue)" }}>Stripe receipt</a>}
