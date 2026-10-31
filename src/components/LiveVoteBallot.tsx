@@ -553,6 +553,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         </div>
         <ShareButton
           imageUrl={`/api/share-card/livevote/${eventId}`}
+          storyImageUrl={`/api/share-card/livevote/${eventId}?format=story`}
           title={event.title}
           text={`${event.title}${event.brand_name ? ` — presented by ${event.brand_name}` : ""} — cast your vote, or start your own Bout, on BoutCasts!`}
         />
