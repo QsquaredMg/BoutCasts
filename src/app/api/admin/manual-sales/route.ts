@@ -95,7 +95,7 @@ export async function POST(req: Request) {
 
 function fail(e: { message: string; code?: string }, what: string) {
   console.error(`admin manual sale ${what} failed`, e.message);
-  if (e.code === "42P01") {
+  if (e.code === "42P01" || e.code === "PGRST205") {
     return NextResponse.json({ error: "The sales table isn't set up yet. Run docs/sql/manual_sales.sql in the Supabase SQL editor." }, { status: 501 });
   }
   return NextResponse.json({ error: "Could not save that." }, { status: 500 });

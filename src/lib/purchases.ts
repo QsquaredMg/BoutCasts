@@ -126,7 +126,8 @@ async function loadManualSales(sinceUnix: number): Promise<{ rows: Purchase[]; r
       .gte("sold_at", new Date(sinceUnix * 1000).toISOString())
       .order("sold_at", { ascending: false })
       .limit(200);
-    if (error) return { rows: [], ready: error.code !== "42P01" };
+    // Missing table: Postgres says 42P01, Supabase's data API says PGRST205.
+    if (error) return { rows: [], ready: error.code !== "42P01" && error.code !== "PGRST205" };
     return {
       ready: true,
       rows: (data ?? []).map((r) => ({
