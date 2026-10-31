@@ -224,10 +224,13 @@ function GamesList({ games, more, og, accent }: { games: GameRow[]; more?: numbe
   );
 }
 
-export function renderCard(d: CardData, variant: "og" | "story") {
+// "story" is the 4:5 portrait graphic (also what Instagram feed posts use). "tall" is a full 9:16
+// Instagram Story, with the top and bottom kept clear of the app's own bars.
+export function renderCard(d: CardData, variant: "og" | "story" | "tall") {
   const og = variant === "og";
+  const tall = variant === "tall";
   const w = og ? 1200 : 1080;
-  const h = og ? 630 : 1350;
+  const h = og ? 630 : tall ? 1920 : 1350;
   const th = THEME[d.type];
   const n = d.contenders.length;
   const box = n <= 2 ? (d.pct || d.finalScore ? (og ? 140 : 280) : (og ? 170 : 300)) : n === 3 ? (og ? 140 : 250) : (og ? 110 : 200);
@@ -239,7 +242,7 @@ export function renderCard(d: CardData, variant: "og" | "story") {
       <div
         style={{
           width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center",
-          justifyContent: "space-between", padding: og ? "22px 56px" : "64px 40px",
+          justifyContent: "space-between", padding: og ? "22px 56px" : tall ? "230px 40px 340px" : "64px 40px",
           background: th.bg, color: "#ffffff", fontFamily: boldFont ? "Inter" : "sans-serif",
         }}
       >
@@ -324,7 +327,7 @@ export function renderCard(d: CardData, variant: "og" | "story") {
           )}
           {!og && (
             <div style={{ display: "flex", fontSize: 36, fontWeight: 800, marginTop: 26, color: "#ffffff", textAlign: "center", justifyContent: "center" }}>
-              {d.cta ?? "Join in at boutcasts.com"}
+              {tall ? "Tap the link to cast your vote" : (d.cta ?? "Join in at boutcasts.com")}
             </div>
           )}
         </div>

@@ -1,7 +1,8 @@
 import { storyResponse } from "@/lib/og/cardRoute";
 
 // Shareable portrait graphic (1080x1350) for the Share button.
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: id } = await params;
-  return storyResponse("livevote", id);
+  // ?format=story is the full-height 9:16 version for an Instagram Story.
+  return storyResponse("livevote", id, new URL(req.url).searchParams.get("format") === "story");
 }
