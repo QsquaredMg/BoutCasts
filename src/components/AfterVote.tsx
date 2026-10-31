@@ -99,6 +99,7 @@ export default function AfterVote({
           label="📣 Share your vote"
           big
           track={track}
+          storyImageUrl={track?.type === "bout" ? `/api/bouts/${track.id}/vote-card?format=story` : track?.type === "live_vote" ? `/api/share-card/livevote/${track.id}?format=story` : undefined}
           imageUrl={track?.type === "bout" ? `/api/bouts/${track.id}/vote-card` : track?.type === "live_vote" ? `/api/share-card/livevote/${track.id}` : track?.type === "showcase" ? `/api/share-card/showcase/${track.id}` : undefined}
         />
         {graphicUrl && (

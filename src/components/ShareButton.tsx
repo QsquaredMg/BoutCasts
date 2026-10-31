@@ -71,6 +71,7 @@ export default function ShareButton({
   big = false,
   track,
   imageUrl,
+  storyImageUrl,
   url,
 }: {
   title: string;
@@ -83,6 +84,8 @@ export default function ShareButton({
   track?: ShareTarget;
   /** A graphic to attach on devices that can share files, and to save for Instagram/TikTok. */
   imageUrl?: string;
+  /** A full-height 9:16 graphic for an Instagram Story. When set, the Instagram button saves it and copies just the link, ready for a Story link sticker. */
+  storyImageUrl?: string;
   /** Link to share (a path like /predictions/123 works). Defaults to the page being viewed. */
   url?: string;
 }) {
@@ -192,14 +195,18 @@ export default function ShareButton({
   }
 
   // Instagram and TikTok have no web share link, so save the graphic and
-  // copy the caption — the person pastes both into the app.
+  // copy the link (or caption) — the person pastes it into the app.
+  // With a Story graphic, only the bare link is copied: that is what Instagram's
+  // link sticker needs, and the graphic already says what to do.
   async function forInstagramTikTok() {
     logShare(track, "share");
     const url = linkToShare();
-    const copiedCaption = await copyText(`${shareText} ${url}`);
-    if (imageUrl) {
+    const forStory = !!storyImageUrl;
+    const copiedText = await copyText(forStory ? url : `${shareText} ${url}`);
+    const graphic = storyImageUrl ?? imageUrl;
+    if (graphic) {
       try {
-        const res = await fetch(imageUrl);
+        const res = await fetch(graphic);
         if (res.ok) {
           const blob = await res.blob();
           const href = URL.createObjectURL(blob);
@@ -211,19 +218,23 @@ export default function ShareButton({
           a.remove();
           setTimeout(() => URL.revokeObjectURL(href), 4000);
           setNote(
-            copiedCaption
-              ? "Image saved and caption copied. Open Instagram or TikTok, add the image to a post or story, and paste the caption."
-              : "Image saved. Open Instagram or TikTok and add it to a post or story.",
+            forStory
+              ? copiedText
+                ? "Image saved and link copied. In Instagram, add the image to your Story, tap the sticker icon, choose Link, and paste. Friends vote without leaving Instagram."
+                : "Image saved. In Instagram, add it to your Story, tap the sticker icon, choose Link, and paste the page address."
+              : copiedText
+                ? "Image saved and caption copied. Open Instagram or TikTok, add the image to a post or story, and paste the caption."
+                : "Image saved. Open Instagram or TikTok and add the image to a post or story.",
           );
           return;
         }
       } catch {
-        // fall through to the caption-only message
+        // fall through to the text-only message
       }
     }
     setNote(
-      copiedCaption
-        ? "Caption and link copied. Open Instagram or TikTok and paste it into a post or your bio link."
+      copiedText
+        ? "Link copied. Open Instagram or TikTok and paste it into a post, a Story link sticker, or your bio link."
         : "Couldn't copy. Press and hold the page address to copy it, then paste it in the app.",
     );
   }
@@ -297,7 +308,7 @@ const tileStyle = { borderColor: "#d5ddf0", background: "#f4f6fb", color: INK } 
               ))}
               <button type="button" onClick={forInstagramTikTok} className={`${tile} col-span-2`} style={tileStyle}>
                 <span aria-hidden className="text-3xl leading-none">📸</span>
-                Instagram / TikTok
+                {storyImageUrl ? "Instagram Story / TikTok" : "Instagram / TikTok"}
               </button>
               <button type="button" onClick={copyLink} className={`${tile} col-span-3 sm:col-span-4`} style={{ ...tileStyle, background: "#0a0f2c", borderColor: "#0a0f2c", color: "#ffffff", minHeight: 64 }}>
                 <span aria-hidden className="text-2xl leading-none">🔗</span>

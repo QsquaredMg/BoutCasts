@@ -19,10 +19,10 @@ export async function ogResponse(kind: CardKind, id: string) {
 }
 
 /** The shareable portrait graphic (1080x1350); 404 when the thing doesn't exist. */
-export async function storyResponse(kind: CardKind, id: string) {
+export async function storyResponse(kind: CardKind, id: string, tall = false) {
   const d = await loadCard(kind, id);
   if (!d) return new Response("Not found", { status: 404 });
-  return renderCard(d, "story");
+  return renderCard(d, tall ? "tall" : "story");
 }
 
 /** Page title, description and social tags that say what kind of event this is and when it runs. */
