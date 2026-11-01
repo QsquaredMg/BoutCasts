@@ -23,6 +23,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
     admin.from("election_candidate_profiles").select("option_id, slogan, platform").eq("election_id", id),
   ]);
   const byOption = new Map((profiles ?? []).map((p) => [p.option_id, p]));
+  const { data: press } = await admin.from("election_press_posts").select("id, author_label, title, body, source_url").eq("election_id", id).eq("kind", "article").eq("status", "published").order("created_at", { ascending: false }).limit(20);
   const box = { borderColor: "var(--border)", background: "var(--surface)" } as const;
 
   return (
@@ -66,6 +67,21 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             </section>
           ))}
         </div>
+        {(press ?? []).length > 0 && (
+          <section className="mt-10">
+            <h2 className="mb-3 text-xl font-extrabold">Student press</h2>
+            <div className="grid gap-4">
+              {(press ?? []).map((a) => (
+                <article key={a.id} className="rounded-xl border p-4" style={box}>
+                  <h3 className="text-lg font-bold">{a.title}</h3>
+                  <p className="text-xs" style={{ color: "var(--text-dim)" }}>By {a.author_label}</p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm">{a.body}</p>
+                  {a.source_url && <a href={a.source_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block break-all text-xs font-bold underline">Source</a>}
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </ElectionBrandFrame>
   );

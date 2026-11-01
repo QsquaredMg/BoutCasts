@@ -4,7 +4,7 @@ import { requireDeskAccess } from "@/lib/schoolElection";
 // Moderator view for the debate timer: each office and its candidates. Names only, never vote counts.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const who = await requireDeskAccess(req, id, ["judge"]);
+  const who = await requireDeskAccess(req, id, ["judge", "debate_moderator"]);
   if ("error" in who) return who.error;
   const { data: races } = await who.admin.from("live_vote_events").select("id, title, election_sort").eq("election_id", id).order("election_sort");
   const ids = (races ?? []).map((r) => r.id);

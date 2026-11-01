@@ -8,6 +8,9 @@ import ElectionCampaignPanel from "@/components/ElectionCampaignPanel";
 import ElectionForumPanel from "@/components/ElectionForumPanel";
 import ElectionIncidentLog from "@/components/ElectionIncidentLog";
 import EventAccessPanel from "@/components/EventAccessPanel";
+import ElectionRoleDesk from "@/components/ElectionRoleDesk";
+import { CANDIDATE_ROLE_KEYS, ROLES, ROLE_GROUPS, roleByKey, roleLabel, STUDENT_ROLES_PLAN } from "@/lib/electionRoles";
+import { printRoleCard } from "@/lib/roleCard";
 
 type Option = { id: string; name: string; description: string | null; votes: number | null; winner?: boolean };
 type Data = {
@@ -37,7 +40,6 @@ function parseRoster(text: string): { name: string; ref: string | null; email: s
   return rows;
 }
 
-const ROLE_LABEL: Record<string, string> = { check_in: "Check-in", judge: "Judge", observer: "Observer" };
 
 export default function SchoolElectionManager({ id, checkout }: { id: string; checkout: string | null }) {
   const [data, setData] = useState<Data | null>(null);
@@ -49,13 +51,19 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   const fileRef = useRef<HTMLInputElement>(null);
   const [staff, setStaff] = useState<{ id: string; label: string; role: string }[]>([]);
   const [staffRole, setStaffRole] = useState("check_in");
+  const [premium, setPremium] = useState(false);
+  const [staffOption, setStaffOption] = useState("");
   const [staffName, setStaffName] = useState("");
   const [certNote, setCertNote] = useState("");
   const [certOk, setCertOk] = useState(false);
   const [newStaff, setNewStaff] = useState<{ label: string; code: string; role: string } | null>(null);
   const loadStaff = useCallback(async () => {
     const res = await fetch(`/api/school-election/${id}/staff`, { cache: "no-store" });
-    if (res.ok) setStaff((await res.json()).staff);
+    if (res.ok) {
+      const j = await res.json();
+      setStaff(j.staff);
+      setPremium(!!j.premium);
+    }
   }, [id]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -282,35 +290,55 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
       </div>
 
       <div className="rounded-xl border p-4" style={box}>
-        <p className="font-bold">Staff seats (optional)</p>
-        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Give each poll worker a code and a role, so they can work without your login. Check-in workers use the booth desk. Judges also close incidents and approve forum questions. Observers see no roster and can only log incidents.</p>
+        <p className="font-bold">Staff and student role seats</p>
+        <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Give each person a code and a role, so they can work without your login. Check-in, judge and poll watcher are free. The student roles (commission, registrar, candidates, tabulators and more) come with the Student Roles plan, {money(STUDENT_ROLES_PLAN.priceCents)} per school per year for unlimited elections. Students open their role at /school-election/{id}/role.</p>
+        {!premium && (
+          <div className="mb-3 rounded-lg border p-3" style={{ borderColor: "var(--gold, #a97a12)" }}>
+            <p className="text-sm font-bold">Run it like a real election</p>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>Students take on the roles that make elections work, each with a role code, a mini lesson and a printable role card.</p>
+            <button disabled={busy !== null} onClick={async () => { const r = await call("rolesplan", "/api/checkout/school-roles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ electionId: id }) }); if (r?.url) window.location.href = r.url; }} className="mt-2 rounded-full bg-[#1b4fe4] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Get Student Roles, {money(STUDENT_ROLES_PLAN.priceCents)}/year</button>
+          </div>
+        )}
         <ul className="grid gap-1.5">
           {staff.map((m) => (
             <li key={m.id} className="flex items-center justify-between text-sm">
-              <span>{m.label} <span className="text-xs" style={{ color: "var(--text-faint)" }}>({ROLE_LABEL[m.role] ?? m.role})</span></span>
+              <span>{m.label} <span className="text-xs" style={{ color: "var(--text-faint)" }}>({roleLabel(m.role)})</span></span>
               <button onClick={async () => { await call("rmstaff", `/api/school-election/${id}/staff?staffId=${m.id}`, { method: "DELETE" }); loadStaff(); }} className="text-xs font-bold underline">Revoke</button>
             </li>
           ))}
         </ul>
         {!closed && (
-          <div className="mt-2 flex gap-2">
-            <input value={staffName} onChange={(ev) => setStaffName(ev.target.value)} maxLength={60} placeholder="Worker name" className="min-w-0 flex-1 rounded-[10px] border px-3 py-2 text-sm" style={box} />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input value={staffName} onChange={(ev) => setStaffName(ev.target.value)} maxLength={60} placeholder="Name" className="min-w-0 flex-1 rounded-[10px] border px-3 py-2 text-sm" style={box} />
             <select value={staffRole} onChange={(ev) => setStaffRole(ev.target.value)} className="rounded-[10px] border px-2 py-2 text-sm" style={box} aria-label="Role">
-              <option value="check_in">Check-in</option>
-              <option value="judge">Judge</option>
-              <option value="observer">Observer</option>
+              {ROLE_GROUPS.map((g) => (
+                <optgroup key={g} label={g}>
+                  {ROLES.filter((r) => r.group === g).map((r) => (
+                    <option key={r.key} value={r.key} disabled={!r.free && !premium}>{r.label}{!r.free && !premium ? " (plan)" : ""}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
-            <button disabled={busy !== null || !staffName.trim()} onClick={async () => { const r = await call("staff", `/api/school-election/${id}/staff`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label: staffName, role: staffRole }) }); if (r) { setNewStaff(r); setStaffName(""); loadStaff(); } }} className="rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Add seat</button>
+            {CANDIDATE_ROLE_KEYS.includes(staffRole) && (
+              <select value={staffOption} onChange={(ev) => setStaffOption(ev.target.value)} className="rounded-[10px] border px-2 py-2 text-sm" style={box} aria-label="Candidate">
+                <option value="">Pick the candidate</option>
+                {races.map((r) => r.options.map((o) => <option key={o.id} value={o.id}>{o.name} ({r.title})</option>))}
+              </select>
+            )}
+            <button disabled={busy !== null || !staffName.trim() || (CANDIDATE_ROLE_KEYS.includes(staffRole) && !staffOption)} onClick={async () => { const r = await call("staff", `/api/school-election/${id}/staff`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label: staffName, role: staffRole, optionId: staffOption || undefined }) }); if (r) { setNewStaff(r); setStaffName(""); loadStaff(); } }} className="rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Add seat</button>
           </div>
         )}
         {newStaff && (
           <div className="mt-3 rounded-lg border p-3" style={{ borderColor: "var(--gold, #a97a12)" }}>
-            <p className="text-sm font-bold">{newStaff.label}&apos;s desk code</p>
+            <p className="text-sm font-bold">{newStaff.label}&apos;s code ({roleLabel(newStaff.role)})</p>
             <p className="mt-1 text-2xl font-black tracking-[0.2em]">{newStaff.code}</p>
-            <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>Shown once. They enter it at the booth desk page: /school-election/{id}/desk</p>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>Shown once. Print the role card now, or give them the code and this page: /school-election/{id}/role</p>
+            <button onClick={() => { const def = roleByKey(newStaff.role); if (def) printRoleCard({ role: def, name: newStaff.label, code: newStaff.code, electionTitle: e.title, school: e.school_name, url: `${window.location.origin}/school-election/${id}/role` }); }} className="mt-2 rounded-full border px-4 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>Print role card</button>
           </div>
         )}
       </div>
+
+      <ElectionRoleDesk id={id} />
 
       <ElectionForumPanel id={id} closed={closed} enabled={!!e.forum_enabled} onChanged={load} />
 

@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { FREE_ROLE_KEYS, ROLE_KEYS } from "@/lib/electionRoles";
 
 // Server-only helpers for School Election kiosk mode. See docs/sql/kiosk_mode.sql.
 
@@ -160,8 +161,8 @@ export async function checkKioskPin(token: string, pin: string) {
 }
 
 /** Booth desk access: the organizer's login, or a staff seat code sent in the x-desk-code header. */
-export type StaffRole = "check_in" | "judge" | "observer";
-export const STAFF_ROLES: StaffRole[] = ["check_in", "judge", "observer"];
+export type StaffRole = string;
+export const STAFF_ROLES: StaffRole[] = ROLE_KEYS;
 
 /**
  * Organizer login, or a staff code in the x-desk-code header. The organizer always passes. A staff seat passes only if its
@@ -172,16 +173,21 @@ export async function requireDeskAccess(req: Request, id: string, allow: StaffRo
   if (code && UUID.test(id)) {
     const { createAdminClient } = await import("@/lib/supabase/admin");
     const admin = createAdminClient();
-    const { data } = await admin.from("election_staff").select("id, label, role").eq("election_id", id).eq("code_hash", hashToken(code.trim().toUpperCase())).is("revoked_at", null).maybeSingle();
+    const { data } = await admin.from("election_staff").select("id, label, role, option_id").eq("election_id", id).eq("code_hash", hashToken(code.trim().toUpperCase())).is("revoked_at", null).maybeSingle();
     if (!data) return { error: NextResponse.json({ error: "That staff code isn't valid." }, { status: 401 }) } as const;
     const role = data.role as StaffRole;
     if (!allow.includes(role)) return { error: NextResponse.json({ error: "Your seat can't do that." }, { status: 403 }) } as const;
-    return { admin, role, staffId: data.id as string, label: data.label as string } as const;
+    // Student roles need the organizer's Student Roles plan; the three booth roles are free.
+    if (!FREE_ROLE_KEYS.includes(role)) {
+      const { data: el } = await admin.from("school_elections").select("organizer_id").eq("id", id).maybeSingle();
+      if (!(await schoolRolesActive(admin, el?.organizer_id))) return { error: NextResponse.json({ error: "The Student Roles plan isn't active for this election." }, { status: 402 }) } as const;
+    }
+    return { admin, role, staffId: data.id as string, label: data.label as string, optionId: (data.option_id as string | null) ?? null } as const;
   }
   const owner = await requireElectionAccess(id);
   if ("error" in owner && owner.error) return { error: owner.error } as const;
   if (!("admin" in owner)) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
-  return { admin: owner.admin, role: "owner" as const, staffId: null, label: "Organizer" } as const;
+  return { admin: owner.admin, role: "owner" as const, staffId: null, label: "Organizer", optionId: null as string | null } as const;
 }
 
 export type ElectionBrand = {
@@ -218,4 +224,61 @@ export async function addClipUrls<T extends { options: { id: string; clip_url?: 
   const byId = new Map<string, string | null>(((data ?? []) as { id: string; source_url: string | null }[]).map((l) => [l.id, l.source_url]));
   for (const r of rows) for (const o of r.options) o.clip_url = byId.get(o.id) ?? null;
   return rows;
+}
+
+/** Whether this organizer has the Student Roles plan (see docs/sql/election_roles.sql). */
+export async function schoolRolesActive(admin: { rpc: (fn: string, args: Record<string, unknown>) => any }, userId: string | null | undefined): Promise<boolean> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (!userId) return false;
+  const { data, error } = await admin.rpc("school_roles_active", { p_user: userId });
+  return !error && data === true;
+}
+
+/** Who did what: role sign-ins and seat changes. Never stores student names or votes. */
+export async function logRoleEvent(
+  admin: { from: (t: string) => any }, // eslint-disable-line @typescript-eslint/no-explicit-any
+  e: { electionId: string; staffId?: string | null; role?: string | null; action: "seat_created" | "seat_revoked" | "sign_in" | "bad_code"; label?: string | null },
+): Promise<void> {
+  await admin.from("election_role_events").insert({
+    election_id: e.electionId,
+    staff_id: e.staffId ?? null,
+    role: e.role ?? null,
+    action: e.action,
+    label: e.label ? e.label.slice(0, 60) : null,
+  });
+}
+
+
+const cleanText = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+/**
+ * Saves a candidate's slogan, up to three platform points and an optional pasted video link.
+ * Used by the organizer's panel and by a candidate or campaign manager editing their own page.
+ */
+export async function saveCandidateProfile(
+  admin: { from: (t: string) => any }, // eslint-disable-line @typescript-eslint/no-explicit-any
+  electionId: string,
+  optionId: string,
+  body: { slogan?: unknown; platform?: unknown; videoLink?: unknown },
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const { normalizeVideoLink } = await import("@/lib/clipSource");
+  const { data: races } = await admin.from("live_vote_events").select("id").eq("election_id", electionId);
+  const { data: option } = await admin.from("live_vote_options").select("id, event_id").eq("id", optionId).maybeSingle();
+  if (!option || !((races ?? []) as { id: string }[]).some((r) => r.id === option.event_id)) return { ok: false, status: 404, error: "Unknown candidate" };
+
+  const points = (Array.isArray(body.platform) ? body.platform : []).map((p: unknown) => cleanText(p, 140)).filter(Boolean).slice(0, 3);
+  const slogan = cleanText(body.slogan, 100) || null;
+  if (typeof body.videoLink === "string") {
+    const raw = body.videoLink.trim();
+    if (raw) {
+      const link = normalizeVideoLink(raw);
+      if (!link) return { ok: false, status: 400, error: "We can't play that link. Use a YouTube, Vimeo, TikTok or Instagram video link." };
+      const { error: vErr } = await admin.from("live_vote_options").update({ source_type: "link", source_url: link, media_seconds: null }).eq("id", optionId);
+      if (vErr) return { ok: false, status: 500, error: "Couldn't save the video." };
+    } else {
+      await admin.from("live_vote_options").update({ source_type: null, source_url: null, media_seconds: null }).eq("id", optionId).eq("source_type", "link");
+    }
+  }
+  const { error } = await admin.from("election_candidate_profiles").upsert({ option_id: optionId, election_id: electionId, slogan, platform: points, updated_at: new Date().toISOString() }, { onConflict: "option_id" });
+  if (error) return { ok: false, status: 500, error: "Couldn't save." };
+  return { ok: true };
 }

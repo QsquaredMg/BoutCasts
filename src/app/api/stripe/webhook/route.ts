@@ -30,6 +30,28 @@ async function syncOrganizerSubscription(sub: Stripe.Subscription, fallbackUserI
   if (error) throw error;
 }
 
+// Mirror a Student Roles plan subscription into school_role_plans.
+async function syncSchoolRoles(sub: Stripe.Subscription, fallbackUserId?: string | null) {
+  const userId = sub.metadata?.user_id || fallbackUserId;
+  if (!userId) return;
+  const item = sub.items?.data?.[0];
+  const admin = createAdminClient();
+  const { error } = await admin.from("school_role_plans").upsert(
+    {
+      user_id: userId,
+      stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+      stripe_subscription_id: sub.id,
+      status: sub.status,
+      current_period_start: item?.current_period_start ? new Date(item.current_period_start * 1000).toISOString() : null,
+      current_period_end: item?.current_period_end ? new Date(item.current_period_end * 1000).toISOString() : null,
+      cancel_at_period_end: sub.cancel_at_period_end ?? false,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) throw error;
+}
+
 // Mirror a school/league license subscription onto its organization row.
 async function syncOrgLicense(sub: Stripe.Subscription, fallbackOrgId?: string | null) {
   const orgId = sub.metadata?.org_id || fallbackOrgId;
@@ -382,6 +404,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    if (metadata.kind === "school_roles" && typeof session.subscription === "string") {
+      try {
+        const sub = await stripe.subscriptions.retrieve(session.subscription);
+        await syncSchoolRoles(sub, metadata.user_id ?? session.client_reference_id);
+      } catch (err) {
+        console.error("Stripe webhook: failed to record Student Roles plan", err);
+        return NextResponse.json({ error: "Failed to record subscription" }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
     if ((metadata.kind === "organizer_pro" || metadata.kind === "organizer_gold") && typeof session.subscription === "string") {
       try {
         const sub = await stripe.subscriptions.retrieve(session.subscription);
@@ -406,6 +439,14 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         console.error("Stripe webhook: failed to sync org license", err);
         return NextResponse.json({ error: "Failed to sync license" }, { status: 500 });
+      }
+    }
+    if (sub.metadata?.kind === "school_roles") {
+      try {
+        await syncSchoolRoles(sub);
+      } catch (err) {
+        console.error("Stripe webhook: failed to sync Student Roles plan", err);
+        return NextResponse.json({ error: "Failed to sync subscription" }, { status: 500 });
       }
     }
     if (sub.metadata?.kind === "organizer_pro" || sub.metadata?.kind === "organizer_gold") {

@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 // Moderators (organizer or a judge seat): the full queue, every status.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const who = await requireDeskAccess(req, id, ["judge"]);
+  const who = await requireDeskAccess(req, id, ["judge", "debate_moderator"]);
   if ("error" in who) return who.error;
   const { data, error } = await who.admin
     .from("election_forum_questions")
@@ -47,7 +47,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 // Moderators: approve, hide, or mark a question as asked during the debate.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const who = await requireDeskAccess(req, id, ["judge"]);
+  const who = await requireDeskAccess(req, id, ["judge", "debate_moderator"]);
   if ("error" in who) return who.error;
   const body = await req.json().catch(() => null);
   if (typeof body?.questionId !== "string" || !UUID.test(body.questionId) || !["pending", "approved", "asked", "hidden"].includes(body?.status)) {

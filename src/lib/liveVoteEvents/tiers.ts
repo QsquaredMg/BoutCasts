@@ -76,6 +76,10 @@ export const ORG_LICENSE = {
   seats: 10,
 };
 
+// Student Roles plan for School Elections: 16 student roles with role codes, mini lessons and role cards.
+// Keep in sync with STUDENT_ROLES_PLAN in src/lib/electionRoles.ts.
+export const SCHOOL_ROLES_PLAN = { priceCents: 75000 };
+
 // Time add-on: an organizer can extend a live event by whole days. Keep the
 // per-day price in sync with add_live_vote_days() in docs/sql/pricing_75_platinum_addon.sql.
 export const TIME_ADDON = {
