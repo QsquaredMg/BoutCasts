@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { loadPurchases } from "@/lib/purchases";
 import RefundButton from "@/components/admin/RefundButton";
+import ManualSaleForm from "@/components/admin/ManualSaleForm";
+import VoidSaleButton from "@/components/admin/VoidSaleButton";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,15 @@ export default async function AdminPurchasesPage() {
       </h2>
       <p className="mb-4 text-sm" style={{ color: "var(--text-faint)" }}>
         Everything people paid for in the last 90 days, newest first. Last 7 days: {data.weekCount} {data.weekCount === 1 ? "sale" : "sales"}, {money(data.weekNetCents)} after refunds.
+      </p>
+      <ManualSaleForm />
+      {!data.manualReady && (
+        <p className="bc-card mb-4 p-3 text-sm font-semibold" style={{ color: "var(--red)" }}>
+          Recording sales by hand needs a one-time database step: run docs/sql/manual_sales.sql in the Supabase SQL editor. Until then, saving will fail.
+        </p>
+      )}
+      <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>
+        Need a payment link for a customer at a set price? <Link href="/admin/discounts" className="underline" style={{ color: "var(--blue)" }}>Make one under Discounts</Link>.
       </p>
       {data.purchases.length === 0 ? (
         <p className="bc-card p-4 text-sm" style={{ color: "var(--text-faint)" }}>No purchases yet.</p>
@@ -63,6 +74,8 @@ export default async function AdminPurchasesPage() {
                   )}
                   {p.canRefund && p.paymentIntentId && remaining > 0 ? (
                     <RefundButton paymentIntentId={p.paymentIntentId} remainingCents={remaining} buyer={buyer} what={p.label} />
+                  ) : p.manualId ? (
+                    <VoidSaleButton id={p.manualId} what={p.label} />
                   ) : !p.canRefund ? (
                     <span className="text-xs" style={{ color: "var(--text-faint)" }}>Refund subscriptions in Stripe</span>
                   ) : null}
