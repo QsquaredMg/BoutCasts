@@ -258,7 +258,7 @@ export async function saveCandidateProfile(
   admin: { from: (t: string) => any }, // eslint-disable-line @typescript-eslint/no-explicit-any
   electionId: string,
   optionId: string,
-  body: { slogan?: unknown; platform?: unknown; videoLink?: unknown },
+  body: { slogan?: unknown; platform?: unknown; videoLink?: unknown; surveyFinding?: unknown },
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const { normalizeVideoLink } = await import("@/lib/clipSource");
   const { data: races } = await admin.from("live_vote_events").select("id").eq("election_id", electionId);
@@ -278,7 +278,10 @@ export async function saveCandidateProfile(
       await admin.from("live_vote_options").update({ source_type: null, source_url: null, media_seconds: null }).eq("id", optionId).eq("source_type", "link");
     }
   }
-  const { error } = await admin.from("election_candidate_profiles").upsert({ option_id: optionId, election_id: electionId, slogan, platform: points, updated_at: new Date().toISOString() }, { onConflict: "option_id" });
+  const row: Record<string, unknown> = { option_id: optionId, election_id: electionId, slogan, platform: points, updated_at: new Date().toISOString() };
+  // The survey finding is optional and only changes when the caller sends it.
+  if (typeof body.surveyFinding === "string") row.survey_finding = cleanText(body.surveyFinding, 200) || null;
+  const { error } = await admin.from("election_candidate_profiles").upsert(row, { onConflict: "option_id" });
   if (error) return { ok: false, status: 500, error: "Couldn't save." };
   return { ok: true };
 }

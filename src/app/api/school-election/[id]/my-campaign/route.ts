@@ -10,9 +10,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if ("error" in who) return who.error;
   if (!who.optionId) return NextResponse.json({ error: "This seat isn't tied to a candidate yet. Ask your teacher." }, { status: 400 });
   const { data: opt } = await who.admin.from("live_vote_options").select("id, name, source_type, source_url").eq("id", who.optionId).maybeSingle();
-  const { data: profile } = await who.admin.from("election_candidate_profiles").select("slogan, platform").eq("option_id", who.optionId).maybeSingle();
+  const { data: profile } = await who.admin.from("election_candidate_profiles").select("slogan, platform, survey_finding").eq("option_id", who.optionId).maybeSingle();
   return NextResponse.json(
-    { name: opt?.name ?? "", slogan: profile?.slogan ?? "", platform: [...(profile?.platform ?? []), "", "", ""].slice(0, 3), video: opt?.source_type === "link" ? opt.source_url ?? "" : "" },
+    { name: opt?.name ?? "", slogan: profile?.slogan ?? "", surveyFinding: profile?.survey_finding ?? "", platform: [...(profile?.platform ?? []), "", "", ""].slice(0, 3), video: opt?.source_type === "link" ? opt.source_url ?? "" : "" },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

@@ -9,6 +9,7 @@ import ElectionForumPanel from "@/components/ElectionForumPanel";
 import ElectionIncidentLog from "@/components/ElectionIncidentLog";
 import EventAccessPanel from "@/components/EventAccessPanel";
 import ElectionRoleDesk from "@/components/ElectionRoleDesk";
+import ElectionSurveyPanel from "@/components/ElectionSurveyPanel";
 import { CANDIDATE_ROLE_KEYS, ROLES, ROLE_GROUPS, roleByKey, roleLabel, STUDENT_ROLES_PLAN } from "@/lib/electionRoles";
 import { printRoleCard } from "@/lib/roleCard";
 
@@ -337,6 +338,9 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           </div>
         )}
       </div>
+
+      <p className="mt-3 text-sm"><a href="/school-election/packet" target="_blank" rel="noreferrer" className="font-bold underline">Candidate and campaign manager packet</a> (print or share with your candidates)</p>
+      <ElectionSurveyPanel id={id} />
 
       <ElectionRoleDesk id={id} />
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import SurveyResults from "@/components/SurveyResults";
 
 // Working tools for the before-voting student roles. Every call sends the seat code; the server decides what the seat may do.
 
@@ -147,13 +148,13 @@ function ClerkTool({ id, code, role }: { id: string; code: string; role: string 
 
 function CampaignTool({ id, code }: { id: string; code: string }) {
   const api = useSeatApi(id, code);
-  const [form, setForm] = useState({ name: "", slogan: "", platform: ["", "", ""], video: "" });
+  const [form, setForm] = useState({ name: "", slogan: "", platform: ["", "", ""], video: "", finding: "" });
   const [msg, setMsg] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     Promise.resolve().then(async () => {
       const r = await api("my-campaign");
-      if (r.ok) setForm({ name: r.body.name, slogan: r.body.slogan, platform: r.body.platform, video: r.body.video });
+      if (r.ok) setForm({ name: r.body.name, slogan: r.body.slogan, platform: r.body.platform, video: r.body.video, finding: r.body.surveyFinding ?? "" });
       else setMsg(r.body.error ?? "Couldn't load your page.");
       setLoaded(true);
     }).catch(() => {});
@@ -161,7 +162,7 @@ function CampaignTool({ id, code }: { id: string; code: string }) {
 
   async function save() {
     setMsg(null);
-    const r = await api("my-campaign", { method: "PUT", body: JSON.stringify({ slogan: form.slogan, platform: form.platform, videoLink: form.video }) });
+    const r = await api("my-campaign", { method: "PUT", body: JSON.stringify({ slogan: form.slogan, platform: form.platform, videoLink: form.video, surveyFinding: form.finding }) });
     setMsg(r.ok ? "Saved. It shows on the campaign page." : r.body.error ?? "Couldn't save.");
   }
 
@@ -176,6 +177,7 @@ function CampaignTool({ id, code }: { id: string; code: string }) {
             <input key={i} value={p} onChange={(e) => setForm({ ...form, platform: form.platform.map((x, j) => (j === i ? e.target.value : x)) })} maxLength={140} placeholder={`Platform point ${i + 1}`} className={input} style={edge} />
           ))}
           <input value={form.video} onChange={(e) => setForm({ ...form, video: e.target.value })} placeholder="Speech video link (YouTube, Vimeo, TikTok or Instagram)" className={input} style={edge} />
+          <input value={form.finding} onChange={(e) => setForm({ ...form, finding: e.target.value })} maxLength={200} placeholder="Survey finding your platform is built on (earns a Backed by survey badge)" className={input} style={edge} />
           <button onClick={save} className={btn}>Save my page</button>
         </div>
       )}
@@ -235,10 +237,10 @@ function PressTool({ id, code }: { id: string; code: string }) {
 
 /** Returns the tool for a role, or null when that role's tools arrive in a later phase. */
 export default function RoleTools({ id, role, code }: { id: string; role: string; code: string }) {
-  if (role.startsWith("commission_")) return <><CommissionTool id={id} code={code} role={role} /><ClerkTool id={id} code={code} role={role} /></>;
+  if (role.startsWith("commission_")) return <><CommissionTool id={id} code={code} role={role} /><ClerkTool id={id} code={code} role={role} /><SurveyResults id={id} code={code} /></>;
   if (role === "qualification_clerk") return <ClerkTool id={id} code={code} role={role} />;
-  if (role === "candidate" || role === "campaign_manager") return <CampaignTool id={id} code={code} />;
-  if (role === "press") return <PressTool id={id} code={code} />;
+  if (role === "candidate" || role === "campaign_manager") return <><SurveyResults id={id} code={code} /><CampaignTool id={id} code={code} /></>;
+  if (role === "press") return <><PressTool id={id} code={code} /><SurveyResults id={id} code={code} /></>;
   return null;
 }
 

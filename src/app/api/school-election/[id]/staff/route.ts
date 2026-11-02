@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logRoleEvent, newStaffCode, requireElectionAccess, schoolRolesActive, STAFF_ROLES, UUID } from "@/lib/schoolElection";
+import { logRoleEvent, newStaffCode, requireElectionAccess, normName, schoolRolesActive, STAFF_ROLES, UUID } from "@/lib/schoolElection";
 import { CANDIDATE_ROLE_KEYS, FREE_ROLE_KEYS, STUDENT_ROLES_PLAN } from "@/lib/electionRoles";
 
 // Staff and student-role seats: a code per person that opens their role's screen without the organizer's login.
@@ -28,6 +28,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { data: races } = await owner.admin.from("live_vote_events").select("id").eq("election_id", id);
     const { data: option } = optionId ? await owner.admin.from("live_vote_options").select("id, event_id").eq("id", optionId).maybeSingle() : { data: null };
     if (!option || !(races ?? []).some((r) => r.id === option.event_id)) return NextResponse.json({ error: "Pick the candidate this seat works on." }, { status: 400 });
+  }
+
+  // The class that runs the election and the class that votes are different groups.
+  const { count: onRoster } = await owner.admin.from("election_voters").select("id", { count: "exact", head: true }).eq("election_id", id).eq("name_norm", normName(label));
+  if ((onRoster ?? 0) > 0) {
+    return NextResponse.json({ error: `${label} is on the voting roster. A student can run the election or vote in it, not both. If this is a different student, add a middle initial.` }, { status: 409 });
   }
 
   const premium = await schoolRolesActive(owner.admin, owner.election.organizer_id);

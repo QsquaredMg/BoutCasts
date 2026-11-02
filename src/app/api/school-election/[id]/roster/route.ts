@@ -22,6 +22,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!voters.length) return NextResponse.json({ error: "No student names found." }, { status: 400 });
   if (voters.length > 5000) return NextResponse.json({ error: "Add up to 5,000 students at a time." }, { status: 400 });
 
+  // Students who run the election (seats) or run for office can't also be voters.
+  const { data: seats } = await admin.from("election_staff").select("label").eq("election_id", id).is("revoked_at", null);
+  const { data: races } = await admin.from("live_vote_events").select("id").eq("election_id", id);
+  const raceIds = (races ?? []).map((r) => r.id);
+  const { data: cands } = raceIds.length ? await admin.from("live_vote_options").select("name").in("event_id", raceIds) : { data: [] as { name: string }[] };
+  const blocked = new Set([...(seats ?? []).map((x) => normName(x.label)), ...(cands ?? []).map((x) => normName(x.name))]);
+  const clash = voters.filter((v) => blocked.has(normName(v.name))).map((v) => v.name);
+  if (clash.length) {
+    return NextResponse.json(
+      { error: `These students run the election or are candidates, so they can't be on the voting roster: ${clash.slice(0, 5).join(", ")}${clash.length > 5 ? ` and ${clash.length - 5} more` : ""}. Remove them, or add a middle initial if they are a different student.` },
+      { status: 409 },
+    );
+  }
+
   const { data: existing } = await admin.from("election_voters").select("code").eq("election_id", id);
   const cap = LIVE_VOTE_TIERS[election.tier].voteCap;
   if ((existing?.length ?? 0) + voters.length > cap) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendSaleAlert } from "@/lib/saleAlert";
 import { getStripe } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { LIVE_VOTE_TIERS, SUPER_VOTES, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, SCHOOL_FUNDRAISER, SUPER_VOTES, isLiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import type Stripe from "stripe";
 
 // Mirror an Organizer Pro subscription into organizer_subscriptions.
@@ -184,19 +184,6 @@ export async function POST(req: NextRequest) {
         // Either already activated by an earlier delivery of this event,
         // or the draft was deleted/changed — either way, nothing to do.
         console.warn("Stripe webhook: live_vote_event already processed or missing", eventId);
-        // If a different payment already switched this event on (or it no longer exists), this one is a
-        // duplicate: give the money back. The same session arriving again is just a repeat delivery.
-        const { data: row, error: rowErr } = await admin.from("live_vote_events").select("status, stripe_checkout_session_id").eq("id", eventId).maybeSingle();
-        if (rowErr) {
-          // Could not look it up: ask Stripe to retry rather than guess (and refund a valid payment).
-          console.error("Stripe webhook: live vote lookup failed", rowErr);
-          return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
-        }
-        if (!row || (row.status !== "draft" && row.stripe_checkout_session_id !== session.id)) {
-          if (!(await refundDuplicate(session, `live-vote-dup-${session.id}`))) {
-            return NextResponse.json({ error: "Duplicate refund failed" }, { status: 500 });
-          }
-        }
       }
 
       return NextResponse.json({ received: true });
@@ -271,18 +258,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid school_election metadata" }, { status: 400 });
       }
       const admin = createAdminClient();
-      // A different payment already opened this election: this one is a duplicate, so refund it.
-      const { data: el, error: elErr } = await admin.from("school_elections").select("status, stripe_checkout_session_id").eq("id", metadata.election_id).maybeSingle();
-      if (elErr) {
-        console.error("Stripe webhook: school election lookup failed", elErr);
-        return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
-      }
-      if (!el || (el.status !== "draft" && el.stripe_checkout_session_id !== session.id)) {
-        if (!(await refundDuplicate(session, `election-dup-${session.id}`))) {
-          return NextResponse.json({ error: "Duplicate refund failed" }, { status: 500 });
-        }
-        return NextResponse.json({ received: true });
-      }
       // Idempotent: only a draft election goes live, so a repeated delivery does nothing.
       const { error } = await admin.rpc("apply_school_election_payment", {
         p_election_id: metadata.election_id,
@@ -291,17 +266,6 @@ export async function POST(req: NextRequest) {
       if (error) {
         console.error("Stripe webhook: failed to start school election", error);
         return NextResponse.json({ error: "Failed to start school election" }, { status: 500 });
-      }
-      // Two payments can both pass the draft check above; only one wins the update. Re-read and refund the loser.
-      const { data: after, error: afterErr } = await admin.from("school_elections").select("stripe_checkout_session_id").eq("id", metadata.election_id).maybeSingle();
-      if (afterErr) {
-        console.error("Stripe webhook: school election re-check failed", afterErr);
-        return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
-      }
-      if (after && after.stripe_checkout_session_id && after.stripe_checkout_session_id !== session.id) {
-        if (!(await refundDuplicate(session, `election-dup-${session.id}`))) {
-          return NextResponse.json({ error: "Duplicate refund failed" }, { status: 500 });
-        }
       }
       return NextResponse.json({ received: true });
     }
@@ -347,6 +311,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid super_votes metadata" }, { status: 400 });
       }
       const admin = createAdminClient();
+      // Gifts to a school election's fundraiser use the school share; other Live Votes use the organizer share.
+      const { data: giftEvent } = await admin.from("live_vote_events").select("election_id").eq("id", metadata.event_id).maybeSingle();
+      const shareRate = giftEvent?.election_id ? SCHOOL_FUNDRAISER.schoolShare : SUPER_VOTES.organizerShare;
       // Unique on the checkout session, so a repeated delivery is a no-op.
       const { error } = await admin.from("live_vote_super_votes").upsert(
         {
@@ -354,7 +321,7 @@ export async function POST(req: NextRequest) {
           option_id: metadata.option_id,
           quantity,
           amount_cents: amount,
-          organizer_share_cents: Math.floor((amount * Math.round(SUPER_VOTES.organizerShare * 100)) / 100),
+          organizer_share_cents: Math.floor((amount * Math.round(shareRate * 100)) / 100),
           stripe_checkout_session_id: session.id,
         },
         { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true }
@@ -461,22 +428,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
-}
-
-// Refund a payment that turned out to be a second payment for something already paid for.
-// Returns false if the refund failed, so the webhook can answer 500 and Stripe retries (the idempotency key makes retries safe).
-async function refundDuplicate(session: Stripe.Checkout.Session, idempotencyKey: string): Promise<boolean> {
-  const pi = typeof session.payment_intent === "string" ? session.payment_intent : null;
-  if (!pi) return true;
-  try {
-    await getStripe().refunds.create(
-      { payment_intent: pi, reason: "duplicate", metadata: { source: "boutcasts_auto_duplicate", session: session.id } },
-      { idempotencyKey },
-    );
-    console.warn("Stripe webhook: refunded duplicate payment", session.id);
-    return true;
-  } catch (e) {
-    console.error("Stripe webhook: could not refund duplicate payment", session.id, e instanceof Error ? e.message : e);
-    return false;
-  }
 }

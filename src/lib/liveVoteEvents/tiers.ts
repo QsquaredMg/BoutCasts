@@ -124,4 +124,8 @@ export const SUPER_VOTES = {
     { key: "s150", quantity: 150, cents: 999 },
   ] as const,
 };
+// Gifts to a school election's fundraiser (supporter page): the school keeps 96%, BoutCasts 4%, before Stripe's own
+// processing fee. Live Vote events outside school elections keep SUPER_VOTES.organizerShare.
+export const SCHOOL_FUNDRAISER = { schoolShare: 0.96 };
+
 export type SuperVotePackKey = (typeof SUPER_VOTES.packs)[number]["key"];

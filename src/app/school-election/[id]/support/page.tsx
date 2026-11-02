@@ -3,7 +3,7 @@ import ElectionBrandFrame from "@/components/ElectionBrandFrame";
 import ElectionSupport from "@/components/ElectionSupport";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { UUID, isOpen, type ElectionRow } from "@/lib/schoolElection";
-import { SUPER_VOTES } from "@/lib/liveVoteEvents/tiers";
+import { SCHOOL_FUNDRAISER, SUPER_VOTES } from "@/lib/liveVoteEvents/tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export default async function SupportPage({ params, searchParams }: { params: Pr
           thanks={thanks === "1"}
           raisedCents={raised}
           goalCents={election.fundraiser_goal_cents}
-          sharePct={Math.round(SUPER_VOTES.organizerShare * 100)}
+          sharePct={Math.round(SCHOOL_FUNDRAISER.schoolShare * 100)}
           packs={SUPER_VOTES.packs.map((p) => ({ key: p.key, cents: p.cents }))}
           races={(races ?? []).map((r) => ({ id: r.id, title: r.title, candidates: (options ?? []).filter((o) => o.event_id === r.id).map((o) => ({ id: o.id, name: o.name })) }))}
         />

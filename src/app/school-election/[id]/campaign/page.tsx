@@ -20,7 +20,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const raceIds = (races ?? []).map((r) => r.id);
   const [{ data: options }, { data: profiles }] = await Promise.all([
     raceIds.length ? admin.from("live_vote_options").select("id, event_id, name, description, image_url, source_type, source_url, sort_order").in("event_id", raceIds).order("sort_order") : Promise.resolve({ data: [] }),
-    admin.from("election_candidate_profiles").select("option_id, slogan, platform").eq("election_id", id),
+    admin.from("election_candidate_profiles").select("option_id, slogan, platform, survey_finding").eq("election_id", id),
   ]);
   const byOption = new Map((profiles ?? []).map((p) => [p.option_id, p]));
   const { data: press } = await admin.from("election_press_posts").select("id, author_label, title, body, source_url").eq("election_id", id).eq("kind", "article").eq("status", "published").order("created_at", { ascending: false }).limit(20);
@@ -47,6 +47,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                       )}
                       <h3 className="text-lg font-bold">{o.name}</h3>
                       {p?.slogan && <p className="text-sm font-semibold italic">&ldquo;{p.slogan}&rdquo;</p>}
+                      {p?.survey_finding && <p className="mt-1 inline-block rounded-full bg-[#e8efff] px-2.5 py-0.5 text-xs font-bold text-[#1b4fe4]">Backed by survey: {p.survey_finding}</p>}
                       {o.description && <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>{o.description}</p>}
                       {p && p.platform.length > 0 && (
                         <ol className="mt-2 list-decimal pl-5 text-sm">

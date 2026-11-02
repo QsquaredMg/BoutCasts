@@ -78,6 +78,9 @@ export default function RoleStation({ id }: { id: string }) {
         )}
       </div>
 
+      {(def.key === "candidate" || def.key === "campaign_manager") && (
+        <p className="mt-3 text-sm"><a href="/school-election/packet" target="_blank" rel="noreferrer" className="font-bold underline">Open your candidate packet (survey guide, field notes, fundraising guide)</a></p>
+      )}
       {ROLES_WITH_TOOLS.includes(def.key) && <RoleTools id={id} role={def.key} code={(() => { try { return sessionStorage.getItem(storeKey) ?? ""; } catch { return ""; } })()} />}
 
       <div className={card} style={edge}>

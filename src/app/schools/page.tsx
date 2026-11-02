@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { LIVE_VOTE_TIERS, ORG_LICENSE, ORGANIZER_PRO, SUPER_VOTES, SCHOOL_ELECTION, schoolElectionPriceCents, TIME_ADDON, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
+import { LIVE_VOTE_TIERS, ORG_LICENSE, ORGANIZER_PRO, SCHOOL_FUNDRAISER, SCHOOL_ELECTION, schoolElectionPriceCents, TIME_ADDON, type LiveVoteTier } from "@/lib/liveVoteEvents/tiers";
 import SchoolBallotDemo, { type DemoRealEvent } from "@/components/SchoolBallotDemo";
 
 export const metadata: Metadata = {
@@ -127,7 +127,7 @@ const TOOLS = [
   { t: "Candidate profiles", b: "Photos, a platform line and a speech or video up to three minutes. Candidates can send their own media through a private link, and you approve it first." },
   { t: "Ranked choice or pick-one", b: "Run a classic single vote or a ranked-choice ballot for officer elections with several candidates." },
   { t: "Judge panels", b: "Invite faculty or community judges by email. Each gets a private link to score entries, and you release the results when scoring is done." },
-  { t: "Fundraise while they vote", b: `Add sponsor spots and optional Super Votes, including a Platinum Supporter tier you can price or leave open at $20 or more. Your school keeps ${Math.round(SUPER_VOTES.organizerShare * 100)}% of final collections, less any applicable fees.` },
+  { t: "Fundraise while they vote", b: `Add sponsor spots and optional Super Votes, including a Platinum Supporter tier you can price or leave open at $20 or more. Your school keeps ${Math.round(SCHOOL_FUNDRAISER.schoolShare * 100)}% of final collections, less any applicable fees.` },
   { t: "Kiosk voting", b: `Set up a voting booth on up to ${SCHOOL_ELECTION.maxKiosks} iPads. Students enter a code from a teacher plus their name and vote every office on one ballot. Results stay hidden until voting closes, and iPads keep working if the Wi-Fi drops.` },
   { t: "Know your turnout", b: "Turnout over time, optional demographic breakdowns and a CSV export for your records with Pro." },
 ];
@@ -186,7 +186,7 @@ export default async function SchoolsPage() {
             <p className="max-w-[560px] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: "#ecd5de" }}>
               Students register, campaign, debate, vote and certify a real election in your school colors, from a class helper
               vote to a full student-body race. Supporters can chip in along the way, and your school keeps{" "}
-              {Math.round(SUPER_VOTES.organizerShare * 100)}% of what is raised.
+              {Math.round(SCHOOL_FUNDRAISER.schoolShare * 100)}% of what is raised.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href={SCHOOL_HREF} className="lp-btn px-7 py-4 text-[17px]" style={{ background: GOLD, color: DEEP }}>
