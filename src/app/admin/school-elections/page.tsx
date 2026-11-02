@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import AdminSchoolTabs from "@/components/AdminSchoolTabs";
 
 const isPast = (iso: string | null) => !!iso && new Date(iso).getTime() <= Date.now();
 const money = (c: number) => (c ? `$${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}` : "Free");
@@ -32,6 +33,7 @@ export default async function AdminSchoolElectionsPage() {
 
   return (
     <div>
+      <AdminSchoolTabs active="elections" />
       <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>School Elections</h2>
         <Link href="/school-election/new" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">+ Set up a school kiosk election</Link>
