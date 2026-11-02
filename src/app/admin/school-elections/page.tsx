@@ -36,10 +36,10 @@ export default async function AdminSchoolElectionsPage() {
       <AdminSchoolTabs active="elections" />
       <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>School Elections</h2>
-        <Link href="/school-election/new" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">+ Set up a school kiosk election</Link>
+        <Link href="/school-election/new" className="bc-btn-solid rounded-full px-4 py-2 text-sm font-bold">+ Set up a school election</Link>
       </div>
       <p className="mb-6 text-sm" style={{ color: "var(--text-faint)" }}>
-        Every kiosk election on the platform. Open one to manage its roster, pair iPads, add staff seats or close it.
+        Every school election on the platform, by link or kiosk. Open one to manage its roster, pair iPads, add staff seats or close it.
         Elections you create here show &ldquo;Open with no charge (admin)&rdquo; on their page, so you can set one up for a partner school.
       </p>
       <div className="overflow-x-auto">

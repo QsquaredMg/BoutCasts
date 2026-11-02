@@ -21,8 +21,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { data: opts } = raceIds.length
     ? await admin.from("live_vote_options").select("id, event_id, name, description, image_url, source_type, source_url, media_seconds, sort_order, created_at").in("event_id", raceIds).order("sort_order").order("created_at")
     : { data: [] as { id: string; event_id: string; name: string; description: string | null; image_url: string | null; source_type: string | null; source_url: string | null; media_seconds: number | null }[] };
+  const { count: kioskPaired } = await admin.from("election_kiosks").select("id", { count: "exact", head: true }).eq("election_id", id);
   return NextResponse.json(
     {
+      kioskPaired: kioskPaired ?? 0,
       title: e.title, schoolName: e.school_name, tier: e.tier, kiosks: e.kiosks, days: e.days, status: e.status, closesAt: e.closes_at, openEnded: e.open_ended, isPractice: e.is_practice,
       brandLogoUrl: e.brand_logo_url, coverImageUrl: e.cover_image_url, brandBgImageUrl: e.brand_bg_image_url, brandColor: e.brand_color, brandBgColor: e.brand_bg_color,
       showTally: e.show_tally, linkVoting: e.link_voting, canBilling: viewerRole !== "moderator",

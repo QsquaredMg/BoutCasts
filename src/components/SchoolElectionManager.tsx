@@ -161,6 +161,8 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   if (!data) return <p className="text-sm">Loading…</p>;
 
   const { election: e, closed, turnout, kiosks, races } = data;
+  // Voting by link with no iPads paired: keep kiosk wording out of the way.
+  const linkOnly = !!e.link_voting && kiosks.length === 0;
   const isMod = data.viewerRole === "moderator";
   const box = { borderColor: "var(--border)", background: "var(--surface)" } as const;
   const status = closed ? "Closed" : e.status === "live" ? "Live" : "Draft";
@@ -171,9 +173,9 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
       <div>
         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>{e.school_name ?? "School election"} · {e.is_practice ? "Practice · " : ""}{status}{e.certified_at ? " · Certified" : ""}</p>
         <h1 className="text-3xl font-extrabold">{e.title}</h1>
-        <div className="mt-2 flex flex-wrap gap-2">{!closed && <Link href={`/school-election/${id}/edit`} className="inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>✎ Edit election</Link>}<Link href={`/school-election/${id}/vote?preview=1`} target="_blank" className="inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>👁 View poll (what voters see)</Link><Link href={`/school-election/${id}/kiosk-preview`} target="_blank" className="inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>📱 View kiosk (iPad booth)</Link></div>
+        <div className="mt-2 flex flex-wrap gap-2">{!closed && <Link href={`/school-election/${id}/edit`} className="inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>✎ Edit election</Link>}<Link href={`/school-election/${id}/vote?preview=1`} target="_blank" className="inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>👁 View poll (what voters see)</Link>{!linkOnly && <Link href={`/school-election/${id}/kiosk-preview`} target="_blank" className="inline-block rounded-full border px-4 py-1.5 text-sm font-bold" style={{ borderColor: "var(--border)" }}>📱 View kiosk (iPad booth)</Link>}</div>
         <p className="text-sm" style={{ color: "var(--text-dim)" }}>
-          {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {e.kiosks} kiosk{e.kiosks === 1 ? "" : "s"} · {e.open_ended ? "no end time" : e.tier === "free" && e.days === 1 ? "12 hours" : `${e.days} day${e.days === 1 ? "" : "s"}`} · {e.price_cents ? money(e.price_cents) : "Free"}
+          {tier.label} (up to {tier.voteCap.toLocaleString()} students) · {linkOnly ? "voting by link" : `${e.kiosks} kiosk${e.kiosks === 1 ? "" : "s"}`} · {e.open_ended ? "no end time" : e.tier === "free" && e.days === 1 ? "12 hours" : `${e.days} day${e.days === 1 ? "" : "s"}`} · {e.price_cents ? money(e.price_cents) : "Free"}
           {e.open_ended && !closed && " · stays open until you close it"}
           {e.closes_at && !closed && ` · closes ${new Date(e.closes_at).toLocaleString()}`}
         </p>
@@ -208,7 +210,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Short step-by-step guides you can download and hand to the teachers running the election.</p>
         <div className="flex flex-wrap gap-2">
           <a href="/guides/school-election-vote-by-link.pdf" download className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>⬇ Vote by link guide</a>
-          <a href="/guides/school-election-kiosk-mode.pdf" download className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>⬇ Kiosk mode guide</a>
+          {!linkOnly && <a href="/guides/school-election-kiosk-mode.pdf" download className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>⬇ Kiosk mode guide</a>}
         </div>
       </div>
 
@@ -266,8 +268,8 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         )}
       </div>
 
-      <div className="rounded-xl border p-4" style={box}>
-        <p className="font-bold">Kiosks ({kiosks.length} of {e.kiosks})</p>
+      <details open={!linkOnly} className="rounded-xl border p-4" style={box}>
+        <summary className="cursor-pointer font-bold">{linkOnly ? "Also use kiosks (iPads)? Optional" : `Kiosks (${kiosks.length} of ${e.kiosks})`}</summary>
         <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Open a kiosk link on an iPad, then turn on Guided Access (Settings, Accessibility) so students can&apos;t leave the page. A hotspot works if school Wi-Fi is slow. Before voting starts, have a teacher tap Teacher, enter the PIN and choose Get ready for offline on each iPad so students can still vote if the Wi-Fi drops.</p>
         <ul className="grid gap-1.5">
           {kiosks.map((k) => (
@@ -288,7 +290,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
             <button onClick={() => navigator.clipboard?.writeText(newLink.url)} className="mt-2 rounded-full border px-3 py-1.5 text-xs font-bold" style={{ borderColor: "var(--border)" }}>Copy link</button>
           </div>
         )}
-      </div>
+      </details>
 
       <div className="rounded-xl border p-4" style={box}>
         <p className="font-bold">Staff and student role seats</p>

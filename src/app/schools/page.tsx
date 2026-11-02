@@ -128,7 +128,8 @@ const TOOLS = [
   { t: "Ranked choice or pick-one", b: "Run a classic single vote or a ranked-choice ballot for officer elections with several candidates." },
   { t: "Judge panels", b: "Invite faculty or community judges by email. Each gets a private link to score entries, and you release the results when scoring is done." },
   { t: "Fundraise while they vote", b: `Add sponsor spots and optional Super Votes, including a Platinum Supporter tier you can price or leave open at $20 or more. Your school keeps ${Math.round(SCHOOL_FUNDRAISER.schoolShare * 100)}% of final collections, less any applicable fees.` },
-  { t: "Kiosk voting", b: `Set up a voting booth on up to ${SCHOOL_ELECTION.maxKiosks} iPads. Students enter a code from a teacher plus their name and vote every office on one ballot. Results stay hidden until voting closes, and iPads keep working if the Wi-Fi drops.` },
+  { t: "Vote by link", b: "Run a regular school election with no iPads. Students open one school-wide link on a phone, Chromebook or computer, enter their code and name, and vote every office on one ballot. Codes can be emailed or handed out, and results stay hidden until voting closes." },
+  { t: "Kiosk voting (optional)", b: `Set up a voting booth on up to ${SCHOOL_ELECTION.maxKiosks} iPads. Students enter a code from a teacher plus their name and vote every office on one ballot. Results stay hidden until voting closes, and iPads keep working if the Wi-Fi drops.` },
   { t: "Know your turnout", b: "Turnout over time, optional demographic breakdowns and a CSV export for your records with Pro." },
 ];
 
@@ -146,8 +147,8 @@ const FAQ = [
     a: "Name the vote, add your candidates, choose your colors, and share the link. Photos and speeches can be added as you go, so you can open the ballot first and polish it after.",
   },
   {
-    q: "How does kiosk voting work and what does it cost?",
-    a: `Load your student list, pair up to ${SCHOOL_ELECTION.maxKiosks} iPads and hand out codes at the booth. The first day is included in the price of your election size; each extra day is ${money(SCHOOL_ELECTION.extraDayCents)} and each kiosk after the first is ${money(SCHOOL_ELECTION.extraKioskCents)}. Elections run up to ${SCHOOL_ELECTION.maxDays} days, and a Free election (25 students, 12 hours) can use a kiosk too. If the Wi-Fi drops, ballots are saved on the iPad and sent automatically. Start one at /school-election/new.`,
+    q: "How does a school election work and what does it cost?",
+    a: `Load your student list, then let students vote by link on their own devices, at a kiosk, or both. For kiosks, pair up to ${SCHOOL_ELECTION.maxKiosks} iPads and hand out codes at the booth. The first day is included in the price of your election size, and voting by link adds no kiosk cost; each extra day is ${money(SCHOOL_ELECTION.extraDayCents)} and each kiosk after the first is ${money(SCHOOL_ELECTION.extraKioskCents)}. Elections run up to ${SCHOOL_ELECTION.maxDays} days, and a Free election (25 students, 12 hours) can use a kiosk too. If the Wi-Fi drops, ballots are saved on the iPad and sent automatically. Start one at /school-election/new.`,
   },
   {
     q: "Can we try it before we pay?",
@@ -233,7 +234,7 @@ export default async function SchoolsPage() {
             </h2>
             <p className="text-[17px] leading-relaxed lg:text-[19px]" style={{ color: "var(--lp-muted)" }}>
               Vote Smart walks a class through five phases: register, campaign, debate, vote, then count and certify. The vote
-              happens on a kiosk with one-time codes, a secret ballot and results hidden until the polls close, so it feels like a
+              happens by link on students&apos; own devices or on a kiosk, with one-time codes, a secret ballot and results hidden until the polls close, so it feels like a
               real polling place.
             </p>
           </div>
@@ -395,9 +396,9 @@ export default async function SchoolsPage() {
             <div className="mt-5 grid gap-5 lg:grid-cols-3">
               {[
                 {
-                  name: "Kiosk school election",
+                  name: "School election (link or kiosk)",
                   price: money(schoolElectionPriceCents("free", 1, 1)),
-                  note: `Student council, homecoming and class votes on a kiosk with one-time codes. Free for 25 students; Small is ${money(LIVE_VOTE_TIERS.small.priceCents)}, Medium ${money(LIVE_VOTE_TIERS.medium.priceCents)}, Large ${money(LIVE_VOTE_TIERS.large.priceCents)}. Extra kiosk ${money(SCHOOL_ELECTION.extraKioskCents)}, extra day ${money(SCHOOL_ELECTION.extraDayCents)}.`,
+                  note: `Student council, homecoming and class votes by link or on a kiosk, with one-time codes. Free for 25 students; Small is ${money(LIVE_VOTE_TIERS.small.priceCents)}, Medium ${money(LIVE_VOTE_TIERS.medium.priceCents)}, Large ${money(LIVE_VOTE_TIERS.large.priceCents)}. Kiosks are optional: extra kiosk ${money(SCHOOL_ELECTION.extraKioskCents)}. Extra day ${money(SCHOOL_ELECTION.extraDayCents)}.`,
                   cta: "Set up a school election",
                   href: "/school-election/new",
                 },

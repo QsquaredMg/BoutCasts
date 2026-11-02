@@ -32,7 +32,8 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
   const [accent, setAccent] = useState<string | null>(null);
   const [bgColor, setBgColor] = useState<string | null>(null);
   const [showTally, setShowTally] = useState(true);
-  const [linkVoting, setLinkVoting] = useState(false);
+  // How students vote: on their own devices by link, on kiosk iPads at a booth, or both.
+  const [voteMode, setVoteMode] = useState<"link" | "kiosk" | "both">("link");
   const [isAdmin, setIsAdmin] = useState(false);
   const [openEnded, setOpenEnded] = useState(false);
   const [practice, setPractice] = useState(false);
@@ -72,7 +73,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
       }
       setTitle(d.title); setSchool(d.schoolName ?? ""); setTier(d.tier); setKiosks(d.kiosks); setDays(d.days);
       setLogo(d.brandLogoUrl); setBanner(d.coverImageUrl); setBgImage(d.brandBgImageUrl); setAccent(d.brandColor); setBgColor(d.brandBgColor);
-      setShowTally(d.showTally); setLinkVoting(d.linkVoting); setStatus(d.status); setCanBilling(d.canBilling); setOpenEndedEl(d.openEnded);
+      setShowTally(d.showTally); setVoteMode(!d.linkVoting ? "kiosk" : d.kioskPaired > 0 ? "both" : "link"); setStatus(d.status); setCanBilling(d.canBilling); setOpenEndedEl(d.openEnded);
       setClosesAt(d.closesAt ? new Date(new Date(d.closesAt).getTime() - new Date(d.closesAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
       setPractice(d.isPractice);
       setRaces((d.races as { id: string; title: string; candidates: { id: string; name: string; description: string | null; imageUrl: string | null; sourceType: string | null; sourceUrl: string | null; mediaSeconds: number | null }[] }[]).map((r) => ({
@@ -88,7 +89,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
     })();
   }, [editId]);
 
-  const price = practice ? 0 : schoolElectionPriceCents(tier, kiosks, days);
+  const price = practice ? 0 : schoolElectionPriceCents(tier, voteMode === "link" ? 1 : kiosks, days);
   const input = "w-full rounded-[10px] border px-3 py-2.5 text-sm";
   const inputStyle = { borderColor: "var(--border)", background: "var(--surface)" } as const;
 
@@ -107,7 +108,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
           title,
           schoolName: school,
           tier,
-          kiosks,
+          kiosks: voteMode === "link" ? 1 : kiosks,
           days,
           pin,
           closesAt: editing && closesAt ? new Date(closesAt).toISOString() : undefined,
@@ -117,7 +118,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
           brandColor: accent,
           brandBgColor: bgColor,
           showTally,
-          linkVoting,
+          linkVoting: voteMode !== "kiosk",
           openEnded: isAdmin && openEnded,
           practice,
           races: races.map((r) => ({ id: r.id, title: r.title, candidates: r.candidates.map((c) => ({ id: c.id, name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds, videoLink: c.videoLink })) })),
@@ -155,7 +156,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
       <h1 className="text-3xl font-extrabold">{editing ? "Edit school election" : "New school election"}</h1>
       {editing && <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>{locked ? "Voting is open, so offices and candidates are locked. You can still fix names, descriptions, photos and videos, change the look, and adjust the close time." : "Change anything until voting opens."}</p>}
       <p className="mt-1 text-sm" style={{ color: "var(--text-dim)" }}>
-        One ballot with several offices. Students vote at a kiosk (an iPad at a booth) with a code a teacher hands them. Results stay hidden until voting closes.
+        One ballot with several offices. Each student votes once with a code from a teacher, on their own device or at a kiosk iPad. Results stay hidden until voting closes.
       </p>
       {!editing && <p className="mt-2 rounded-xl p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>
         You are buying this election on its own, with no license needed. Running several votes a year? The{" "}
@@ -175,7 +176,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
 
       <section className="mt-6 grid gap-3">
         <p className="text-sm font-bold">Your school&apos;s look</p>
-        <p className="-mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Used on every page of this election: the organizer pages, the booth desk, the iPad kiosk and the winners graphic.</p>
+        <p className="-mt-2 text-xs" style={{ color: "var(--text-faint)" }}>Used on every page of this election: the organizer pages, the booth desk, the voting page and the winners graphic.</p>
         <div className="grid gap-1 text-sm font-semibold">School logo<ImageField value={logo} onChange={setLogo} label="logo" /></div>
         <div className="grid gap-1 text-sm font-semibold">Banner<ImageField value={banner} onChange={setBanner} label="banner" wide /></div>
         <div className="grid gap-1 text-sm font-semibold">Background photo (optional)<ImageField value={bgImage} onChange={setBgImage} label="background photo" wide /></div>
@@ -197,12 +198,25 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
         )}
         {!editing && <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={practice} onChange={(e) => { setPractice(e.target.checked); if (e.target.checked) { setTier("free"); setKiosks(1); setDays(1); } }} className="mt-1" />
-          <span><span className="font-semibold">This is a practice election.</span> <span style={{ color: "var(--text-faint)" }}>Free, one kiosk, and you can reset it and run it again as often as you like. Use it to rehearse with a class before the real vote. It can&apos;t raise money or be certified.</span></span>
+          <span><span className="font-semibold">This is a practice election.</span> <span style={{ color: "var(--text-faint)" }}>Free, and you can reset it and run it again as often as you like. Use it to rehearse with a class before the real vote. It can&apos;t raise money or be certified.</span></span>
         </label>}
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" checked={linkVoting} onChange={(e) => setLinkVoting(e.target.checked)} className="mt-1" />
-          <span><span className="font-semibold">Also let students vote by link.</span> <span style={{ color: "var(--text-faint)" }}>One school-wide link; each student types their own code and name and votes once per office. Use it alongside the kiosks or on its own. You can turn it on or off later. Codes can be emailed to students or handed out.</span></span>
-        </label>
+        <div className="grid gap-2">
+          <p className="text-sm font-bold">How will students vote?</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {([
+              ["link", "On their own devices", "One school-wide link. Students open it on a phone, Chromebook or computer, enter their code and name, and vote. No iPads needed."],
+              ["kiosk", "At a kiosk (iPads)", "A voting booth with iPads. Students enter a code from a teacher at the booth. Keeps working if the Wi-Fi drops."],
+              ["both", "Both", "A link for students on their own devices plus kiosks at a booth."],
+            ] as const).map(([key, label, note]) => (
+              <button key={key} type="button" onClick={() => setVoteMode(key)} className="rounded-[10px] border px-3 py-2.5 text-left"
+                style={{ borderColor: voteMode === key ? "var(--red)" : "var(--border)", background: voteMode === key ? "var(--red-soft, var(--surface-2))" : "var(--surface)" }}>
+                <p className="text-sm font-bold">{label}</p>
+                <p className="text-xs" style={{ color: "var(--text-faint)" }}>{note}</p>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs" style={{ color: "var(--text-faint)" }}>You can change this later. Codes can be emailed to students or handed out.</p>
+        </div>
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={showTally} onChange={(e) => setShowTally(e.target.checked)} className="mt-1" />
           <span><span className="font-semibold">Show vote counts in the results.</span> <span style={{ color: "var(--text-faint)" }}>Turn off to show only the winners.</span></span>
@@ -229,11 +243,11 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
             );
           })}
         </div>
-        <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>The price includes 1 kiosk and the first day of voting. A Free election runs 12 hours.</p>
+        <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>The price includes the first day of voting{voteMode === "link" ? "" : " and 1 kiosk"}. A Free election runs 12 hours.</p>
       </section>}
 
       {billing && !locked && !practice && <section className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div>
+        {voteMode !== "link" && <div>
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Kiosks (iPads)</h2>
           <div className="flex gap-2">
             {Array.from({ length: SCHOOL_ELECTION.maxKiosks }, (_, i) => i + 1).map((n) => (
@@ -244,7 +258,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
             ))}
           </div>
           <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>First kiosk included, +{dollars(SCHOOL_ELECTION.extraKioskCents)} for each extra.</p>
-        </div>
+        </div>}
         <div>
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--text-dim)" }}>Days of voting</h2>
           <div className="flex gap-2">
@@ -345,7 +359,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
 <p className="text-lg font-extrabold">Total {dollars(price)}</p>
         <p className="text-xs" style={{ color: "var(--text-faint)" }}>
           {LIVE_VOTE_TIERS[tier].label} {dollars(LIVE_VOTE_TIERS[tier].priceCents)}
-          {kiosks > 1 && ` + ${kiosks - 1} extra kiosk${kiosks > 2 ? "s" : ""} ${dollars((kiosks - 1) * SCHOOL_ELECTION.extraKioskCents)}`}
+          {voteMode !== "link" && kiosks > 1 && ` + ${kiosks - 1} extra kiosk${kiosks > 2 ? "s" : ""} ${dollars((kiosks - 1) * SCHOOL_ELECTION.extraKioskCents)}`}
           {days > 1 && ` + ${days - 1} extra day${days > 2 ? "s" : ""} ${dollars((days - 1) * SCHOOL_ELECTION.extraDayCents)}`}
           . You pay after adding the roster.
         </p>
