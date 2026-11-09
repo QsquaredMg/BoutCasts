@@ -65,7 +65,7 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
       }
     }
     poll();
-    const t = setInterval(poll, 4000);
+    const t = setInterval(poll, 2000);
     return () => { alive = false; clearInterval(t); };
   }, [showBars, ev, eventId, supabase]);
 
@@ -131,6 +131,31 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
                 <p className="text-2xl font-bold opacity-80">Live results</p>
                 <p className="text-4xl font-black tabular-nums" style={{ color: accent }}>{total.toLocaleString()} votes</p>
               </div>
+              {opts.length === 2 ? (
+                <div>
+                  <div className="flex items-end justify-between gap-6 text-4xl font-black md:text-5xl">
+                    {opts.map((o) => {
+                      const n = tally[o.id] ?? 0;
+                      const pct = total ? Math.round((n / total) * 100) : 0;
+                      return (
+                        <div key={o.id} className="min-w-0 flex-1 text-center">
+                          <p className="truncate">{o.name}</p>
+                          <p className="mt-2 text-7xl tabular-nums md:text-8xl" style={{ color: accent }}>{pct}%</p>
+                          <p className="text-2xl font-bold opacity-70">{n.toLocaleString()} votes</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-6 flex h-10 overflow-hidden rounded-full" style={{ background: "rgba(128,128,128,0.25)" }}>
+                    {(() => {
+                      const a = opts[0];
+                      const na = tally[a.id] ?? 0;
+                      const share = total ? (na / total) * 100 : 50;
+                      return <div className="h-full transition-all duration-700" style={{ width: `${share}%`, background: accent }} />;
+                    })()}
+                  </div>
+                </div>
+              ) : (
               <ol className="space-y-4">
                 {sorted.slice(0, 8).map((o, i) => {
                   const n = tally[o.id] ?? 0;
@@ -148,6 +173,7 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
                   );
                 })}
               </ol>
+              )}
             </>
           ) : (
             <p className="text-3xl font-bold opacity-80">

@@ -87,6 +87,14 @@ export default function LiveVoteEventsPage() {
             live tally, one vote per person. Pay per event, or go monthly with Organizer Pro.
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Link
+          href="/live-vote/quick"
+          className="lp-btn px-6 py-3 text-sm"
+          style={{ background: "var(--surface-2)", color: "var(--text)", boxShadow: "inset 0 0 0 1px var(--border)" }}
+        >
+          ⚡ Quick Vote for the big screen
+        </Link>
         <Link
           href="/live-vote/new"
           className="lp-btn px-6 py-3 text-sm"
@@ -94,6 +102,7 @@ export default function LiveVoteEventsPage() {
         >
           + Create a vote
         </Link>
+        </div>
       </div>
 
       {signedIn && <SharedWithMe kind="live_vote" />}

@@ -26,6 +26,9 @@ export default function PackEditor({ packId }: { packId: string }) {
   const [mode, setMode] = useState<"solo" | "team">("solo");
   const [teamA, setTeamA] = useState("Team A");
   const [teamB, setTeamB] = useState("Team B");
+  // How many questions this live game uses. Blank means every question in the pack.
+  const [limit, setLimit] = useState("");
+  const [random, setRandom] = useState(false);
 
   const load = useCallback(async () => {
     const [{ data: p }, { data: q }] = await Promise.all([
@@ -77,9 +80,10 @@ export default function PackEditor({ packId }: { packId: string }) {
     setMsg(error ? error.message : "Approved. You can host this pack now.");
     load();
   }
+  const limitNum = limit.trim() === "" ? null : Math.max(1, Math.min(200, Math.floor(Number(limit)) || 1));
   async function host() {
     setBusy(true);
-    const { data, error } = await sb.current.rpc("trivia_create_game", { p_pack: packId, p_mode: mode, p_team_a: teamA, p_team_b: teamB });
+    const { data, error } = await sb.current.rpc("trivia_create_game", { p_pack: packId, p_mode: mode, p_team_a: teamA, p_team_b: teamB, p_limit: limitNum, p_random: random });
     setBusy(false);
     if (error) setMsg(error.message);
     else router.push(`/trivia/${data}/host`);
@@ -173,6 +177,23 @@ export default function PackEditor({ packId }: { packId: string }) {
                 <input className={`${inp} text-black`} value={teamB} onChange={(e) => setTeamB(e.target.value)} maxLength={24} />
               </div>
             )}
+            <div className="mb-3 text-sm">
+              <p className="mb-1 font-semibold">How many questions in this game?</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {[5, 10, 15, 20].filter((n) => n < qs.length).map((n) => (
+                  <button key={n} type="button" onClick={() => setLimit(String(n))} className="rounded-lg px-3 py-1.5 font-bold" style={{ background: limitNum === n ? "#ffc531" : "rgba(255,255,255,0.15)", color: limitNum === n ? "#000" : "inherit" }}>{n}</button>
+                ))}
+                <button type="button" onClick={() => setLimit("")} className="rounded-lg px-3 py-1.5 font-bold" style={{ background: limitNum === null ? "#ffc531" : "rgba(255,255,255,0.15)", color: limitNum === null ? "#000" : "inherit" }}>All {qs.length}</button>
+                <input className={`${inp} w-24 text-black`} inputMode="numeric" placeholder="Other" value={limit} onChange={(e) => setLimit(e.target.value.replace(/\D/g, "").slice(0, 3))} />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-3">
+                <label><input type="radio" checked={!random} onChange={() => setRandom(false)} /> In pack order</label>
+                <label><input type="radio" checked={random} onChange={() => setRandom(true)} /> Random pick</label>
+              </div>
+              <p className="mt-1 text-xs opacity-70">
+                {random ? `The game picks ${limitNum === null || limitNum >= qs.length ? `all ${qs.length} questions in a shuffled order` : `${limitNum} random questions`} from the pack, so every game is different,` : `The game uses the first ${limitNum === null || limitNum >= qs.length ? `all ${qs.length}` : limitNum} questions of the pack, in order,`} then shows the final scores.
+              </p>
+            </div>
             <button disabled={busy} onClick={host} className="rounded-xl px-5 py-3 font-black text-black disabled:opacity-40" style={{ background: "#ffc531" }}>Start a live game</button>
           </>
         )}
