@@ -68,10 +68,17 @@ Reply with ONLY a JSON array, no other text. Each item: {"kind":"mc" or "stump",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model, max_tokens: 8000, messages: [{ role: "user", content: prompt }] }),
     });
-    if (!r.ok) return NextResponse.json({ error: `AI service error (${r.status}). Try again in a moment.` }, { status: 502 });
+    if (!r.ok) {
+      const detail = await r.text().catch(() => "");
+      console.error("trivia generate: AI service error", r.status, model, detail.slice(0, 500));
+      let why = "";
+      try { why = JSON.parse(detail)?.error?.message ?? ""; } catch { /* not JSON */ }
+      return NextResponse.json({ error: `AI service error (${r.status}${why ? `: ${String(why).slice(0, 160)}` : ""}).` }, { status: 502 });
+    }
     const j = await r.json();
     text = (j.content ?? []).filter((c: { type?: string }) => c.type === "text" || c.type === undefined).map((c: { text?: string }) => c.text ?? "").join("");
-  } catch {
+  } catch (e) {
+    console.error("trivia generate: fetch failed", e);
     return NextResponse.json({ error: "Couldn't reach the AI service." }, { status: 502 });
   }
 
