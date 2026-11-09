@@ -8,6 +8,7 @@ type Ev = {
   id: string; title: string; status: "draft" | "live" | "closed"; closes_at: string | null; tier: string | null;
   scoring_mode: "crowd" | "judges"; voting_method: "single" | "ranked"; is_private: boolean;
   brand_name: string | null; brand_logo_url: string | null; brand_color: string | null; brand_bg_color: string | null;
+  brand_bg_image_url: string | null; screen_bg_opacity?: number;
 };
 type Opt = { id: string; name: string };
 
@@ -26,12 +27,15 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
     async function loadEvent() {
       const { data } = await supabase
         .from("live_vote_events")
-        .select("id, title, status, closes_at, tier, scoring_mode, voting_method, is_private, brand_name, brand_logo_url, brand_color, brand_bg_color")
+        .select("id, title, status, closes_at, tier, scoring_mode, voting_method, is_private, brand_name, brand_logo_url, brand_color, brand_bg_color, brand_bg_image_url")
         .eq("id", eventId)
         .maybeSingle();
       if (!alive) return;
       if (!data) return setMissing(true);
       setEv(data as Ev);
+      // Separate read so the screen still works before the screen-look SQL has been run.
+      const { data: look, error: lookErr } = await supabase.from("live_vote_events").select("screen_bg_opacity").eq("id", eventId).maybeSingle();
+      if (alive && !lookErr && typeof look?.screen_bg_opacity === "number") setEv((e) => (e ? { ...e, screen_bg_opacity: look.screen_bg_opacity } : e));
       const { data: o } = await supabase.from("live_vote_options").select("id, name, sort_order").eq("event_id", eventId).order("sort_order");
       if (alive) setOpts((o ?? []) as Opt[]);
     }
@@ -98,8 +102,11 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
   const sorted = [...opts].sort((a, b) => (tally[b.id] ?? 0) - (tally[a.id] ?? 0));
 
   return (
-    <div className={shell} style={{ background: bg, color: fg }}>
-      <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+    <div className={`${shell} relative`} style={{ background: bg, color: fg }}>
+      {paid && ev.brand_bg_image_url && (
+        <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: `url(${ev.brand_bg_image_url})`, backgroundSize: "cover", backgroundPosition: "center", opacity: (ev.screen_bg_opacity ?? 100) / 100 }} />
+      )}
+      <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="text-center lg:text-left">
           {ev.brand_logo_url && paid && (
             // eslint-disable-next-line @next/next/no-img-element

@@ -29,6 +29,8 @@ export default function EventBrandingEditor({
   editable: boolean;
 }) {
   const [look, setLook] = useState<Look | null>(null);
+  // Big-screen background strength (0-100). null until the screen-look SQL has been run.
+  const [opacity, setOpacity] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -40,6 +42,15 @@ export default function EventBrandingEditor({
       .eq("id", eventId)
       .maybeSingle()
       .then(({ data }) => setLook((data as Look) ?? null));
+    createClient()
+      .from("live_vote_events")
+      .select("screen_bg_opacity")
+      .eq("id", eventId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        const v = (data as { screen_bg_opacity?: number } | null)?.screen_bg_opacity;
+        if (!error && typeof v === "number") setOpacity(v);
+      });
   }, [eventId]);
 
   if (!look) return null;
@@ -59,8 +70,13 @@ export default function EventBrandingEditor({
       p_cover_image_url: look.cover_image_url ?? "",
       p_white_label: look.white_label,
     });
+    let err = error;
+    if (!err && opacity !== null) {
+      const r = await createClient().rpc("set_live_vote_screen_look", { p_event_id: eventId, p_opacity: opacity });
+      err = r.error;
+    }
     setBusy(false);
-    setMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Saved. Refresh the voting page to see it." });
+    setMsg(err ? { ok: false, text: err.message } : { ok: true, text: "Saved. Refresh the voting page or big screen to see it." });
   }
 
   const box = { borderColor: "var(--border)", background: "var(--surface)" };
@@ -163,6 +179,20 @@ export default function EventBrandingEditor({
                 </span>
                 <ImageField value={look.brand_bg_image_url} onChange={(v) => set({ brand_bg_image_url: v })} label="background" wide />
               </div>
+              {opacity !== null && look.brand_bg_image_url && (
+                <div>
+                  <span className={label} style={{ color: "var(--text-dim)" }}>
+                    Big screen: background photo strength ({opacity}%)
+                  </span>
+                  <input type="range" min={0} max={100} step={5} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} className="w-full accent-[var(--red)]" aria-label="Background photo strength on the big screen" />
+                  <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+                    On the jumbotron the photo sits over your page background color. Lower it so the question and results stay easy to read.
+                  </span>
+                  <div className="mt-2 h-16 overflow-hidden rounded-lg border" style={{ borderColor: "var(--border)", background: look.brand_bg_color ?? "#0a0e1a", position: "relative" }}>
+                    <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${look.brand_bg_image_url})`, backgroundSize: "cover", backgroundPosition: "center", opacity: opacity / 100 }} />
+                  </div>
+                </div>
+              )}
               <label className="flex cursor-pointer items-start gap-3">
                 <input
                   type="checkbox"
