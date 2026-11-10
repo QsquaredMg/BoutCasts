@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import TriviaSponsorBar from "@/components/trivia/TriviaSponsorBar";
+import TriviaBreakCard from "@/components/trivia/TriviaBreakCard";
 import { KIND_LABEL, OPTION_COLORS, triviaTheme, useTriviaState } from "@/lib/trivia";
 
 // Projector view: join code + QR in the lobby, big question and countdown, live answer bars, leaderboard.
@@ -13,7 +15,8 @@ export default function ScreenClient({ code }: { code: string }) {
     QRCode.toDataURL(`${window.location.origin}/trivia/${code}/play`, { margin: 1, width: 420 }).then(setQr).catch(() => {});
   }, [code]);
 
-  const shell = "relative min-h-screen w-full overflow-hidden p-8 text-white md:p-12";
+  const hasSponsors = (state?.sponsors?.length ?? 0) > 0;
+  const shell = `relative min-h-screen w-full overflow-hidden p-8 text-white md:p-12 ${hasSponsors ? "pb-44 md:pb-44" : ""}`;
   const th = triviaTheme(state?.brand, "linear-gradient(160deg,#2a1260 0%,#0a0e1a 75%)");
   const bg = { background: th.background };
   const Photo = th.image ? (
@@ -23,6 +26,7 @@ export default function ScreenClient({ code }: { code: string }) {
     // eslint-disable-next-line @next/next/no-img-element
     <div className="mb-4 flex justify-center"><img src={th.logo} alt={th.name ?? ""} className="h-24 object-contain" /></div>
   ) : null;
+  const Sponsors = hasSponsors ? <><TriviaSponsorBar sponsors={state!.sponsors!} variant="screen" targetId={state!.game.packId} trackKey={code} />{state!.break && <TriviaBreakCard brk={state!.break} variant="screen" />}</> : null;
   const Logo = th.logo ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={th.logo} alt={th.name ?? ""} className="mb-4 h-20 max-w-[60%] object-contain object-left" />
@@ -61,6 +65,7 @@ export default function ScreenClient({ code }: { code: string }) {
     return (
       <div className={shell} style={bg}>
         {Photo}
+        {Sponsors}
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div>
             {Logo}
@@ -85,6 +90,7 @@ export default function ScreenClient({ code }: { code: string }) {
     return (
       <div className={shell} style={bg}>
         {Photo}
+        {Sponsors}
         <div className="relative mx-auto max-w-3xl">
           {DoneLogo}
           <h1 className="mb-6 text-center text-6xl font-black" style={{ fontFamily: "var(--font-display)" }}>Final scores</h1>
@@ -107,6 +113,7 @@ export default function ScreenClient({ code }: { code: string }) {
   return (
     <div className={shell} style={bg}>
       {Photo}
+        {Sponsors}
       <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_380px]">
         <div>
           {Logo}

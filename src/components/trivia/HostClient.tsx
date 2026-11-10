@@ -30,6 +30,15 @@ export default function HostClient({ code, gameId }: { code: string; gameId: str
     }
   }
 
+  async function setBreak(sponsor: string | null) {
+    setBusy(true);
+    setErr("");
+    const { error } = await sb.current.rpc("trivia_set_break", { p_game: gameId, p_sponsor: sponsor });
+    setBusy(false);
+    if (error) setErr(error.message);
+    else refresh();
+  }
+
   if (!state) return <div className="p-6">Loading…</div>;
   const { game, question: q } = state;
   const btn = "rounded-xl px-5 py-3 text-base font-black disabled:opacity-50";
@@ -52,6 +61,26 @@ export default function HostClient({ code, gameId }: { code: string; gameId: str
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {qr && <img src={qr} alt="Join QR" className="h-32 w-32 rounded-lg" />}
       </div>
+
+      {(state.sponsors ?? []).some((x) => x.commercial) && (
+        <div className="mt-5 rounded-2xl border p-4" style={{ borderColor: "var(--border, #e5e7eb)" }}>
+          <p className="text-sm font-bold">Sponsor commercial break</p>
+          <p className="mb-2 text-xs opacity-70">Takes over the big screen and players&apos; phones until you end it.</p>
+          <div className="flex flex-wrap gap-2">
+            {state.break ? (
+              <button className="rounded-xl bg-red-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50" disabled={busy} onClick={() => setBreak(null)}>
+                End commercial ({state.break.name})
+              </button>
+            ) : (
+              (state.sponsors ?? []).filter((x) => x.commercial && x.id).map((x) => (
+                <button key={x.id} className="rounded-xl border px-4 py-2 text-sm font-black disabled:opacity-50" disabled={busy} onClick={() => setBreak(x.id!)}>
+                  ▶ Play {x.name}&apos;s commercial
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-5 rounded-2xl p-5 text-white" style={{ background: "linear-gradient(160deg,#2a1260,#0a0e1a)" }}>
         <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#ffc531" }}>

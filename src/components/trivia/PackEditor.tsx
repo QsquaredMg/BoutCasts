@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { TriviaKind } from "@/lib/trivia";
 import TriviaBrandingEditor from "@/components/trivia/TriviaBrandingEditor";
+import SponsorPlacementsPanel from "@/components/SponsorPlacementsPanel";
 
 type Q = {
   id: string; position: number; kind: TriviaKind; prompt: string; options: string[];
@@ -114,6 +115,7 @@ export default function PackEditor({ packId }: { packId: string }) {
       </section>
 
       <TriviaBrandingEditor packId={packId} />
+      <SponsorPlacementsPanel kind="trivia" targetId={packId} />
 
       {msg && <p className="mt-3 text-sm font-semibold">{msg}</p>}
 

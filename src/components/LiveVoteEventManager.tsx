@@ -1,5 +1,6 @@
 "use client";
 
+import SponsorPlacementsPanel from "@/components/SponsorPlacementsPanel";
 import Link from "next/link";
 import LiveVoteRoster from "@/components/LiveVoteRoster";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -540,6 +541,7 @@ export default function LiveVoteEventManager({
           {!isMod && <EventSponsorSales eventId={event.id} editable={event.status !== "closed"} />}
         </>
       )}
+      <SponsorPlacementsPanel kind="vote" targetId={event.id} />
 
       {!isMod && (
       <SuperVotesManager

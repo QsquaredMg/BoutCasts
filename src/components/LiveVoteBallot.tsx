@@ -1,5 +1,6 @@
 "use client";
 
+import PlacementSponsorStrip from "@/components/PlacementSponsorStrip";
 import GuestPassCard from "@/components/GuestPassCard";
 import { rpcMessage, saveGuestProfile, signupHref } from "@/lib/guestPass";
 import OptionAvatar from "@/components/OptionAvatar";
@@ -574,6 +575,7 @@ export default function LiveVoteBallot({ eventId }: { eventId: string }) {
         </p>
       )}
       <EventSponsorStrip eventId={eventId} />
+      <PlacementSponsorStrip kind="vote" targetId={eventId} variant="page" />
 
       {boostNotice && (
         <p className="mb-4 rounded-lg p-3 text-sm" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>

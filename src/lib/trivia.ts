@@ -7,7 +7,7 @@ import { contrastRatio } from "@/lib/liveVoteEvents/roomTheme";
 export type TriviaKind = "mc" | "stump" | "predict";
 
 export type TriviaState = {
-  game: { id: string; code: string; title: string; mode: "solo" | "team"; teamA: string; teamB: string; status: "lobby" | "question" | "reveal" | "done"; pos: number; total: number };
+  game: { id: string; code: string; title: string; mode: "solo" | "team"; teamA: string; teamB: string; status: "lobby" | "question" | "reveal" | "done"; pos: number; total: number; packId?: string };
   question: null | {
     pos: number; kind: TriviaKind; prompt: string; options: string[]; seconds: number; points: number;
     remaining: number; hide: number[]; correct: number | null; explanation: string | null;
@@ -19,7 +19,14 @@ export type TriviaState = {
   me: null | { id: string; name: string; team: "a" | "b" | null; score: number; doubleUsed: boolean; hintUsed: boolean; rank: number };
   players: number;
   brand?: TriviaBrand | null;
+  sponsors?: TriviaSponsor[];
+  break?: TriviaBreak | null;
 };
+
+// A sponsor commercial the host is playing right now.
+export type TriviaBreak = { id: string; name: string; logo: string | null; url: string; kind: "video" | "image" | null };
+
+export type TriviaSponsor = { id?: string; name: string; logo: string | null; link: string | null; level: "title" | "gold" | "supporter"; commercial?: boolean };
 
 // A pack's look: every field is optional. Blank = the standard BoutCasts trivia look.
 export type TriviaBrand = { name: string | null; logo: string | null; color: string | null; bg: string | null; image: string | null; opacity: number };

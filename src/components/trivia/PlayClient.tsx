@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import TriviaSponsorBar from "@/components/trivia/TriviaSponsorBar";
+import TriviaBreakCard from "@/components/trivia/TriviaBreakCard";
 import ShareButton from "@/components/ShareButton";
 import { KIND_LABEL, OPTION_COLORS, playerToken, triviaTheme, useTriviaState } from "@/lib/trivia";
 
-const wrap = "relative isolate min-h-screen w-full px-4 py-5 text-white";
+const wrap = "relative isolate min-h-screen w-full px-4 py-5 pb-28 text-white";
 
 export default function PlayClient({ code }: { code: string }) {
   const [token, setToken] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export default function PlayClient({ code }: { code: string }) {
   const Photo = th.image ? (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10" style={{ backgroundImage: `url(${th.image})`, backgroundSize: "cover", backgroundPosition: "center", opacity: th.opacity }} />
   ) : null;
+  const Sponsors = (state?.sponsors?.length ?? 0) > 0 ? <><TriviaSponsorBar sponsors={state!.sponsors!} variant="phone" targetId={state!.game.packId} trackKey={code} />{state!.break && <TriviaBreakCard brk={state!.break} variant="phone" />}</> : null;
   const Logo = th.logo ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={th.logo} alt={th.name ?? ""} className="mx-auto mb-3 h-14 max-w-[70%] object-contain" />
@@ -67,13 +70,13 @@ export default function PlayClient({ code }: { code: string }) {
 
   if (missing)
     return (
-      <div className={wrap} style={bg}>{Photo}
+      <div className={wrap} style={bg}>{Photo}{Sponsors}
         <p className="mt-16 text-center text-lg font-bold">No game with code {code}.</p>
         <p className="mt-2 text-center"><Link href="/trivia" className="underline">Try another code</Link></p>
       </div>
     );
   if (!state)
-    return <div className={wrap} style={bg}>{Photo}<p className="mt-16 text-center opacity-70">Loading…</p></div>;
+    return <div className={wrap} style={bg}>{Photo}{Sponsors}<p className="mt-16 text-center opacity-70">Loading…</p></div>;
 
   const { game, question: q, me } = state;
   const teamName = (t: "a" | "b" | null) => (t === "a" ? game.teamA : t === "b" ? game.teamB : "");
@@ -81,7 +84,7 @@ export default function PlayClient({ code }: { code: string }) {
 
   if (!me)
     return (
-      <div className={wrap} style={bg}>{Photo}
+      <div className={wrap} style={bg}>{Photo}{Sponsors}
         <div className="mx-auto max-w-sm pt-10 text-center">
           {Logo}
           <p className="text-xs font-bold uppercase tracking-widest" style={{ color: th.accent }}>{th.name ? `${th.name} · Live Trivia` : "Live Trivia"}</p>
@@ -126,7 +129,7 @@ export default function PlayClient({ code }: { code: string }) {
 
   if (game.status === "lobby")
     return (
-      <div className={wrap} style={bg}>{Photo}
+      <div className={wrap} style={bg}>{Photo}{Sponsors}
         {Header}
         <div className="mx-auto mt-16 max-w-sm text-center">
           <p className="text-3xl font-black">You&apos;re in!</p>
@@ -139,7 +142,7 @@ export default function PlayClient({ code }: { code: string }) {
   if (game.status === "done") {
     const top = state.board.slice(0, 3);
     return (
-      <div className={wrap} style={bg}>{Photo}
+      <div className={wrap} style={bg}>{Photo}{Sponsors}
         {Header}
         <div className="mx-auto max-w-sm text-center">
           <p className="mt-4 text-xs font-bold uppercase tracking-widest" style={{ color: th.accent }}>Final</p>
@@ -172,7 +175,7 @@ export default function PlayClient({ code }: { code: string }) {
     );
   }
 
-  if (!q) return <div className={wrap} style={bg}>{Photo}{Header}</div>;
+  if (!q) return <div className={wrap} style={bg}>{Photo}{Sponsors}{Header}</div>;
 
   const revealing = game.status === "reveal";
   const answered = state.mine !== null;
@@ -182,7 +185,7 @@ export default function PlayClient({ code }: { code: string }) {
   const canDouble = !me.doubleUsed && !answered && !revealing;
 
   return (
-    <div className={wrap} style={bg}>{Photo}
+    <div className={wrap} style={bg}>{Photo}{Sponsors}
       {Header}
       <div className="mx-auto max-w-md">
         <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">

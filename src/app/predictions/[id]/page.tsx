@@ -1,4 +1,5 @@
 import { cardMetadata } from "@/lib/og/cardRoute";
+import PlacementSponsorStrip from "@/components/PlacementSponsorStrip";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -121,7 +122,7 @@ export default async function GamePage({ params }: Props) {
       </header>
 
       <div className="pt-body">
-      {slate && <div className="mb-5"><PredSponsorStrip bracketId={slate.id} /></div>}
+      {slate && <div className="mb-5"><PredSponsorStrip bracketId={slate.id} /><PlacementSponsorStrip kind="bracket" targetId={slate.id} variant="page" /></div>}
 
       {game.status === "cancelled" ? (
         <p className="bc-card mb-5 p-5 text-center text-sm">This game was cancelled, so predictions will not be scored.</p>

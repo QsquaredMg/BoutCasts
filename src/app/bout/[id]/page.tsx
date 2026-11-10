@@ -1,4 +1,6 @@
 import { cardMetadata } from "@/lib/og/cardRoute";
+import PlacementSponsorStrip from "@/components/PlacementSponsorStrip";
+import SponsorPlacementsPanel from "@/components/SponsorPlacementsPanel";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -45,6 +47,8 @@ export default async function BoutPage({
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <FeaturedBout boutId={id} showBackLink />
+      <PlacementSponsorStrip kind="bout" targetId={id} variant="page" />
+      <SponsorPlacementsPanel kind="bout" targetId={id} />
     </div>
   );
 }

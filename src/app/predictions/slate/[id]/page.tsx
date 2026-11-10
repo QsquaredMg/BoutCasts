@@ -1,4 +1,6 @@
 import { cardMetadata } from "@/lib/og/cardRoute";
+import SponsorPlacementsPanel from "@/components/SponsorPlacementsPanel";
+import PlacementSponsorStrip from "@/components/PlacementSponsorStrip";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -135,6 +137,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
 
       <div className="pt-body wide">
       {slate.status !== "pending" && <PredSponsorStrip bracketId={slate.id} />}
+      {slate.status !== "pending" && <PlacementSponsorStrip kind="bracket" targetId={slate.id} variant="page" />}
 
       {isOwner && <BracketOwnerPanel slate={slate} justPaid={checkout === "success"} isAdmin={!!me?.is_admin} gameCount={games.length} />}
 
@@ -142,6 +145,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
         <div className="mb-6 grid gap-3">
           <PredBrandingEditor slate={slate} />
           <PredSponsorManager bracketId={slate.id} />
+          <SponsorPlacementsPanel kind="bracket" targetId={slate.id} />
         </div>
       )}
 
