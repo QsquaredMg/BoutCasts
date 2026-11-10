@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ShareButton from "@/components/ShareButton";
-import { KIND_LABEL, OPTION_COLORS, playerToken, useTriviaState } from "@/lib/trivia";
+import { KIND_LABEL, OPTION_COLORS, playerToken, triviaTheme, useTriviaState } from "@/lib/trivia";
 
-const wrap = "min-h-screen w-full px-4 py-5 text-white";
-const bg = { background: "linear-gradient(170deg,#1b0f3d 0%,#0a0e1a 70%)" };
+const wrap = "relative isolate min-h-screen w-full px-4 py-5 text-white";
 
 export default function PlayClient({ code }: { code: string }) {
   const [token, setToken] = useState<string | null>(null);
@@ -27,6 +26,15 @@ export default function PlayClient({ code }: { code: string }) {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const { state, missing, secondsLeft, refresh } = useTriviaState(code, token);
+  const th = triviaTheme(state?.brand, "linear-gradient(170deg,#1b0f3d 0%,#0a0e1a 70%)");
+  const bg = { background: th.background };
+  const Photo = th.image ? (
+    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10" style={{ backgroundImage: `url(${th.image})`, backgroundSize: "cover", backgroundPosition: "center", opacity: th.opacity }} />
+  ) : null;
+  const Logo = th.logo ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={th.logo} alt={th.name ?? ""} className="mx-auto mb-3 h-14 max-w-[70%] object-contain" />
+  ) : null;
 
   async function join() {
     if (!token) return;
@@ -59,13 +67,13 @@ export default function PlayClient({ code }: { code: string }) {
 
   if (missing)
     return (
-      <div className={wrap} style={bg}>
+      <div className={wrap} style={bg}>{Photo}
         <p className="mt-16 text-center text-lg font-bold">No game with code {code}.</p>
         <p className="mt-2 text-center"><Link href="/trivia" className="underline">Try another code</Link></p>
       </div>
     );
   if (!state)
-    return <div className={wrap} style={bg}><p className="mt-16 text-center opacity-70">Loading…</p></div>;
+    return <div className={wrap} style={bg}>{Photo}<p className="mt-16 text-center opacity-70">Loading…</p></div>;
 
   const { game, question: q, me } = state;
   const teamName = (t: "a" | "b" | null) => (t === "a" ? game.teamA : t === "b" ? game.teamB : "");
@@ -73,9 +81,10 @@ export default function PlayClient({ code }: { code: string }) {
 
   if (!me)
     return (
-      <div className={wrap} style={bg}>
+      <div className={wrap} style={bg}>{Photo}
         <div className="mx-auto max-w-sm pt-10 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#ffc531" }}>Live Trivia</p>
+          {Logo}
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: th.accent }}>{th.name ? `${th.name} · Live Trivia` : "Live Trivia"}</p>
           <h1 className="mt-1 text-3xl font-black" style={{ fontFamily: "var(--font-display)" }}>{game.title}</h1>
           <p className="mt-1 text-sm opacity-70">Code {code} · {state.players} in the room</p>
           {game.status === "done" ? (
@@ -92,8 +101,8 @@ export default function PlayClient({ code }: { code: string }) {
               <button
                 onClick={join}
                 disabled={busy || !name.trim()}
-                className="mt-3 w-full rounded-xl px-4 py-3 text-lg font-black text-black disabled:opacity-50"
-                style={{ background: "#ffc531" }}
+                className="mt-3 w-full rounded-xl px-4 py-3 text-lg font-black disabled:opacity-50"
+                style={{ background: th.accent, color: th.onAccent }}
               >
                 {busy ? "Joining…" : "Join the game"}
               </button>
@@ -106,15 +115,18 @@ export default function PlayClient({ code }: { code: string }) {
     );
 
   const Header = (
-    <div className="mb-4 flex items-center justify-between text-sm">
+    <div className="mb-4">
+      {Logo}
+    <div className="flex items-center justify-between text-sm">
       <span className="font-bold">{me.name}{me.team ? <span className="ml-2 rounded-full px-2 py-0.5 text-xs" style={{ background: teamColor(me.team) }}>{teamName(me.team)}</span> : null}</span>
-      <span className="font-black" style={{ color: "#ffc531" }}>{me.score} pts · #{me.rank}</span>
+      <span className="font-black" style={{ color: th.accent }}>{me.score} pts · #{me.rank}</span>
+    </div>
     </div>
   );
 
   if (game.status === "lobby")
     return (
-      <div className={wrap} style={bg}>
+      <div className={wrap} style={bg}>{Photo}
         {Header}
         <div className="mx-auto mt-16 max-w-sm text-center">
           <p className="text-3xl font-black">You&apos;re in!</p>
@@ -127,10 +139,10 @@ export default function PlayClient({ code }: { code: string }) {
   if (game.status === "done") {
     const top = state.board.slice(0, 3);
     return (
-      <div className={wrap} style={bg}>
+      <div className={wrap} style={bg}>{Photo}
         {Header}
         <div className="mx-auto max-w-sm text-center">
-          <p className="mt-4 text-xs font-bold uppercase tracking-widest" style={{ color: "#ffc531" }}>Final</p>
+          <p className="mt-4 text-xs font-bold uppercase tracking-widest" style={{ color: th.accent }}>Final</p>
           <p className="text-5xl font-black">#{me.rank}</p>
           <p className="text-xl font-bold">{me.score} points</p>
           {game.mode === "team" && (
@@ -160,7 +172,7 @@ export default function PlayClient({ code }: { code: string }) {
     );
   }
 
-  if (!q) return <div className={wrap} style={bg}>{Header}</div>;
+  if (!q) return <div className={wrap} style={bg}>{Photo}{Header}</div>;
 
   const revealing = game.status === "reveal";
   const answered = state.mine !== null;
@@ -170,11 +182,11 @@ export default function PlayClient({ code }: { code: string }) {
   const canDouble = !me.doubleUsed && !answered && !revealing;
 
   return (
-    <div className={wrap} style={bg}>
+    <div className={wrap} style={bg}>{Photo}
       {Header}
       <div className="mx-auto max-w-md">
         <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-          <span style={{ color: "#ffc531" }}>{KIND_LABEL[q.kind]} · {q.pos + 1}/{game.total}</span>
+          <span style={{ color: th.accent }}>{KIND_LABEL[q.kind]} · {q.pos + 1}/{game.total}</span>
           {!revealing && <span className="text-2xl tabular-nums">{secondsLeft}s</span>}
         </div>
         <h2 className="my-4 text-2xl font-black leading-tight">{q.prompt}</h2>
@@ -216,7 +228,7 @@ export default function PlayClient({ code }: { code: string }) {
               disabled={!canDouble}
               onClick={() => setDouble((d) => !d)}
               className="flex-1 rounded-xl px-3 py-2 text-sm font-black disabled:opacity-30"
-              style={{ background: double ? "#ffc531" : "rgba(255,255,255,.12)", color: double ? "#000" : "#fff" }}
+              style={{ background: double ? th.accent : "rgba(255,255,255,.12)", color: double ? th.onAccent : "#fff" }}
             >
               {me.doubleUsed ? "Double used" : double ? "Double ON — pick answer" : "2× Double (once)"}
             </button>

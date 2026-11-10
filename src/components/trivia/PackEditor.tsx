@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { TriviaKind } from "@/lib/trivia";
+import TriviaBrandingEditor from "@/components/trivia/TriviaBrandingEditor";
 
 type Q = {
   id: string; position: number; kind: TriviaKind; prompt: string; options: string[];
@@ -111,6 +112,8 @@ export default function PackEditor({ packId }: { packId: string }) {
           <button disabled={busy || topic.trim().length < 3} onClick={generate} className="ml-auto rounded-xl px-4 py-2 text-sm font-black text-white disabled:opacity-50" style={{ background: "#1b4fe4" }}>Draft questions</button>
         </div>
       </section>
+
+      <TriviaBrandingEditor packId={packId} />
 
       {msg && <p className="mt-3 text-sm font-semibold">{msg}</p>}
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { contrastRatio } from "@/lib/liveVoteEvents/roomTheme";
 
 export type TriviaKind = "mc" | "stump" | "predict";
 
@@ -17,7 +18,28 @@ export type TriviaState = {
   mine: null | { choice: number; points: number; doubled: boolean };
   me: null | { id: string; name: string; team: "a" | "b" | null; score: number; doubleUsed: boolean; hintUsed: boolean; rank: number };
   players: number;
+  brand?: TriviaBrand | null;
 };
+
+// A pack's look: every field is optional. Blank = the standard BoutCasts trivia look.
+export type TriviaBrand = { name: string | null; logo: string | null; color: string | null; bg: string | null; image: string | null; opacity: number };
+
+/** Colors and images to paint a trivia screen with, falling back to the default purple look. */
+export function triviaTheme(b: TriviaBrand | null | undefined, base: string) {
+  const accent = b?.color || "#ffc531";
+  // Screens use white text, so a light background color would be unreadable: ignore it.
+  const bgOk = !!b?.bg && contrastRatio(b.bg, "#ffffff") >= 3;
+  const onAccent = contrastRatio(accent, "#000000") >= contrastRatio(accent, "#ffffff") ? "#000" : "#fff";
+  return {
+    accent,
+    onAccent,
+    background: bgOk ? (b!.bg as string) : base,
+    image: b?.image || null,
+    opacity: (b?.opacity ?? 100) / 100,
+    logo: b?.logo || null,
+    name: b?.name || null,
+  };
+}
 
 export const KIND_LABEL: Record<TriviaKind, string> = { mc: "Trivia", stump: "Stump the room", predict: "Call it" };
 export const OPTION_COLORS = ["#e5263b", "#1b4fe4", "#f2a900", "#16a34a"];

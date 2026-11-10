@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { KIND_LABEL, OPTION_COLORS, useTriviaState } from "@/lib/trivia";
+import { KIND_LABEL, OPTION_COLORS, triviaTheme, useTriviaState } from "@/lib/trivia";
 
 // Projector view: join code + QR in the lobby, big question and countdown, live answer bars, leaderboard.
 export default function ScreenClient({ code }: { code: string }) {
@@ -13,8 +13,20 @@ export default function ScreenClient({ code }: { code: string }) {
     QRCode.toDataURL(`${window.location.origin}/trivia/${code}/play`, { margin: 1, width: 420 }).then(setQr).catch(() => {});
   }, [code]);
 
-  const shell = "min-h-screen w-full p-8 text-white md:p-12";
-  const bg = { background: "linear-gradient(160deg,#2a1260 0%,#0a0e1a 75%)" };
+  const shell = "relative min-h-screen w-full overflow-hidden p-8 text-white md:p-12";
+  const th = triviaTheme(state?.brand, "linear-gradient(160deg,#2a1260 0%,#0a0e1a 75%)");
+  const bg = { background: th.background };
+  const Photo = th.image ? (
+    <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: `url(${th.image})`, backgroundSize: "cover", backgroundPosition: "center", opacity: th.opacity }} />
+  ) : null;
+  const DoneLogo = th.logo ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <div className="mb-4 flex justify-center"><img src={th.logo} alt={th.name ?? ""} className="h-24 object-contain" /></div>
+  ) : null;
+  const Logo = th.logo ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={th.logo} alt={th.name ?? ""} className="mb-4 h-20 max-w-[60%] object-contain object-left" />
+  ) : null;
   if (missing) return <div className={shell} style={bg}><p className="text-4xl font-black">No game with code {code}</p></div>;
   if (!state) return <div className={shell} style={bg} />;
 
@@ -38,7 +50,7 @@ export default function ScreenClient({ code }: { code: string }) {
         {state.board.slice(0, 8).map((r, i) => (
           <li key={i} className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-2xl font-bold">
             <span>{i + 1}. {r.name}</span>
-            <span className="tabular-nums" style={{ color: "#ffc531" }}>{r.score}</span>
+            <span className="tabular-nums" style={{ color: th.accent }}>{r.score}</span>
           </li>
         ))}
       </ol>
@@ -48,14 +60,16 @@ export default function ScreenClient({ code }: { code: string }) {
   if (game.status === "lobby")
     return (
       <div className={shell} style={bg}>
-        <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
+        {Photo}
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div>
-            <p className="text-lg font-bold uppercase tracking-widest" style={{ color: "#ffc531" }}>Live Trivia</p>
+            {Logo}
+            <p className="text-lg font-bold uppercase tracking-widest" style={{ color: th.accent }}>{th.name ? `${th.name} · Live Trivia` : "Live Trivia"}</p>
             <h1 className="mt-2 text-6xl font-black leading-none" style={{ fontFamily: "var(--font-display)" }}>{game.title}</h1>
             <p className="mt-8 text-2xl">Join on your phone at</p>
             <p className="text-3xl font-black">{host}/trivia</p>
             <p className="mt-4 text-2xl">Code</p>
-            <p className="text-8xl font-black tracking-widest" style={{ color: "#ffc531" }}>{code}</p>
+            <p className="text-8xl font-black tracking-widest" style={{ color: th.accent }}>{code}</p>
             <p className="mt-6 text-3xl font-bold">{state.players} in the room</p>
           </div>
           <div className="flex flex-col items-center gap-4">
@@ -70,10 +84,12 @@ export default function ScreenClient({ code }: { code: string }) {
   if (game.status === "done")
     return (
       <div className={shell} style={bg}>
-        <div className="mx-auto max-w-3xl">
+        {Photo}
+        <div className="relative mx-auto max-w-3xl">
+          {DoneLogo}
           <h1 className="mb-6 text-center text-6xl font-black" style={{ fontFamily: "var(--font-display)" }}>Final scores</h1>
           {game.mode === "team" && state.teams.a !== state.teams.b && (
-            <p className="mb-6 text-center text-4xl font-black" style={{ color: "#ffc531" }}>
+            <p className="mb-6 text-center text-4xl font-black" style={{ color: th.accent }}>
               {state.teams.a > state.teams.b ? game.teamA : game.teamB} wins!
             </p>
           )}
@@ -90,10 +106,12 @@ export default function ScreenClient({ code }: { code: string }) {
 
   return (
     <div className={shell} style={bg}>
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_380px]">
+      {Photo}
+      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_380px]">
         <div>
+          {Logo}
           <div className="flex items-center justify-between">
-            <p className="text-xl font-bold uppercase tracking-widest" style={{ color: "#ffc531" }}>
+            <p className="text-xl font-bold uppercase tracking-widest" style={{ color: th.accent }}>
               {KIND_LABEL[q.kind]} · Question {q.pos + 1} of {game.total}
             </p>
             {!revealing ? (
