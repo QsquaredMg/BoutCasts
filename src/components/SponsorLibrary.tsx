@@ -18,6 +18,7 @@ const HREF: Record<SponsorKind, (id: string) => string> = {
   trivia: (id) => `/trivia/packs/${id}`,
   vote: (id) => `/live-vote/${id}`,
   bracket: (id) => `/predictions/slate/${id}`,
+  game: (id) => `/predictions/${id}`,
   bout: (id) => `/bout/${id}`,
 };
 
@@ -130,7 +131,7 @@ export default function SponsorLibrary() {
 
 // Place one sponsor on a trivia pack, live vote, bracket or bout.
 function PlaceForm({ sponsor, isAdmin, onDone, onCancel }: { sponsor: LibrarySponsor; isAdmin: boolean; onDone: () => void; onCancel: () => void }) {
-  const kinds: SponsorKind[] = isAdmin ? ["trivia", "vote", "bracket", "bout"] : ["trivia", "vote", "bracket"];
+  const kinds: SponsorKind[] = isAdmin ? ["trivia", "vote", "bracket", "game", "bout"] : ["trivia", "vote", "bracket", "game"];
   const [kind, setKind] = useState<SponsorKind>("trivia");
   const [items, setItems] = useState<Item[]>([]);
   const [target, setTarget] = useState("");
@@ -154,8 +155,11 @@ function PlaceForm({ sponsor, isAdmin, onDone, onCancel }: { sponsor: LibrarySpo
         const { data } = await sb.from("live_vote_events").select("id,title").eq("organizer_id", me).neq("tier", "free").is("archived_at", null).order("created_at", { ascending: false }).limit(100);
         rows = (data ?? []) as Item[];
       } else if (kind === "bracket") {
-        const { data } = await sb.from("pred_slates").select("id,title").eq("created_by", me).in("status", ["open", "closed"]).is("archived_at", null).order("created_at", { ascending: false }).limit(100);
+        const { data } = await sb.from("pred_slates").select("id,title").eq("created_by", me).is("archived_at", null).order("created_at", { ascending: false }).limit(100);
         rows = (data ?? []) as Item[];
+      } else if (kind === "game") {
+        const { data } = await sb.from("pred_games").select("id,home_name,away_name").eq("created_by", me).order("created_at", { ascending: false }).limit(100);
+        rows = ((data ?? []) as { id: string; home_name: string; away_name: string }[]).map((g) => ({ id: g.id, title: `${g.home_name} vs ${g.away_name}` }));
       } else {
         const { data } = await sb.from("bouts").select("id,title,competitor_a_name,competitor_b_name").is("deleted_at", null).order("created_at", { ascending: false }).limit(100);
         rows = ((data ?? []) as { id: string; title: string | null; competitor_a_name: string; competitor_b_name: string }[]).map((b) => ({ id: b.id, title: b.title || `${b.competitor_a_name} vs ${b.competitor_b_name}` }));
@@ -186,7 +190,7 @@ function PlaceForm({ sponsor, isAdmin, onDone, onCancel }: { sponsor: LibrarySpo
           {kinds.map((k) => <option key={k} value={k}>{KIND_NAME[k]}</option>)}
         </select>
         <select className={input} style={box} value={target} onChange={(e) => setTarget(e.target.value)} aria-label="Which one">
-          <option value="">{items.length ? "Pick one…" : kind === "vote" || kind === "bracket" ? "Nothing paid yet" : "Nothing here yet"}</option>
+          <option value="">{items.length ? "Pick one…" : kind === "vote" ? "Nothing paid yet" : "Nothing here yet"}</option>
           {items.map((i) => <option key={i.id} value={i.id}>{i.title}</option>)}
         </select>
         <select className={input} style={box} value={level} onChange={(e) => setLevel(e.target.value as SponsorLevel)} aria-label="Level">

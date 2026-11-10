@@ -1,8 +1,8 @@
 // Sponsor library: one sponsor, many placements (trivia packs, live votes, brackets, single bouts).
-export type SponsorKind = "trivia" | "vote" | "bracket" | "bout";
+export type SponsorKind = "trivia" | "vote" | "bracket" | "bout" | "game";
 export type SponsorLevel = "title" | "gold" | "supporter";
 
-export const KIND_NAME: Record<SponsorKind, string> = { trivia: "Trivia pack", vote: "Live vote", bracket: "Prediction bracket", bout: "Bout" };
+export const KIND_NAME: Record<SponsorKind, string> = { trivia: "Trivia pack", vote: "Live vote", bracket: "Prediction bracket", game: "Prediction game", bout: "Bout" };
 export const LEVEL_LABEL: Record<SponsorLevel, string> = { title: "Title sponsor (Presented by)", gold: "Gold", supporter: "Supporter" };
 
 export type LibrarySponsor = {

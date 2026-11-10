@@ -17,7 +17,7 @@ export default function TriviaSponsorBar({
   sponsors: TriviaSponsor[];
   variant: "screen" | "phone";
   /** Where views and taps are counted (default: a trivia pack). */
-  trackKind?: "trivia" | "vote" | "bracket" | "bout";
+  trackKind?: "trivia" | "vote" | "bracket" | "bout" | "game";
   targetId?: string;
   /** Distinguishes one counted view per browser session, e.g. the game code + role. */
   trackKey?: string;

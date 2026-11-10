@@ -1,4 +1,6 @@
 import { cardMetadata } from "@/lib/og/cardRoute";
+import AdBanner from "@/components/AdBanner";
+import SponsorPlacementsPanel from "@/components/SponsorPlacementsPanel";
 import PlacementSponsorStrip from "@/components/PlacementSponsorStrip";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -123,6 +125,8 @@ export default async function GamePage({ params }: Props) {
 
       <div className="pt-body">
       {slate && <div className="mb-5"><PredSponsorStrip bracketId={slate.id} /><PlacementSponsorStrip kind="bracket" targetId={slate.id} variant="page" /></div>}
+      <PlacementSponsorStrip kind="game" targetId={game.id} variant="page" />
+      <div className="mb-5"><AdBanner placement="predictions" /></div>
 
       {game.status === "cancelled" ? (
         <p className="bc-card mb-5 p-5 text-center text-sm">This game was cancelled, so predictions will not be scored.</p>
@@ -159,6 +163,8 @@ export default async function GamePage({ params }: Props) {
           {!mine && !bracketPick && user && <p className="mt-2 text-sm" style={{ color: "var(--text-faint)" }}>You didn&apos;t enter a prediction for this game.</p>}
         </div>
       )}
+
+      {canManage && <div className="mb-5"><SponsorPlacementsPanel kind="game" targetId={game.id} /></div>}
 
       {canManage && slate?.advance_mode === "votes" && (
         <p className="bc-card mb-5 p-4 text-sm" style={{ color: "var(--text-dim)" }}>This bracket advances by crowd votes. Close voting and settle ties from the bracket page.</p>
