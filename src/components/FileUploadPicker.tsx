@@ -16,8 +16,8 @@ type Props = {
 };
 
 const ACCEPT =
-  "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm,image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.svg";
-const MEDIA_ACCEPT = "video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm";
+  "video/mp4,video/webm,video/quicktime,.mov,audio/mpeg,audio/mp4,audio/wav,audio/webm,image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.svg";
+const MEDIA_ACCEPT = "video/mp4,video/webm,video/quicktime,.mov,audio/mpeg,audio/mp4,audio/wav,audio/webm";
 const MAX_BYTES = 777 * 1024 * 1024; // 777MB, matches the storage bucket's limit
 
 function formatBytes(bytes: number) {

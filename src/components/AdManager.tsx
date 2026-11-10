@@ -305,7 +305,7 @@ export default function AdManager({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.svg,video/mp4,video/webm"
+                  accept="image/*,.heic,.heif,.avif,.bmp,.tif,.tiff,.svg,video/mp4,video/webm,video/quicktime,.mov"
                   onChange={handleFilePick}
                   className="text-xs"
                 />
@@ -317,7 +317,7 @@ export default function AdManager({
               <div className="flex flex-wrap gap-2">
                 <input
                   type="url"
-                  placeholder="https://… (.jpg, .png, .gif, .mp4, .webm)"
+                  placeholder="https://… (.jpg, .png, .gif, .mp4, .mov, .webm)"
                   value={form.media_url}
                   onChange={(e) => {
                     const v = e.target.value;

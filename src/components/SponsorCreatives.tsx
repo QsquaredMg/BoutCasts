@@ -242,7 +242,7 @@ export default function SponsorCreatives() {
             <input
               ref={fileRef}
               type="file"
-              accept={placement === "preroll" ? "video/mp4,video/webm" : "image/*,.heic,.heif,.avif,video/mp4,video/webm"}
+              accept={placement === "preroll" ? "video/mp4,video/webm,video/quicktime,.mov" : "image/*,.heic,.heif,.avif,video/mp4,video/webm,video/quicktime,.mov"}
               onChange={handleFilePick}
               className="text-xs"
             />
