@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { drawFooter, drawHeader, loadImg, GW, GH, type GraphicBrand } from "@/lib/predictions/graphicParts";
 import { crowdView, type CrowdStats } from "@/lib/predictions/crowd";
+import { crowdShareCaption } from "@/lib/predictions/shareCaption";
+import { shareGraphic } from "@/lib/predictions/shareGraphic";
 
 type Opts = {
   stats: CrowdStats; home: string; away: string; homeLogo?: string | null; awayLogo?: string | null;
@@ -93,6 +95,7 @@ async function draw(canvas: HTMLCanvasElement, o: Opts) {
 export default function CrowdGraphic({ stats, home, away, homeLogo, awayLogo, brand, presenter, title }: Opts & { title: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [canShare, setCanShare] = useState(false);
+  const [note, setNote] = useState("");
   const key = JSON.stringify([stats, home, away, homeLogo, awayLogo, brand, presenter]);
   const fileName = `crowd-picks-${title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
@@ -110,15 +113,8 @@ export default function CrowdGraphic({ stats, home, away, homeLogo, awayLogo, br
     a.click();
   }
   function share() {
-    ref.current!.toBlob(async (b) => {
-      if (!b) return;
-      const file = new File([b], `${fileName}.png`, { type: "image/png" });
-      try {
-        if (navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title });
-      } catch {
-        // cancelled
-      }
-    });
+    setNote("");
+    shareGraphic(ref.current!, { fileName, title, caption: crowdShareCaption(home, away) }, setNote);
   }
 
   return (
@@ -131,6 +127,7 @@ export default function CrowdGraphic({ stats, home, away, homeLogo, awayLogo, br
           <button type="button" onClick={share} className="rounded-full border px-4 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--border)" }}>Share…</button>
         ) : <span />}
       </div>
+      {note && <p className="mt-2 text-center text-xs" role="status" style={{ color: "var(--text-dim)" }}>{note}</p>}
     </div>
   );
 }

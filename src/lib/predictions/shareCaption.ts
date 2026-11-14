@@ -49,6 +49,14 @@ export function slateShareCaption(title: string, locksAtIso: string | null): { t
   return { text: `🏆 ${title}: think you can beat me? Make your picks and climb the leaderboard. 👉 Lock in your picks:` };
 }
 
+export function crowdShareCaption(home: string, away: string): string {
+  return `👀 The crowd has spoken on ${home} vs ${away}. Think you would have called it differently? 👉 Join the next game:`;
+}
+
+export function winnersShareCaption(title: string, subtitle: string): string {
+  return `🏆 ${title}: ${subtitle}. Think you can beat them next time? 👉 Make your picks:`;
+}
+
 /** "Sat 7:00 PM" within the coming week, "Sat, Nov 21, 7:00 PM" further out. Uses the viewer's own locale and time zone. */
 export function formatLock(iso: string, now = Date.now()): string {
   const d = new Date(iso);
