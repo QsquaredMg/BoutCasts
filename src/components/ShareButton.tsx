@@ -38,7 +38,8 @@ function intentUrl(n: Network, url: string, text: string): string {
     case "x":
       return `https://twitter.com/intent/tweet?text=${t}&url=${u}`;
     case "facebook":
-      return `https://www.facebook.com/sharer/sharer.php?u=${u}&quote=${t}`;
+      // Not the sharer.php pop-up: it can hang on "Posting" without ever posting. See toNetwork.
+      return "https://www.facebook.com/";
     case "whatsapp":
       return `https://wa.me/?text=${both}`;
     case "threads":
@@ -174,15 +175,26 @@ export default function ShareButton({
     const caption = getShareText();
     const href = intentUrl(n, link, caption);
     if (n === "facebook") {
-      // Facebook ignores any prefilled text and builds the post from the page's preview alone.
-      // So the caption and link go on the clipboard, ready to paste into the post. The copy starts
-      // here, inside the tap. The sheet stays open so the note stays visible when they come back.
-      void copyText(`${caption} ${link}`).then((ok) =>
-        setNote(ok ? "Caption copied. Paste it into your Facebook post." : "Facebook may not fill in the caption. Use Copy link below, then add your own words."),
+      // Facebook's share pop-up (sharer.php) is unreliable: it can sit on "Posting" forever and never
+      // create the post. So it isn't used. The caption and link go on the clipboard (started here,
+      // inside the tap), then:
+      //  - phones and tablets: the device share sheet, where the Facebook app does the posting;
+      //  - computers: Facebook itself in a new tab, where they paste into a normal post. Pasting the
+      //    link makes Facebook build the card from the page's preview.
+      // The sheet stays open so the note stays visible when they come back.
+      const copied = copyText(`${caption} ${link}`);
+      const touch = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+      if (touch && typeof navigator.share === "function") {
+        navigator.share({ title: "BoutCasts", text: caption, url: link }).then(
+          () => close(),
+          () => { /* cancelled: leave the sheet open */ },
+        );
+        return;
+      }
+      window.open(href, "_blank", "noopener,noreferrer");
+      void copied.then((ok) =>
+        setNote(ok ? "Caption and link copied. Paste them into a new Facebook post." : "Couldn't copy. Use Copy link below, then paste it into a new Facebook post."),
       );
-      // No noopener/noreferrer here: Facebook's share window talks back to the page that opened it
-      // to finish and close itself. Without that link it posts but then spins forever.
-      window.open(href, "fbshare", "width=600,height=640");
       return;
     }
     if (n === "email" || n === "sms") {
