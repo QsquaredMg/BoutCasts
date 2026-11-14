@@ -126,3 +126,43 @@ end $fn$;
 
 -- New games use version 3. Existing rows keep the version they were created with.
 alter table public.pred_games alter column scoring_version set default 3;
+
+-- Leaderboards count a "perfect call" (both scores exact) as pts_exact = 6 on v1/v2 games.
+-- On v3 games both-exact is stored as pts_exact = 1, so count either. (v1/v2 only ever store 0, 2 or 6.)
+create or replace function public.pred_leaderboard(p_scope text, p_slate uuid default null::uuid, p_limit integer default 25)
+returns table(user_id uuid, username text, avatar_url text, points bigint, games bigint, winners bigint, perfect bigint)
+language sql stable security definer set search_path = public as $fn$
+  with pts as (
+    select p.user_id, p.pts_total, p.pts_winner, p.pts_exact, g.slate_id, g.starts_at, g.is_private
+      from pred_predictions p join pred_games g on g.id = p.game_id
+     where p.graded_at is not null and g.status = 'final'
+    union all
+    select b.user_id, b.pts_total, b.pts_winner, b.pts_exact, g.slate_id, g.starts_at, g.is_private
+      from pred_bracket_picks b join pred_games g on g.id = b.game_id
+     where b.graded_at is not null and g.status = 'final'
+  )
+  select x.user_id, pr.username, pr.avatar_url, sum(x.pts_total)::bigint, count(*)::bigint,
+         count(*) filter (where x.pts_winner > 0)::bigint, count(*) filter (where x.pts_exact in (1, 6))::bigint
+    from pts x
+    left join profiles pr on pr.id = x.user_id
+   where case
+           when p_slate is not null then x.slate_id = p_slate
+           when p_scope = 'week' then x.starts_at >= now() - interval '7 days' and not x.is_private
+           else x.starts_at >= date_trunc('year', now()) and not x.is_private
+         end
+   group by x.user_id, pr.username, pr.avatar_url
+   order by 4 desc, 7 desc, 6 desc, 5 desc, pr.username
+   limit least(greatest(p_limit,1),100)
+$fn$;
+
+create or replace function public.pred_entrant_standings(p_slate uuid)
+returns table(entrant_name text, points bigint, games bigint, winners bigint, perfect bigint)
+language sql stable security definer set search_path = public as $fn$
+  select min(e.entrant_name), sum(e.pts_total)::bigint, count(*)::bigint,
+         count(*) filter (where e.pts_winner > 0)::bigint, count(*) filter (where e.pts_exact in (1, 6))::bigint
+    from pred_entrant_picks e join pred_games g on g.id = e.game_id
+   where g.slate_id = p_slate and g.status = 'final' and e.graded_at is not null
+   group by lower(btrim(e.entrant_name))
+   order by 2 desc
+   limit 100
+$fn$;

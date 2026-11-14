@@ -157,7 +157,7 @@ export default async function GamePage({ params }: Props) {
                 <>
                   <br />
                   <strong style={{ color: "var(--blue)" }}>{mine.pts_total} points</strong>
-                  {" "}({mine.pts_entry ? `${mine.pts_entry} entry + ` : ""}{mine.pts_winner} winner + {mine.pts_exact} exact score + {mine.pts_close} close)
+                  {" "}({mine.pts_entry ? `${mine.pts_entry} entry + ` : ""}{mine.pts_winner} winner + {mine.pts_exact} exact score + {mine.pts_close} {game.scoring_version >= 3 ? "margin & total" : "close"})
                 </>
               )}
             </p>
