@@ -6,7 +6,7 @@ import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import Funnel, { type Theme } from "@/components/funnel/Funnel";
 import { VoteVisual, type LiveBoutSample } from "@/components/funnel/FunnelVisuals";
 import LocalTime from "@/components/LocalTime";
-import { GAME_FIELDS, isLocked, type PredGame } from "@/lib/predictions/types";
+import { GAME_FIELDS, isLocked, LOCK_GRACE_MS, type PredGame } from "@/lib/predictions/types";
 
 // Home: built on the same funnel layout as every product page. What's live comes right
 // under the hero, then how it works, the products, and the door for organizers (/host).
@@ -65,7 +65,7 @@ async function loadData() {
       .eq("status", "scheduled")
       .eq("is_private", false)
       .is("round", null)
-      .gte("starts_at", new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .gte("starts_at", new Date(Date.now() - LOCK_GRACE_MS).toISOString())
       .order("starts_at", { ascending: true })
       .limit(24),
   ]);
