@@ -180,7 +180,9 @@ export default function ShareButton({
       void copyText(`${caption} ${link}`).then((ok) =>
         setNote(ok ? "Caption copied. Paste it into your Facebook post." : "Facebook may not fill in the caption. Use Copy link below, then add your own words."),
       );
-      window.open(href, "_blank", "noopener,noreferrer,width=600,height=640");
+      // No noopener/noreferrer here: Facebook's share window talks back to the page that opened it
+      // to finish and close itself. Without that link it posts but then spins forever.
+      window.open(href, "fbshare", "width=600,height=640");
       return;
     }
     if (n === "email" || n === "sms") {
