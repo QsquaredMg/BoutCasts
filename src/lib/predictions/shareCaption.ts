@@ -11,13 +11,24 @@ import { isLocked, lockAtMs, type PredGame } from "./types";
  */
 export const LOCK_TOKEN = "{lock}";
 
-type GameForCaption = Pick<PredGame, "home_name" | "away_name" | "starts_at" | "status" | "home_score" | "away_score">;
+type GameForCaption = Pick<PredGame, "home_name" | "away_name" | "starts_at" | "status" | "home_score" | "away_score" | "round">;
 
-export function gameShareCaption(g: GameForCaption): { text: string; lockAtIso?: string } {
+/**
+ * `bracketLocksAtIso` is the bracket's own lock time. Games in a bracket (round !== null) don't lock
+ * at their own start: every bracket pick locks at once, so never advertise the game's start + grace.
+ */
+export function gameShareCaption(g: GameForCaption, bracketLocksAtIso?: string | null): { text: string; lockAtIso?: string } {
   if (g.status === "final" && g.home_score != null && g.away_score != null) {
     return {
       text: `Final: ${g.home_name} ${g.home_score}, ${g.away_name} ${g.away_score}. 🔥 Did you call it? Beat the leaderboard on the next one. 👉 See how the picks landed:`,
     };
+  }
+  if (g.round !== null) {
+    const open = g.status === "scheduled" && (!bracketLocksAtIso || new Date(bracketLocksAtIso).getTime() > Date.now());
+    if (!open) return { text: `${g.home_name} vs ${g.away_name} is underway. 🏆 Get your picks in on the next one. 👉 Join the game:` };
+    return bracketLocksAtIso
+      ? { text: `🏆 ${g.home_name} vs ${g.away_name}: think you can beat me? Fill out your bracket before the bell. Picks lock ${LOCK_TOKEN}. 👉 Lock in your picks:`, lockAtIso: bracketLocksAtIso }
+      : { text: `🏆 ${g.home_name} vs ${g.away_name}: think you can beat me? Fill out your bracket and climb the leaderboard. 👉 Lock in your picks:` };
   }
   if (isLocked(g)) {
     return { text: `${g.home_name} vs ${g.away_name} is underway. 🥊 Get your picks in on the next one. 👉 Join the game:` };
