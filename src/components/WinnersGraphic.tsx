@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { drawFooter, drawHeader, loadImg, GW, GH, type GraphicBrand } from "@/lib/predictions/graphicParts";
+import { winnersShareCaption } from "@/lib/predictions/shareCaption";
+import { shareGraphic } from "@/lib/predictions/shareGraphic";
 
 export type { GraphicBrand };
 
@@ -107,6 +109,7 @@ export default function WinnersGraphic({
 }: { title: string; subtitle: string; winners: Winner[]; homeLogo?: string | null; awayLogo?: string | null; brand?: GraphicBrand | null; presenter?: string | null; fileName?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [canShare, setCanShare] = useState(false);
+  const [note, setNote] = useState("");
   const key = JSON.stringify([title, subtitle, winners, homeLogo, awayLogo, brand, presenter]);
 
   useEffect(() => {
@@ -123,15 +126,8 @@ export default function WinnersGraphic({
     a.click();
   }
   function share() {
-    ref.current!.toBlob(async (b) => {
-      if (!b) return;
-      const file = new File([b], `${fileName}.png`, { type: "image/png" });
-      try {
-        if (navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title });
-      } catch {
-        // cancelled
-      }
-    });
+    setNote("");
+    shareGraphic(ref.current!, { fileName, title, caption: winnersShareCaption(title, subtitle) }, setNote);
   }
 
   return (
@@ -146,6 +142,7 @@ export default function WinnersGraphic({
           <span />
         )}
       </div>
+      {note && <p className="mt-2 text-center text-xs" role="status" style={{ color: "var(--text-dim)" }}>{note}</p>}
     </div>
   );
 }
