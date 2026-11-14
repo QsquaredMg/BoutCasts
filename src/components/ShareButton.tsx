@@ -170,7 +170,19 @@ export default function ShareButton({
 
   function toNetwork(n: Network) {
     logShare(track, "share");
-    const href = intentUrl(n, linkToShare(), getShareText());
+    const link = linkToShare();
+    const caption = getShareText();
+    const href = intentUrl(n, link, caption);
+    if (n === "facebook") {
+      // Facebook ignores any prefilled text and builds the post from the page's preview alone.
+      // So the caption and link go on the clipboard, ready to paste into the post. The copy starts
+      // here, inside the tap. The sheet stays open so the note stays visible when they come back.
+      void copyText(`${caption} ${link}`).then((ok) =>
+        setNote(ok ? "Caption copied. Paste it into your Facebook post." : "Facebook may not fill in the caption. Use Copy link below, then add your own words."),
+      );
+      window.open(href, "_blank", "noopener,noreferrer,width=600,height=640");
+      return;
+    }
     if (n === "email" || n === "sms") {
       // open mail/messages through a temporary link rather than navigating the page
       const a = document.createElement("a");
