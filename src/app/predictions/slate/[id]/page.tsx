@@ -12,6 +12,7 @@ import TourneyLeaderboard from "@/components/TourneyLeaderboard";
 import WinnersGraphic from "@/components/WinnersGraphic";
 import PredHero from "@/components/PredHero";
 import ShareButton from "@/components/ShareButton";
+import { slateShareCaption } from "@/lib/predictions/shareCaption";
 import BracketOwnerPanel from "@/components/BracketOwnerPanel";
 import EliminationBracket, { type BracketPick } from "@/components/EliminationBracket";
 import PredSponsorStrip from "@/components/PredSponsorStrip";
@@ -74,6 +75,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
   const open = slate.status === "open" && (!slate.closes_at || !hasPassed(slate.closes_at));
   const beforeLock = !!slate.locks_at && !hasPassed(slate.locks_at);
   const canPredict = isElim && open && beforeLock;
+  const shareCaption = slateShareCaption(slate.title, isElim && open && beforeLock ? slate.locks_at : null);
   const finals = games.filter((g) => g.status === "final").length;
   const allFinal = games.length > 0 && finals === games.length;
   const totalRounds = Math.max(...games.map((g) => g.round ?? 1), 1);
@@ -132,7 +134,7 @@ export default async function SlatePage({ params, searchParams }: Props) {
           {isOwner && !isElim && open && (
             <Link href={`/predictions/new?slate=${slate.id}`} className="pt-gold">Add a game</Link>
           )}
-          {slate.status !== "pending" && <ShareButton title={slate.title} text={`${slate.title}: make your picks on BoutCasts!`} imageUrl={`/predictions/slate/${slate.id}/vs`} />}
+          {slate.status !== "pending" && <ShareButton title={slate.title} text={shareCaption.text} lockAtIso={shareCaption.lockAtIso} imageUrl={`/predictions/slate/${slate.id}/vs`} />}
         </div>
       </PredHero>
 
