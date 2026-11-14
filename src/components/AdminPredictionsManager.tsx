@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import LocalTime from "@/components/LocalTime";
 import ShareButton from "@/components/ShareButton";
 import { useNow } from "@/lib/predictions/useNow";
+import { gameShareCaption, slateShareCaption } from "@/lib/predictions/shareCaption";
+import type { PredGame } from "@/lib/predictions/types";
 
 export type AdminPredRow = {
   kind: "bracket" | "game";
@@ -148,18 +150,16 @@ export default function AdminPredictionsManager({ rows, teams = {} }: { rows: Ad
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href={href} className={btn} style={border}>Manage / enter score</Link>
-              {r.status !== "cancelled" && r.status !== "pending" && (
-                <ShareButton
-                  title={r.title}
-                  url={href}
-                  label="🔗 Share"
-                  text={
-                    r.kind === "bracket"
-                      ? `${r.title} — fill out your bracket on BoutCasts. Free to play!`
-                      : `${r.title} — make your pick on BoutCasts. Free to play!`
-                  }
-                />
-              )}
+              {r.status !== "cancelled" && r.status !== "pending" && (() => {
+                // Same challenge-and-deadline captions as the public pages.
+                const t = teams[r.id];
+                const cap = r.kind === "bracket"
+                  ? slateShareCaption(r.title, r.status === "open" && future ? r.starts_at : null)
+                  : t && r.starts_at
+                    ? gameShareCaption({ home_name: t.home_name, away_name: t.away_name, starts_at: r.starts_at, status: r.status as PredGame["status"], home_score: t.home_score, away_score: t.away_score, round: null })
+                    : { text: `${r.title} — make your pick on BoutCasts. Free to play!` } as { text: string; lockAtIso?: string };
+                return <ShareButton title={r.title} url={href} label="🔗 Share" text={cap.text} lockAtIso={cap.lockAtIso} />;
+              })()}
               {r.kind === "game" && r.status === "scheduled" && future && (
                 <button type="button" disabled={busy === k} className={btn} style={border} onClick={() => run(k, "admin_start_pred_game", { p_game: r.id }, "Game started. Predictions stay open for 15 more minutes.")}>Start now</button>
               )}
