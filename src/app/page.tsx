@@ -5,6 +5,8 @@ import { isPublicBout, PUBLIC_BOUT_FIELDS } from "@/lib/publicBouts";
 import ShowcaseCards from "@/components/showcases/ShowcaseCards";
 import Funnel, { type Theme } from "@/components/funnel/Funnel";
 import { VoteVisual, type LiveBoutSample } from "@/components/funnel/FunnelVisuals";
+import LocalTime from "@/components/LocalTime";
+import { GAME_FIELDS, isLocked, type PredGame } from "@/lib/predictions/types";
 
 // Home: built on the same funnel layout as every product page. What's live comes right
 // under the hero, then how it works, the products, and the door for organizers (/host).
@@ -46,7 +48,7 @@ function catName(c: BoutRow["categories"]) {
 
 async function loadData() {
   const supabase = await createClient();
-  const [{ data: boutRows }, { data: lvRows }, { data: auth }] = await Promise.all([
+  const [{ data: boutRows }, { data: lvRows }, { data: auth }, { data: predRows }] = await Promise.all([
     supabase
       .from("bouts")
       .select(`id, title, status, competitor_a_name, competitor_b_name, bracket_key, round_number, categories(name), ${PUBLIC_BOUT_FIELDS}`)
@@ -55,8 +57,20 @@ async function loadData() {
       .limit(24),
     supabase.rpc("get_explore_live_votes", { p_limit: 12 }),
     supabase.auth.getUser(),
+    // Public single games still open for picks. Games that started long ago are left out in the
+    // query; isLocked() below applies the exact lock rule (start time plus the 15-minute grace).
+    supabase
+      .from("pred_games")
+      .select(GAME_FIELDS)
+      .eq("status", "scheduled")
+      .eq("is_private", false)
+      .is("round", null)
+      .gte("starts_at", new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(24),
   ]);
-  const bouts = ((boutRows ?? []) as unknown as BoutRow[]).filter(isPublicBout).slice(0, 8);
+  const predictions = ((predRows ?? []) as PredGame[]).filter((g) => !isLocked(g)).slice(0, 6);
+  const bouts =((boutRows ?? []) as unknown as BoutRow[]).filter(isPublicBout).slice(0, 8);
 
   const tallies = new Map<string, number>();
   const sideA = new Map<string, number>();
@@ -89,7 +103,7 @@ async function loadData() {
       .neq("status", "closed");
     myEvents = count ?? 0;
   }
-  return { bouts, tallies, liveVotes, signedIn: !!user, myEvents, heroBout };
+  return { bouts, tallies, liveVotes, predictions, signedIn: !!user, myEvents, heroBout };
 }
 
 const theme: Theme = {
@@ -113,7 +127,7 @@ const DOORS: { emoji: string; name: string; line: string; cta: string; href: str
 ];
 
 export default async function Home() {
-  const { bouts, tallies, liveVotes, signedIn, myEvents, heroBout } = await loadData();
+  const { bouts, tallies, liveVotes, predictions, signedIn, myEvents, heroBout } = await loadData();
   const firstBout = bouts[0];
   const liveCount = bouts.length + liveVotes.length;
   const ink = { fontFamily: "var(--cond), 'Arial Narrow', sans-serif", textTransform: "uppercase" as const, fontWeight: 900, color: "#0a0e1a" };
@@ -147,6 +161,37 @@ export default async function Home() {
                     {(tallies.get(b.id) ?? 0).toLocaleString()} {tallies.get(b.id) === 1 ? "vote" : "votes"}
                   </span>
                   <span className="font-bold" style={{ color: "#c81f3c" }}>Vote →</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section id="predictions" className="mb-10">
+        <SectionHead title="Live predictions" href="/predictions" linkLabel="See all" />
+        {predictions.length === 0 ? (
+          <EmptyCard text="No games are open for picks right now. See past results, or start a game for your friends." href="/predictions" cta="Predictions" />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {predictions.map((g) => (
+              <Link key={g.id} href={`/predictions/${g.id}`} className="bc-card flex min-w-0 flex-col gap-3 p-4 transition-transform hover:-translate-y-0.5" style={{ borderRadius: 22 }}>
+                <div className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-wide">
+                  <span className="truncate" style={{ color: "var(--text-faint)" }}>
+                    <LocalTime iso={g.starts_at} />
+                  </span>
+                  <span className="flex flex-shrink-0 items-center gap-1.5" style={{ color: "#1b4fe4" }}>
+                    <span className="bc-live-dot" /> Open for picks
+                  </span>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                  <span className="line-clamp-2 text-sm font-bold">{g.home_name}</span>
+                  <span className="text-[11px] font-black" style={{ color: "var(--text-faint)" }}>VS</span>
+                  <span className="line-clamp-2 text-right text-sm font-bold">{g.away_name}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span style={{ color: "var(--text-faint)" }}>Call the winner and the score</span>
+                  <span className="font-bold" style={{ color: "#c81f3c" }}>Predict →</span>
                 </div>
               </Link>
             ))}
@@ -239,7 +284,8 @@ export default async function Home() {
       }}
       crossLinks={[
         { label: "Schools", href: "/schools" },
-                { label: "How it works", href: "/how-it-works" },
+        { label: "Predictions", href: "/predictions" },
+        { label: "How it works", href: "/how-it-works" },
         ...(signedIn ? [] : [{ label: "Log in", href: "/login" }]),
       ]}
     />
