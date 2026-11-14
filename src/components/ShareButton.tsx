@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { logShare, type ShareTarget } from "@/lib/shareLog";
+import { LOCK_TOKEN, formatLock } from "@/lib/predictions/shareCaption";
 
 type Network =
   | "x"
@@ -73,6 +74,7 @@ export default function ShareButton({
   imageUrl,
   storyImageUrl,
   url,
+  lockAtIso,
 }: {
   title: string;
   text?: string;
@@ -88,6 +90,8 @@ export default function ShareButton({
   storyImageUrl?: string;
   /** Link to share (a path like /predictions/123 works). Defaults to the page being viewed. */
   url?: string;
+  /** When picks lock. Replaces a {lock} token in `text` with the sharer's local time. */
+  lockAtIso?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -98,7 +102,11 @@ export default function ShareButton({
   const openerRef = useRef<HTMLButtonElement>(null);
 
   const linkToShare = () => new URL(url ?? window.location.href, window.location.href).href;
-  const shareText = text ?? `${title} — cast your vote, or start your own Bout, on BoutCasts!`;
+  // Worked out when someone taps share (not at render) so a {lock} token becomes *their* local time.
+  const getShareText = () => {
+    const base = text ?? `${title} — cast your vote, or start your own Bout, on BoutCasts!`;
+    return lockAtIso ? base.replaceAll(LOCK_TOKEN, formatLock(lockAtIso)) : base.replaceAll(LOCK_TOKEN, "soon");
+  };
 
   useEffect(() => {
     // navigator isn't available during server render
@@ -134,6 +142,7 @@ export default function ShareButton({
   async function nativeShare() {
     logShare(track, "share");
     const url = linkToShare();
+    const shareText = getShareText();
     if (imageUrl && navigator.canShare) {
       try {
         const res = await fetch(imageUrl);
@@ -161,7 +170,7 @@ export default function ShareButton({
 
   function toNetwork(n: Network) {
     logShare(track, "share");
-    const href = intentUrl(n, linkToShare(), shareText);
+    const href = intentUrl(n, linkToShare(), getShareText());
     if (n === "email" || n === "sms") {
       // open mail/messages through a temporary link rather than navigating the page
       const a = document.createElement("a");
@@ -202,7 +211,7 @@ export default function ShareButton({
     logShare(track, "share");
     const url = linkToShare();
     const forStory = !!storyImageUrl;
-    const copiedText = await copyText(forStory ? url : `${shareText} ${url}`);
+    const copiedText = await copyText(forStory ? url : `${getShareText()} ${url}`);
     const graphic = storyImageUrl ?? imageUrl;
     if (graphic) {
       try {

@@ -13,6 +13,7 @@ import CrowdSummary from "@/components/CrowdSummary";
 import CrowdGraphic from "@/components/CrowdGraphic";
 import type { CrowdStats } from "@/lib/predictions/crowd";
 import ShareButton from "@/components/ShareButton";
+import { gameShareCaption } from "@/lib/predictions/shareCaption";
 import EntrantPicksPanel from "@/components/EntrantPicksPanel";
 import { GAME_FIELDS, hasPassed, isLocked, type PredGame, type PredPrediction } from "@/lib/predictions/types";
 
@@ -74,7 +75,8 @@ export default async function GamePage({ params }: Props) {
     ? ((await supabase.from("pred_bracket_teams").select("name").eq("id", bracketPick.team_id).maybeSingle()).data?.name ?? "Team")
     : null;
   const final = game.status === "final";
-  const graded = all.filter((p) => p.pts_total != null);
+  const shareCaption = gameShareCaption(game);
+  const graded =all.filter((p) => p.pts_total != null);
   const gradedEntrants = entrants.filter((e) => e.pts_total != null);
   const winners = [
     ...graded.map((p) => ({ name: names[p.user_id] ?? "Player", points: p.pts_total as number, detail: `Picked ${p.pred_home}–${p.pred_away}` })),
@@ -115,7 +117,7 @@ export default async function GamePage({ params }: Props) {
             <PredTeam name={game.away_name} logo={game.away_logo} size={84} />
           </div>
           <div className="mt-6 flex justify-center">
-            <ShareButton imageUrl={`/predictions/${game.id}/vs`} title={`${game.home_name} vs ${game.away_name}`} text={final && game.home_score != null && game.away_score != null ? `Final: ${game.home_name} ${game.home_score}, ${game.away_name} ${game.away_score}. See how the picks landed on BoutCasts!` : `${game.home_name} vs ${game.away_name}: call the winner and the score on BoutCasts!`} />
+            <ShareButton imageUrl={`/predictions/${game.id}/vs`} title={`${game.home_name} vs ${game.away_name}`} text={shareCaption.text} lockAtIso={shareCaption.lockAtIso} />
           </div>
         </div>
       </header>
