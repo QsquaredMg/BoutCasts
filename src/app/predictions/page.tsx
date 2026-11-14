@@ -5,7 +5,7 @@ import GameCard from "@/components/GameCard";
 import PredHero from "@/components/PredHero";
 import PredLeaderboardTable from "@/components/PredLeaderboardTable";
 import { GAME_FIELDS, isLocked, type LeaderRow, type PredGame } from "@/lib/predictions/types";
-import { SCORING } from "@/lib/predictions/scoring";
+import { SCORING_V3 } from "@/lib/predictions/scoring";
 import PredPricing from "@/components/PredPricing";
 
 export const metadata: Metadata = {
@@ -47,7 +47,7 @@ export default async function PredictionsPage() {
         live
         wide
         title="Call the game. Call the score."
-        sub={<>Pick the winner and the final score before the game starts. Call the winner for {SCORING.winner} points, then earn bonus points for nailing the score or getting close.</>}
+        sub={<>Pick the winner and the final score before the game starts. Call the winner for {SCORING_V3.winner} points, then earn more the closer you get on the margin and the total.</>}
       >
         <div className="pt-cta">
           <Link href="/predictions/start" className="pt-gold">Start a game</Link>

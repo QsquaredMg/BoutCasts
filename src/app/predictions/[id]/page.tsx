@@ -236,7 +236,9 @@ export default async function GamePage({ params }: Props) {
       <p className="text-center text-xs" style={{ color: "var(--text-faint)" }}>
         {game.scoring_version === 1
           ? "Scoring: 2 for entering · 3 correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5."
-          : "Scoring: 5 for the correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5."}
+          : game.scoring_version === 2
+            ? "Scoring: 5 for the correct winner · 6 both scores exact (2 for one) · 2 if within 1–2 combined points, 1 if within 3–5."
+            : "Scoring: 5 for the correct winner · up to 3 for the margin of victory · up to 2 for the combined score · 1 more for both scores exact. The closer you are, the more you earn. A perfect call is 11."}
       </p>
       </div>
     </>

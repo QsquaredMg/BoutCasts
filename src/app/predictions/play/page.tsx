@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { cond } from "../font";
-import { SCORING } from "@/lib/predictions/scoring";
+import { SCORING_V3 } from "@/lib/predictions/scoring";
 import { BRACKET_PRICING, TOURNEY_TIERS, money } from "@/lib/predictions/pricing";
 import s from "./play.module.css";
 import { createClient } from "@/lib/supabase/server";
@@ -51,7 +51,7 @@ const PEOPLE = [
   { n: "Luis R.", p: 31, bg: "linear-gradient(135deg,#0e7c6b,#4cc2a8)" },
 ];
 
-const bar = (v: number): CSSProperties => ({ width: `${(v / SCORING.perfect) * 100}%` });
+const bar = (v: number): CSSProperties => ({ width: `${(v / SCORING_V3.perfect) * 100}%` });
 
 export default async function PredictionsFunnelPage() {
   // Live predictions: public games open for picks, plus games that have started and are not final yet.
@@ -112,7 +112,7 @@ export default async function PredictionsFunnelPage() {
                 <div className={s.slipFoot}>
                   <span className={s.lock}>Locks 15 min after kickoff</span>
                 </div>
-                <div className={`${s.stamp} ${s.cond}`}>+{SCORING.perfect}<small>Perfect call</small></div>
+                <div className={`${s.stamp} ${s.cond}`}>+{SCORING_V3.perfect}<small>Perfect call</small></div>
               </div>
               <div className={`${s.chip} ${s.chipA}`}>
                 <em>Weekly leaderboard</em>
@@ -177,29 +177,28 @@ export default async function PredictionsFunnelPage() {
         <div className={s.wrap}>
           <div className={s.scoreGrid}>
             <div>
-              <div className={s.big}>{SCORING.perfect}</div>
+              <div className={s.big}>{SCORING_V3.perfect}</div>
               <div className={s.bigCap}>points for a perfect call</div>
               <p style={{ color: "#b9c4ee", lineHeight: 1.6, marginTop: 14, maxWidth: "26em" }}>
-                Get the winner, then chase the bonus for the score. Every game stays interesting until the final whistle.
+                Get the winner, then earn more the closer you are on the margin and the total. A near miss still scores, and every game stays interesting until the final whistle.
               </p>
             </div>
             <div className={s.rows}>
               <div className={`${s.row} ${s.rowPerfect}`}>
                 <span>Perfect call</span>
-                <div className={s.track}><div className={s.fillB} style={bar(SCORING.winner)} /><div className={s.fillG} style={bar(SCORING.bothExact)} /></div>
-                <span className={s.val}>{SCORING.perfect}</span>
+                <div className={s.track}><div className={s.fillB} style={bar(SCORING_V3.winner)} /><div className={s.fillG} style={bar(SCORING_V3.margin + SCORING_V3.total + SCORING_V3.exact)} /></div>
+                <span className={s.val}>{SCORING_V3.perfect}</span>
               </div>
               {[
-                ["Correct winner", SCORING.winner, s.fillB],
-                ["Both scores exact", SCORING.bothExact, s.fillG],
-                ["One score exact", SCORING.oneExact, s.fillS],
-                ["Off by 1 or 2 total", SCORING.closeNear, s.fillS],
-                ["Off by 3 to 5 total", SCORING.closeFar, s.fillS],
-              ].map(([k, v, f]) => (
+                ["Correct winner", SCORING_V3.winner, "+5", s.fillB],
+                ["Margin of victory", SCORING_V3.margin, "up to +3", s.fillS],
+                ["Combined score", SCORING_V3.total, "up to +2", s.fillS],
+                ["Both scores exact", SCORING_V3.exact, "+1", s.fillG],
+              ].map(([k, v, label, f]) => (
                 <div key={k as string} className={s.row}>
                   <span>{k as string}</span>
                   <div className={s.track}><div className={f as string} style={bar(v as number)} /></div>
-                  <span className={s.val}>+{v as number}</span>
+                  <span className={s.val}>{label as string}</span>
                 </div>
               ))}
             </div>
