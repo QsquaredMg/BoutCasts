@@ -165,7 +165,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
         eyebrow="School elections"
         title="Sign in to run a school election"
         body="Set up a ballot, load your roster and run voting from iPads at a booth."
-        next={editing ? `/school-election/${editId}/edit` : "/school-election/new"}
+        next={editing ? `/school-election/${editId}/edit` : `/school-election/new${typeof window !== "undefined" ? window.location.search : ""}`}
       />
     );
   }
