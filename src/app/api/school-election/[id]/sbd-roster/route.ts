@@ -34,9 +34,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const raceIds = (races ?? []).map((x) => x.id);
   const { data: cands } = raceIds.length ? await admin.from("live_vote_options").select("name").in("event_id", raceIds) : { data: [] as { name: string }[] };
   const blocked = new Set([...(seats ?? []).map((x) => normName(x.label)), ...(cands ?? []).map((x) => normName(x.name))]);
-  const { data: existing } = await admin.from("election_voters").select("code, name_norm, student_ref").eq("election_id", id);
-  const haveRef = new Set((existing ?? []).map((x) => x.student_ref).filter(Boolean));
-  const haveName = new Set((existing ?? []).map((x) => x.name_norm));
+  // Supabase returns at most 1,000 rows per request, so read the whole roster in pages.
+  const existing: { code: string; name_norm: string; student_ref: string | null }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: page, error: pageErr } = await admin.from("election_voters").select("code, name_norm, student_ref").eq("election_id", id).order("id").range(from, from + 999);
+    if (pageErr) return NextResponse.json({ error: "Couldn't read the roster. Please try again." }, { status: 500 });
+    existing.push(...(page ?? []));
+    if ((page?.length ?? 0) < 1000) break;
+  }
+  const haveRef = new Set(existing.map((x) => x.student_ref).filter(Boolean));
+  const haveName = new Set(existing.map((x) => x.name_norm));
 
   const skipped = { candidates: 0, sameName: 0, already: 0 };
   const fresh: { name: string; ref: string }[] = [];
@@ -51,9 +58,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!fresh.length) return NextResponse.json({ added: 0, skipped });
 
   const cap = LIVE_VOTE_TIERS[election.tier].voteCap;
-  if ((existing?.length ?? 0) + fresh.length > cap) return NextResponse.json({ error: `A ${LIVE_VOTE_TIERS[election.tier].label} election holds up to ${cap.toLocaleString()} students. Pick a larger size or fewer classes.` }, { status: 400 });
+  if (existing.length + fresh.length > cap) return NextResponse.json({ error: `A ${LIVE_VOTE_TIERS[election.tier].label} election holds up to ${cap.toLocaleString()} students. Pick a larger size or fewer classes.` }, { status: 400 });
 
-  const codes = generateUniqueCodes(fresh.length, new Set((existing ?? []).map((x) => x.code)));
+  const codes = generateUniqueCodes(fresh.length, new Set(existing.map((x) => x.code)));
   const { error } = await admin.from("election_voters").insert(fresh.map((v, i) => ({ election_id: id, name: v.name, name_norm: normName(v.name), student_ref: v.ref, code: codes[i] })));
   if (error) {
     console.error("school-election: sbd roster insert failed", error);
