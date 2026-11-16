@@ -40,6 +40,8 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
   const [races, setRaces] = useState<RaceDraft[]>([{ ...newRace(), title: "President" }]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Started from School-B-Doo (?sbd=<signed token>): the school's name and look arrive filled in.
+  const [sbdToken, setSbdToken] = useState<string | null>(null);
   const editing = !!editId;
   const [status, setStatus] = useState<"draft" | "live" | "closed">("draft");
   const [canBilling, setCanBilling] = useState(true);
@@ -60,6 +62,22 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (editId) return;
+    const t = new URLSearchParams(window.location.search).get("sbd");
+    if (!t) return;
+    fetch(`/api/partners/schoolbdoo/handoff?token=${encodeURIComponent(t)}`, { cache: "no-store" })
+      .then(async (r) => ({ ok: r.ok, j: await r.json().catch(() => ({})) }))
+      .then(({ ok, j }) => {
+        if (!ok) return setError(j.error || "The School-B-Doo link has expired. Go back and start again.");
+        setSbdToken(t);
+        setSchool(j.schoolName ?? "");
+        if (j.logo) setLogo(j.logo);
+        if (j.color) setAccent(j.color);
+      })
+      .catch(() => setError("Couldn't read the School-B-Doo link."));
+  }, [editId]);
 
   useEffect(() => {
     if (!editId) return;
@@ -121,6 +139,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
           linkVoting: voteMode !== "kiosk",
           openEnded: isAdmin && openEnded,
           practice,
+          sbdToken: !editing && sbdToken ? sbdToken : undefined,
           races: races.map((r) => ({ id: r.id, title: r.title, candidates: r.candidates.map((c) => ({ id: c.id, name: c.name, description: c.description, photoUrl: c.photoUrl, videoUrl: c.videoUrl, videoSeconds: c.videoSeconds, videoLink: c.videoLink })) })),
         }),
       });
@@ -163,6 +182,7 @@ export default function SchoolElectionForm({ editId }: { editId?: string }) {
         <a href="/org" className="font-bold underline">School &amp; League License</a> covers them all for ${ORG_LICENSE.priceCents / 100}/year.
       </p>}
 
+      {sbdToken && <p className="mt-4 rounded-xl p-3 text-sm font-semibold" style={{ background: "var(--surface-2)" }}>Linked to {school || "your School-B-Doo school"} on School-B-Doo. After you create it, you can add your verified students from there with one tap.</p>}
       <section className="mt-6 grid gap-3">
         <label className="grid gap-1 text-sm font-semibold">
           Election name

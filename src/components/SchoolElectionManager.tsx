@@ -1,5 +1,6 @@
 "use client";
 
+import SbdRosterImport from "@/components/SbdRosterImport";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
@@ -18,7 +19,7 @@ type Data = {
   interim?: boolean;
   viewerIsAdmin?: boolean;
   viewerRole?: "owner" | "admin" | "moderator";
-  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; link_voting?: boolean; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; link_voting?: boolean; sbd_school_id?: string | null; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number; registered?: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -219,6 +220,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
           <p className="font-bold">Roster and turnout</p>
           <p className="text-sm" style={{ color: "var(--text-dim)" }}>{turnout.voted.toLocaleString()} of {turnout.total.toLocaleString()} voted</p>
         </div>
+        {!closed && data.election.sbd_school_id && <SbdRosterImport id={id} onDone={load} />}
         {!closed && (
           <>
             <p className="mb-2 mt-1 text-xs" style={{ color: "var(--text-faint)" }}>One student per line: &quot;Name&quot;, &quot;Name, Student ID&quot; or &quot;Name, Student ID, email&quot;. Each gets a random 6-character code a teacher hands out at the booth. Add an email to send them their code for voting by link.</p>

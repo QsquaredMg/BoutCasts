@@ -7,9 +7,9 @@ type Race = { race_id: string; title: string; options: BallotCandidate[] };
 type Session = { voterName: string; ballot: Race[]; voted: string[]; closesAt: string | null };
 
 // Vote by link: sign in with your own code, then one office per screen with a progress bar.
-export default function LinkVote({ id, title, school, brand, previewBallot }: { id: string; title: string; school: string | null; brand?: BallotBrand | null; previewBallot?: Race[] }) {
+export default function LinkVote({ id, title, school, brand, previewBallot, initialCode }: { id: string; title: string; school: string | null; brand?: BallotBrand | null; previewBallot?: Race[]; initialCode?: string }) {
   const theme = ballotTheme(brand);
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode ?? "");
   const [name, setName] = useState("");
   const [s, setS] = useState<Session | null>(null);
   const [idx, setIdx] = useState(0);
