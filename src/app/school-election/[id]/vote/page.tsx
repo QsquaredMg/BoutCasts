@@ -6,9 +6,11 @@ import { UUID, requireElectionAccess, type ElectionRow } from "@/lib/schoolElect
 export const dynamic = "force-dynamic";
 
 // Public vote-by-link page. Students enter their own code and name; no account needed.
-export default async function VoteLinkPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ preview?: string }> }) {
+export default async function VoteLinkPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ preview?: string; code?: string }> }) {
   const { id } = await params;
-  const { preview } = await searchParams;
+  const { preview, code } = await searchParams;
+  // From School-B-Doo the student arrives with their own code already filled in.
+  const initialCode = typeof code === "string" ? code.replace(/[^A-Za-z0-9-]/g, "").slice(0, 16) : "";
   if (!UUID.test(id)) notFound();
   const { data } = await createAdminClient().from("school_elections").select("*").eq("id", id).maybeSingle();
   const election = data as ElectionRow | null;
@@ -53,7 +55,7 @@ export default async function VoteLinkPage({ params, searchParams }: { params: P
       {note && (
         <div className="sticky top-0 z-50 px-4 py-2 text-center text-sm font-bold" style={{ background: "#e0a93b", color: "#3b0d1f" }}>{note}</div>
       )}
-      <LinkVote id={id} title={election.title} school={election.school_name} brand={brand} previewBallot={previewBallot} />
+      <LinkVote id={id} title={election.title} school={election.school_name} brand={brand} previewBallot={previewBallot} initialCode={initialCode} />
     </>
   );
 }

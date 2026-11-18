@@ -5,6 +5,7 @@ import { LIVE_VOTE_TIERS, SCHOOL_ELECTION, schoolElectionPriceCents, type LiveVo
 import { isHexColor } from "@/lib/liveVoteEvents/roomTheme";
 import { hashPin } from "@/lib/schoolElection";
 import { normalizeVideoLink } from "@/lib/clipSource";
+import { sbdCall, verifyHandoff } from "@/lib/sbdPartner";
 
 // Create a school election (a draft): its races, candidates, size, kiosks and days. Paying activates it.
 type Candidate = { name?: unknown; description?: unknown; photoUrl?: unknown; videoUrl?: unknown; videoSeconds?: unknown; videoLink?: unknown };
@@ -36,6 +37,9 @@ export async function POST(req: NextRequest) {
     brand_bg_color: isHexColor(body.brandBgColor) ? body.brandBgColor : null,
   };
   const showTally = body.showTally !== false;
+  // Started from School-B-Doo: a signed token says which school this election belongs to.
+  const handoff = typeof body.sbdToken === "string" && body.sbdToken ? verifyHandoff(body.sbdToken) : null;
+  if (typeof body.sbdToken === "string" && body.sbdToken && !handoff) return NextResponse.json({ error: "The School-B-Doo link has expired. Go back to School-B-Doo and start again." }, { status: 400 });
   const races: Race[] = Array.isArray(body.races) ? body.races : [];
 
   if (!title) return NextResponse.json({ error: "Give the election a name." }, { status: 400 });
@@ -89,6 +93,7 @@ export async function POST(req: NextRequest) {
       open_ended: body.openEnded === true && !!me?.is_admin,
       is_practice: practice,
       link_voting: body.linkVoting === true,
+      sbd_school_id: handoff ? handoff.sid : null,
       ...brand,
     })
     .select("id")
@@ -133,5 +138,7 @@ export async function POST(req: NextRequest) {
     if (rollbackErr) console.error("school-election: rollback failed, orphan election", election.id, rollbackErr);
     return NextResponse.json({ error: "Couldn't save the offices. Please try again." }, { status: 500 });
   }
+  // Tell School-B-Doo this election exists so it shows up on the school's page. Failure here never blocks the election.
+  if (handoff) await sbdCall("election.link", { sid: handoff.sid, eid: election.id, title, uid: handoff.uid }).catch(() => null);
   return NextResponse.json({ id: election.id });
 }
