@@ -191,6 +191,13 @@ export default function DebateMatchView({ matchId }: { matchId: string }) {
       <h1 className="mb-4 text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
         &ldquo;{topic.statement}&rdquo;
       </h1>
+      <p className="mb-3 text-sm" style={{ color: "var(--text-faint)" }}>
+        For a venue screen or broadcast:{" "}
+        <a href={`/screen/debate/${match.id}`} target="_blank" rel="noreferrer" className="font-semibold underline">Big screen</a> ·{" "}
+        <a href={`/screen/debate/${match.id}?overlay=1`} target="_blank" rel="noreferrer" className="font-semibold underline">Broadcast overlay</a> ·{" "}
+        <a href={`/screen/debate/${match.id}?view=count`} target="_blank" rel="noreferrer" className="font-semibold underline">Vote counter</a>
+      </p>
+
 
       {/* Debaters */}
       <div className="mb-4 grid grid-cols-2 gap-2.5">

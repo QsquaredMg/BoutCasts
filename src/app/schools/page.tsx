@@ -207,6 +207,11 @@ export default async function SchoolsPage() {
             <p className="text-[14px]" style={{ color: "#d9b9c4" }}>
               Free events need no card. Branding, ranked choice and judges are available on paid events.
             </p>
+            <p className="text-[14px]">
+              <Link href="/for-administrators" className="font-semibold underline underline-offset-4" style={{ color: "#fff" }}>
+                Administrators: see how votes stay fair and what we collect
+              </Link>
+            </p>
           </div>
 
           <div id="ballot" className="relative flex min-w-0 justify-center lg:justify-end">

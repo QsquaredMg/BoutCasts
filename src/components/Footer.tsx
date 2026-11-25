@@ -20,6 +20,9 @@ export default function Footer() {
           <Link href="/schools" className="hover:underline">
             Schools
           </Link>
+          <Link href="/for-administrators" className="hover:underline">
+            For administrators
+          </Link>
           <Link href="/sponsor" className="hover:underline">
             For Brands
           </Link>

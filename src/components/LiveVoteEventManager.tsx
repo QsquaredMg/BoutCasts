@@ -807,6 +807,9 @@ export default function LiveVoteEventManager({
           <h2 className="font-bold">Big screen</h2>
           <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Put this on a projector or stadium board: a giant scan-to-vote QR code with live results. No login needed on the display.</p>
           <a href={`/live-vote/${event.id}/screen`} target="_blank" rel="noreferrer" className="inline-block rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Open big screen</a>
+          <a href={`/live-vote/${event.id}/screen?overlay=1`} target="_blank" rel="noreferrer" className="ml-2 inline-block rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Broadcast overlay</a>
+          <a href={`/live-vote/${event.id}/screen?view=count`} target="_blank" rel="noreferrer" className="ml-2 inline-block rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Live vote counter</a>
+          <p className="mt-2 text-xs" style={{ color: "var(--text-faint)" }}>The overlay is a transparent bar for OBS, vMix or a stadium video board (add it as a browser source). It uses your event branding, and shows judges&apos; scores once you release them.</p>
         </section>
       )}
       <EventVenuePanel eventId={event.id} />

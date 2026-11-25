@@ -11,6 +11,7 @@ const STATIC_ROUTES = [
   "",
   "/host",
   "/schools",
+  "/for-administrators",
   "/discover",
   "/create",
   "/debates",

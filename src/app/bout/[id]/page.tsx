@@ -47,6 +47,12 @@ export default async function BoutPage({
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <FeaturedBout boutId={id} showBackLink />
+      <p className="mt-4 text-center text-xs" style={{ color: "var(--text-faint)" }}>
+        Showing this at a venue or on a broadcast?{" "}
+        <a href={`/bout/${id}/screen`} className="font-semibold underline">Big screen</a>{" · "}
+        <a href={`/bout/${id}/screen?overlay=1`} className="font-semibold underline">Broadcast overlay</a>{" · "}
+        <a href={`/bout/${id}/screen?view=count`} className="font-semibold underline">Vote counter</a>
+      </p>
       <PlacementSponsorStrip kind="bout" targetId={id} variant="page" />
       <SponsorPlacementsPanel kind="bout" targetId={id} />
     </div>

@@ -176,6 +176,13 @@ export default function ShowcaseView({
           track={{ type: "showcase", id: showcase.id }}
         />
       </div>
+      <p className="mb-3 text-sm" style={{ color: "var(--text-faint)" }}>
+        For a venue screen or broadcast:{" "}
+        <a href={`/screen/showcase/${showcase.id}`} target="_blank" rel="noreferrer" className="font-semibold underline">Big screen</a> ·{" "}
+        <a href={`/screen/showcase/${showcase.id}?overlay=1`} target="_blank" rel="noreferrer" className="font-semibold underline">Broadcast overlay</a> ·{" "}
+        <a href={`/screen/showcase/${showcase.id}?view=count`} target="_blank" rel="noreferrer" className="font-semibold underline">Vote counter</a>
+      </p>
+
       {showcase.description && (
         <p className="mb-4 whitespace-pre-line text-sm" style={{ color: "var(--text-dim)" }}>
           {showcase.description}

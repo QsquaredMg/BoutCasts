@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ChromeOff from "@/components/ChromeOff";
 import { createClient } from "@/lib/supabase/client";
 import { renderBrandedQr, readableOn, type QrBrand } from "@/lib/brandedQr";
 
@@ -13,7 +14,11 @@ type Ev = {
 type Opt = { id: string; name: string };
 
 // Projector / jumbotron view for a Live Vote: scan-to-vote QR on one side, live bars on the other.
-export default function LiveVoteScreen({ eventId }: { eventId: string }) {
+type Judged = { released: boolean; judges_total?: number; judges_submitted?: number; results?: { option_id: string; name: string; average: number | null; judges_scored: number }[] };
+
+// ?overlay=1 gives a transparent lower-third for broadcast software (OBS, vMix) or a stadium video board.
+// ?view=count gives just the big live vote counter.
+export default function LiveVoteScreen({ eventId, overlay = false, view = "full" }: { eventId: string; overlay?: boolean; view?: "full" | "count" }) {
   const supabase = useMemo(() => createClient(), []);
   const [ev, setEv] = useState<Ev | null>(null);
   const [opts, setOpts] = useState<Opt[]>([]);
@@ -21,6 +26,7 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
   const [missing, setMissing] = useState(false);
   const [qr, setQr] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [judged, setJudged] = useState<Judged | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -73,6 +79,19 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
     return () => { alive = false; clearInterval(t); };
   }, [showBars, ev, eventId, supabase]);
 
+  // Judges scoreboard: the server only returns scores once the organizer has released them.
+  useEffect(() => {
+    if (!ev || ev.scoring_mode !== "judges" || ev.status === "draft") return;
+    let alive = true;
+    async function poll() {
+      const { data } = await supabase.rpc("get_judged_results", { p_event_id: eventId });
+      if (alive && data) setJudged(data as Judged);
+    }
+    poll();
+    const t = setInterval(poll, 5000);
+    return () => { alive = false; clearInterval(t); };
+  }, [ev, eventId, supabase]);
+
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -101,8 +120,64 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
   const host = typeof window !== "undefined" ? window.location.host : "boutcasts.com";
   const sorted = [...opts].sort((a, b) => (tally[b.id] ?? 0) - (tally[a.id] ?? 0));
 
+  const judgeRows = judged?.released ? [...(judged.results ?? [])].sort((a, b) => (b.average ?? 0) - (a.average ?? 0)) : [];
+  const countLabel = ev.scoring_mode === "judges" ? null : total.toLocaleString();
+  const label = closed ? "Final" : "Live";
+
+  if (overlay || view === "count") {
+    const transparent = overlay;
+    return (
+      <div className="flex min-h-screen w-full flex-col justify-end" style={{ background: transparent ? "transparent" : bg, color: fg }}>
+<ChromeOff />
+        {transparent && <style>{"html,body{background:transparent !important}"}</style>}
+        {view === "count" ? (
+          <div className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
+            {paid && ev.brand_logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={ev.brand_logo_url} alt="" className="mb-6 h-24 object-contain" />
+            )}
+            <p className="text-3xl font-bold uppercase tracking-widest" style={{ color: accent }}>{ev.title}</p>
+            <p className="mt-4 text-[10rem] font-black leading-none tabular-nums md:text-[16rem]" style={{ color: accent, textShadow: transparent ? "0 4px 24px rgba(0,0,0,.6)" : undefined }}>{countLabel ?? "—"}</p>
+            <p className="text-4xl font-bold">{countLabel ? "votes" : "Judges are scoring"}</p>
+          </div>
+        ) : (
+          <div className="m-6 flex items-center gap-6 rounded-3xl px-8 py-5" style={{ background: "rgba(10,14,26,.88)", color: "#fff", borderLeft: `10px solid ${accent}` }}>
+            {paid && ev.brand_logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={ev.brand_logo_url} alt="" className="h-16 object-contain" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold uppercase tracking-widest" style={{ color: accent }}>{label} · {ev.title}</p>
+              {showBars ? (
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-8 gap-y-1">
+                  {sorted.slice(0, 4).map((o) => {
+                    const n = tally[o.id] ?? 0;
+                    return <span key={o.id} className="text-3xl font-black"><span className="truncate">{o.name}</span> <span className="tabular-nums" style={{ color: accent }}>{total ? Math.round((n / total) * 100) : 0}%</span></span>;
+                  })}
+                </div>
+              ) : judgeRows.length > 0 ? (
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-8 gap-y-1">
+                  {judgeRows.slice(0, 4).map((r) => <span key={r.option_id} className="text-3xl font-black">{r.name} <span className="tabular-nums" style={{ color: accent }}>{r.average ?? "—"}</span></span>)}
+                </div>
+              ) : (
+                <p className="mt-1 text-2xl font-bold">{ev.scoring_mode === "judges" ? "Judges are scoring" : "Voting is open"}</p>
+              )}
+            </div>
+            {countLabel && (
+              <div className="text-right">
+                <p className="text-5xl font-black leading-none tabular-nums" style={{ color: accent }}>{countLabel}</p>
+                <p className="text-sm font-bold uppercase tracking-widest opacity-80">votes</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`${shell} relative`} style={{ background: bg, color: fg }}>
+<ChromeOff />
       {paid && ev.brand_bg_image_url && (
         <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: `url(${ev.brand_bg_image_url})`, backgroundSize: "cover", backgroundPosition: "center", opacity: (ev.screen_bg_opacity ?? 100) / 100 }} />
       )}
@@ -146,6 +221,7 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
                       const pct = total ? Math.round((n / total) * 100) : 0;
                       return (
                         <div key={o.id} className="min-w-0 flex-1 text-center">
+<ChromeOff />
                           <p className="truncate">{o.name}</p>
                           <p className="mt-2 text-7xl tabular-nums md:text-8xl" style={{ color: accent }}>{pct}%</p>
                           <p className="text-2xl font-bold opacity-70">{n.toLocaleString()} votes</p>
@@ -181,6 +257,21 @@ export default function LiveVoteScreen({ eventId }: { eventId: string }) {
                 })}
               </ol>
               )}
+            </>
+          ) : judgeRows.length > 0 ? (
+            <>
+              <div className="mb-4 flex items-end justify-between">
+                <p className="text-2xl font-bold opacity-80">Judges&apos; scores</p>
+                {judged?.judges_total ? <p className="text-2xl font-bold tabular-nums opacity-80">{judged.judges_submitted ?? 0}/{judged.judges_total} judges</p> : null}
+              </div>
+              <ol className="space-y-4">
+                {judgeRows.slice(0, 8).map((r, i) => (
+                  <li key={r.option_id} className="flex items-baseline justify-between gap-4 text-4xl font-black">
+                    <span className="truncate">{i + 1}. {r.name}</span>
+                    <span className="tabular-nums" style={{ color: accent }}>{r.average ?? "—"}</span>
+                  </li>
+                ))}
+              </ol>
             </>
           ) : (
             <p className="text-3xl font-bold opacity-80">
