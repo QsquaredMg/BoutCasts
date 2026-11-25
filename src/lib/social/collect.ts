@@ -3,6 +3,7 @@ import { buildCaptions } from "./caption";
 import { boutLaunch, bracketLaunch, paidBoutLaunch, predictionsLaunch, type LaunchGame } from "./launchCaption";
 import { findSchoolTags, findSchoolTagsByNames, schoolLines } from "./schools";
 import { LOCK_GRACE_MS } from "@/lib/predictions/types";
+import { dailyResultsCaptions, gameResultCaptions } from "./resultCaption";
 import type { SocialDraft, TopRow } from "./types";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -290,6 +291,80 @@ async function boutBracketLaunchDrafts(db: Db, since: string): Promise<SocialDra
   return out;
 }
 
+type FinalGame = {
+  id: string; home_name: string; away_name: string; home_score: number | null; away_score: number | null;
+  status: string; starts_at: string | null; created_by: string | null; slate_id: string | null; finalized_at: string | null;
+};
+const chicagoDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+
+/** Admin-created, public, non-bracket games from the last few days (slate games only when the slate is public and not white-label). */
+async function publicAdminGames(db: Db, sinceStart: string): Promise<FinalGame[]> {
+  const { data } = await db
+    .from("pred_games")
+    .select("id, home_name, away_name, home_score, away_score, status, starts_at, created_by, slate_id, finalized_at")
+    .is("round", null).eq("is_private", false).is("archived_at", null).neq("status", "cancelled")
+    .gte("starts_at", sinceStart).order("starts_at").limit(500);
+  const list = (data ?? []) as FinalGame[];
+  const slateIds = [...new Set(list.map((g) => g.slate_id).filter((x): x is string => !!x))];
+  let hidden = new Set<string>();
+  if (slateIds.length) {
+    const { data: sl } = await db.from("pred_slates").select("id, visibility, white_label").in("id", slateIds);
+    hidden = new Set((sl ?? []).filter((x) => x.visibility !== "public" || x.white_label).map((x) => x.id as string));
+  }
+  const visible = list.filter((g) => !g.slate_id || !hidden.has(g.slate_id));
+  const admins = await adminCreatedSlates(db, visible.map((g) => ({ id: g.id, created_by: g.created_by })));
+  const ok = new Set(admins.map((a) => a.id));
+  return visible.filter((g) => ok.has(g.id));
+}
+
+/** One result post per finished stand-alone pick'em game (slate games are covered by the daily scoreboard). */
+async function gameResultDrafts(db: Db, since: string): Promise<SocialDraft[]> {
+  const games = (await publicAdminGames(db, new Date(Date.parse(since) - DAY).toISOString())).filter(
+    (g) => !g.slate_id && g.status === "final" && g.home_score != null && g.away_score != null && g.finalized_at && g.finalized_at >= since && !isTbd(g.home_name) && !isTbd(g.away_name),
+  );
+  return games.map((g) => {
+    const score = { away: g.away_name, home: g.home_name, as: g.away_score as number, hs: g.home_score as number };
+    const aWon = score.as > score.hs, hWon = score.hs > score.as;
+    return {
+      kind: "game_result" as const, source_id: g.id, title: `${g.away_name} vs ${g.home_name}`,
+      winner: aWon ? g.away_name : hWon ? g.home_name : null, detail: `${score.as}–${score.hs}`,
+      top10: [
+        { rank: 1, name: aWon || !hWon ? g.away_name : g.home_name, score: String(aWon || !hWon ? score.as : score.hs) },
+        { rank: 2, name: aWon || !hWon ? g.home_name : g.away_name, score: String(aWon || !hWon ? score.hs : score.as) },
+      ],
+      path: "/predictions", mentionNames: [g.away_name, g.home_name],
+      captions: gameResultCaptions(score, "/predictions"),
+    };
+  });
+}
+
+/** When every scheduled game for a day (Central time) is final, one combined scoreboard with a short write-up. */
+async function dailyResultsDrafts(db: Db, since: string): Promise<SocialDraft[]> {
+  const earliestDay = chicagoDay(since);
+  const all = await publicAdminGames(db, new Date(Date.parse(since) - DAY).toISOString());
+  const byDay = new Map<string, FinalGame[]>();
+  for (const g of all) {
+    if (!g.starts_at || isTbd(g.home_name) || isTbd(g.away_name)) continue;
+    const day = chicagoDay(g.starts_at);
+    if (day < earliestDay) continue;
+    byDay.set(day, [...(byDay.get(day) ?? []), g]);
+  }
+  const out: SocialDraft[] = [];
+  for (const [day, games] of byDay) {
+    if (games.length < 2) continue; // a single game already gets its own result post
+    if (!games.every((g) => g.status === "final" && g.home_score != null && g.away_score != null)) continue;
+    const scores = games.map((g) => ({ away: g.away_name, home: g.home_name, as: g.away_score as number, hs: g.home_score as number }));
+    const label = new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "short", day: "numeric" });
+    out.push({
+      kind: "daily_results", source_id: `day-${day}`, title: `${label} final scores`, winner: null, detail: null,
+      top10: scores.map((game, i) => ({ rank: i + 1, name: `${game.away} vs ${game.home}`, score: `${game.as}–${game.hs}`, game })),
+      path: "/predictions", mentionNames: scores.flatMap((x) => [x.away, x.home]),
+      captions: dailyResultsCaptions(label, scores, "/predictions"),
+    });
+  }
+  return out;
+}
+
 /** Finds newly finished results and queues them. Safe to run repeatedly: each result is queued once. */
 export async function queueFinishedResults(db: Db, errors: string[] = []): Promise<number> {
   const { data: settings } = await db.from("social_settings").select("mode, hashtags").eq("id", 1).maybeSingle();
@@ -299,7 +374,7 @@ export async function queueFinishedResults(db: Db, errors: string[] = []): Promi
 
   const drafts = (
     await Promise.all([
-      boutLaunchDrafts(db, recent), paidBoutLaunchDrafts(db, recent), predictionLaunchDrafts(db, recent), standaloneGameLaunchDrafts(db, recent), boutBracketLaunchDrafts(db, recent), boutDrafts(db, recent), bracketDrafts(db, recent), liveVoteDrafts(db, recent), predictionDrafts(db, week), triviaDrafts(db, week),
+      boutLaunchDrafts(db, recent), paidBoutLaunchDrafts(db, recent), predictionLaunchDrafts(db, recent), standaloneGameLaunchDrafts(db, recent), boutBracketLaunchDrafts(db, recent), gameResultDrafts(db, recent), dailyResultsDrafts(db, recent), boutDrafts(db, recent), bracketDrafts(db, recent), liveVoteDrafts(db, recent), predictionDrafts(db, week), triviaDrafts(db, week),
     ].map((p) => p.catch((e) => { console.error("social collect failed", (e as Error).message); errors.push((e as Error).message); return [] as SocialDraft[]; })))
   ).flat();
 
@@ -310,7 +385,7 @@ export async function queueFinishedResults(db: Db, errors: string[] = []): Promi
     const base = d.captions ?? buildCaptions(d, settings.hashtags);
     const found = d.mentionNames?.length ? await findSchoolTagsByNames(db, d.mentionNames, 8) : await findSchoolTags(db, d.mentionText ?? d.title);
     const tags = schoolLines(found);
-    const extra = d.kind === "predictions_launch" ? " #PickEm #Predictions" : d.kind === "predbracket_launch" || d.kind === "bracket_launch" ? " #Bracket #Brackets" : "";
+    const extra = d.kind === "game_result" || d.kind === "daily_results" ? " #PickEm #FinalScore" : d.kind === "predictions_launch" ? " #PickEm #Predictions" : d.kind === "predbracket_launch" || d.kind === "bracket_launch" ? " #Bracket #Brackets" : "";
     const withTags = (cap: string, line: string) => (line ? `${cap}\n\n${line}` : cap);
     const cap = {
       facebook: d.captions ? withTags(`${base.facebook}\n\n${settings.hashtags}${extra}`, tags.facebook) : withTags(base.facebook, tags.facebook),

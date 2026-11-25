@@ -13,6 +13,8 @@ const HEAD: Record<SocialDraft["kind"], string> = {
   predictions_launch: "🔮 NEW PICK'EM",
   predbracket_launch: "🏆 NEW BRACKET",
   bracket_launch: "🏆 NEW BRACKET",
+  game_result: "🏁 FINAL",
+  daily_results: "📋 FINAL SCORES",
 };
 
 function body(d: SocialDraft, link: string) {

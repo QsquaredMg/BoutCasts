@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/social",
-      "schedule": "0 * * * *"
+      "schedule": "7-59/15 * * * *"
     },
     {
       "path": "/api/cron/pred-scores",
-      "schedule": "0 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/purge-rosters",

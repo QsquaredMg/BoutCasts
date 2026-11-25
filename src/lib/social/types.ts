@@ -1,12 +1,15 @@
 export type SocialKind =
   | "bout" | "bracket" | "livevote" | "predictions" | "trivia"
   | "bout_launch" | "paidbout_launch"
-  | "predictions_launch" | "predbracket_launch" | "bracket_launch";
+  | "predictions_launch" | "predbracket_launch" | "bracket_launch"
+  | "game_result" | "daily_results";
 
 /** Launch posts that invite people to make picks (they get the "Make your picks" graphic). */
 export const PICK_LAUNCH_KINDS: SocialKind[] = ["predictions_launch", "predbracket_launch", "bracket_launch"];
 
-export type TopRow = { rank: number; name: string; score: string };
+/** A finished game, kept on a row so the daily scoreboard graphic can lay out both teams and scores. */
+export type GameScore = { away: string; home: string; as: number; hs: number };
+export type TopRow = { rank: number; name: string; score: string; game?: GameScore };
 
 export type SocialDraft = {
   kind: SocialKind;
