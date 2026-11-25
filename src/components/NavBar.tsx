@@ -243,11 +243,9 @@ export default function NavBar() {
                   <MenuLink href="/join" strong>🔒 Join with a code or link</MenuLink>
                   <MenuLink href="/play">🎯 Play: predictions &amp; trivia</MenuLink>
                   <MenuLink href="/leaderboard">🏆 Leaderboard</MenuLink>
-                  <MenuLink href="/boutcard">🎟️ BoutCard</MenuLink>
                 </MenuGroup>
                 <MenuGroup title="Host">
                   <MenuLink href="/host" strong>🎤 Host a vote or trivia night</MenuLink>
-                  <MenuLink href="/create">🧭 What do you want to do?</MenuLink>
                   <MenuLink href="/schools">🎓 Schools, colleges &amp; universities</MenuLink>
                   <MenuLink href="/sponsor">🤝 Brands &amp; sponsors</MenuLink>
                   {user && <MenuLink href="/school-election">🏫 My School Elections</MenuLink>}
@@ -259,8 +257,8 @@ export default function NavBar() {
                       <MenuLink href={profileHref}>👤 My profile</MenuLink>
                       <MenuLink href="/settings">⚙️ Settings &amp; safety</MenuLink>
                       <MenuLink href="/activity">🔔 Activity{unread > 0 ? ` (${unread})` : ""}</MenuLink>
-                      <MenuLink href="/challenges">🥊 Challenges{pendingChallenges > 0 ? ` (${pendingChallenges})` : ""}</MenuLink>
-                      {BOUTBUCKS_ENABLED && <MenuLink href="/wallet">💰 Wallet{walletBalance !== null ? ` (${walletBalance} BB)` : ""}</MenuLink>}
+                      {pendingChallenges > 0 && <MenuLink href="/challenges">🥊 Challenges ({pendingChallenges})</MenuLink>}
+                      {BOUTBUCKS_ENABLED && (walletBalance ?? 0) > 0 && <MenuLink href="/wallet">💰 Wallet{walletBalance !== null ? ` (${walletBalance} BB)` : ""}</MenuLink>}
                     </>
                   ) : (
                     !loading && (

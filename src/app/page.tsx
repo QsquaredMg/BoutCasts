@@ -263,11 +263,9 @@ export default async function Home() {
       usesTitle="Built for schools first"
       uses={[
         { emoji: "🏫", title: "Schools and universities", body: "Class elections, homecoming courts and student votes, with kiosk mode.", href: "/schools" },
-        { emoji: "🎺", title: "Bands and halftime shows", body: "Settle the battle with a real crowd vote.", href: "/discover?view=matchups" },
-        { emoji: "💃", title: "Dance and step shows", body: "Let the crowd pick the champion.", href: "/competitions/play" },
-        { emoji: "🎤", title: "Talent shows", body: "One link, one fair vote each.", href: "/showcase/play" },
-        { emoji: "🏟️", title: "Leagues and venues", body: "Fan polls and bracket challenges.", href: "/predictions/play" },
-        { emoji: "🎙️", title: "Creators", body: "Put the hot take to a vote.", href: "/create" },
+        { emoji: "🎺", title: "Bands, dance and talent shows", body: "Settle the battle with a real crowd vote.", href: "/host" },
+        { emoji: "🏟️", title: "Leagues and venues", body: "Free prediction games and brackets for your fans.", href: "/predictions/play" },
+        { emoji: "🧠", title: "Trivia nights", body: "Run live trivia on the big screen, with sponsors.", href: "/play" },
       ]}
       faq={[
         { q: "Do I need an account to vote?", a: "Your first vote needs no account. Create one to keep voting, earn points and see your history." },
