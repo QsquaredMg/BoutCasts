@@ -103,6 +103,17 @@ export default function ForAdministratorsPage() {
         </p>
       </section>
 
+      {/* Hosting */}
+      <section aria-labelledby="hosting">
+        <h2 id="hosting" className={H2} style={{ fontFamily: "var(--font-display)" }}>
+          Where it runs
+        </h2>
+        <p className={P}>
+          BoutCasts is hosted on SOC 2-audited infrastructure. Our database and file storage run on Supabase and our
+          website runs on Vercel, and both publish SOC 2 reports. BoutCasts itself has not been through a SOC 2 audit.
+        </p>
+      </section>
+
       {/* 3. Who can see results */}
       <section aria-labelledby="results">
         <h2 id="results" className={H2} style={{ fontFamily: "var(--font-display)" }}>
