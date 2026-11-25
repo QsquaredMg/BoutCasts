@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fingerprint, load, post, save, type Manifest, type QueueItem, type Race } from "@/lib/kioskOffline";
 
 type Brand = { logo: string | null; banner: string | null; color: string | null; bg: string | null; bgImage: string | null };
-type Status = { label: string; title: string; school: string | null; brand: Brand; state: "open" | "not_started" | "closed"; locked: boolean };
+type Status = { codeOnly?: boolean; label: string; title: string; school: string | null; brand: Brand; state: "open" | "not_started" | "closed"; locked: boolean };
 type Step = "welcome" | "ballot" | "review" | "sending" | "done" | "pin";
 
 const IDLE_MS = 90_000;
@@ -14,6 +14,7 @@ const DONE_MS = 6_000;
 // Full-screen voting booth for an iPad. One student at a time: code + name -> one office per screen -> review -> done.
 export default function KioskApp({ token, preview }: { token: string; preview?: { status: Status; ballot: Race[] } }) {
   const [status, setStatus] = useState<Status | null>(null);
+  const codeOnly = !!status?.codeOnly;
   const [missing, setMissing] = useState(false);
   const [step, setStep] = useState<Step>("welcome");
   const [code, setCode] = useState("");
@@ -338,16 +339,18 @@ export default function KioskApp({ token, preview }: { token: string; preview?: 
           {blocked ? (
             <p className="text-center text-3xl font-bold">{blocked}</p>
           ) : (
-            <form onSubmit={(e) => { e.preventDefault(); if (code.trim() && name.trim()) verify(); }} className="grid gap-4">
-              <p className="text-center text-xl opacity-80">Get your code from the teacher, then enter it with your name.</p>
+            <form onSubmit={(e) => { e.preventDefault(); if (code.trim() && (codeOnly || name.trim())) verify(); }} className="grid gap-4">
+              <p className="text-center text-xl opacity-80">{codeOnly ? "Get your code from the teacher and enter it here." : "Get your code from the teacher, then enter it with your name."}</p>
               <label className="grid gap-1 text-sm font-bold">Your code
                 <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false} className={`${input} text-center font-black tracking-[0.3em]`} style={card} />
               </label>
-              <label className="grid gap-1 text-sm font-bold">Your full name
-                <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" autoCorrect="off" className={input} style={card} />
-              </label>
+              {!codeOnly && (
+                <label className="grid gap-1 text-sm font-bold">Your full name
+                  <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" autoCorrect="off" className={input} style={card} />
+                </label>
+              )}
               {msg && <p className="text-center text-lg font-bold " style={errText} role="alert">{msg}</p>}
-              <button type="submit" disabled={busy || !code.trim() || !name.trim()} className={big} style={accentBtn}>{busy ? "Checking…" : "Start voting"}</button>
+              <button type="submit" disabled={busy || !code.trim() || (!codeOnly && !name.trim())} className={big} style={accentBtn}>{busy ? "Checking…" : "Start voting"}</button>
             </form>
           )}
           {blocked && msg && <p className="mt-3 text-center">{msg}</p>}

@@ -57,6 +57,7 @@ export function verifyPin(pin: string, stored: string): boolean {
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type ElectionRow = {
+  code_only?: boolean;
   id: string;
   organizer_id: string;
   title: string;

@@ -11,6 +11,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (election.status === "closed") return NextResponse.json({ error: "This election is closed." }, { status: 400 });
 
   const body = await req.json().catch(() => null);
+
+  // Code-only roster: N anonymous seats, each a random code. No names are stored, and students vote with the code alone.
+  const anon = typeof body?.anonymous === "number" ? Math.floor(body.anonymous) : 0;
+  if (anon > 0) {
+    if (anon > 5000) return NextResponse.json({ error: "Add up to 5,000 codes at a time." }, { status: 400 });
+    const { data: have } = await admin.from("election_voters").select("code, name_norm").eq("election_id", id);
+    if ((have ?? []).some((r) => r.name_norm)) return NextResponse.json({ error: "This roster already has named students. Clear it first to switch to code-only." }, { status: 409 });
+    const capA = LIVE_VOTE_TIERS[election.tier].voteCap;
+    if ((have?.length ?? 0) + anon > capA) {
+      return NextResponse.json({ error: `A ${LIVE_VOTE_TIERS[election.tier].label} election holds up to ${capA.toLocaleString()} students.` }, { status: 400 });
+    }
+    const codesA = generateUniqueCodes(anon, new Set((have ?? []).map((r) => r.code)));
+    const { error: errA } = await admin.from("election_voters").insert(codesA.map((c) => ({ election_id: id, name: "Student", name_norm: "", code: c })));
+    if (errA) {
+      console.error("school-election: code-only insert failed", errA);
+      return NextResponse.json({ error: "Couldn't save the codes. Please try again." }, { status: 500 });
+    }
+    await admin.from("school_elections").update({ code_only: true }).eq("id", id);
+    return NextResponse.json({ added: anon });
+  }
+  if (election.code_only) return NextResponse.json({ error: "This election uses code-only voting. Add codes, not names." }, { status: 409 });
   const rows: { name?: unknown; ref?: unknown; email?: unknown }[] = Array.isArray(body?.voters) ? body.voters : [];
   const voters = rows
     .map((r) => ({
@@ -57,13 +78,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 // Remove every student who has not voted yet (to re-upload a corrected roster).
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const owner = await requireElectionAccess(id);
   if ("error" in owner) return owner.error;
   const { admin, election } = owner;
+  // ?purge=1 on a closed election deletes the whole roster (names, student ids, emails, codes) and keeps only the turnout totals.
+  if (new URL(req.url).searchParams.get("purge") === "1") {
+    if (owner.viewerRole === "moderator") return NextResponse.json({ error: "Only the owner can delete the roster." }, { status: 403 });
+    const { data, error: pe } = await admin.rpc("purge_election_roster", { p_election_id: id });
+    if (pe || !data?.ok) return NextResponse.json({ error: data?.error === "not_closed" ? "Close the election first." : "Couldn't delete the roster." }, { status: 400 });
+    return NextResponse.json({ ok: true });
+  }
   if (election.status === "closed") return NextResponse.json({ error: "This election is closed." }, { status: 400 });
   const { error } = await admin.from("election_voters").delete().eq("election_id", id).is("voted_at", null);
+  if (!error) await admin.from("school_elections").update({ code_only: false }).eq("id", id).eq("code_only", true);
   if (error) return NextResponse.json({ error: "Couldn't clear the roster." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

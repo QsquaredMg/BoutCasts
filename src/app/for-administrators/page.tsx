@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ROSTER_RETENTION_DAYS } from "@/lib/rosterRetention";
 
 // Trust page for school administrators. Every statement here maps to the repo:
 //  - collection: profiles / guest_profiles / election_voters / election_kiosks (docs/sql, src/lib/schoolElection.ts)
@@ -42,7 +43,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What do you do with student data?",
-    a: "We collect only what the sections above list, and we use it to run the vote. Our Privacy Policy has the full details.",
+    a: "We collect only what the sections above list, and we use it to run the vote. Rosters are deleted automatically after the election, and code-only voting lets you avoid storing student names at all. Our Privacy Policy has the full details.",
   },
   {
     q: "Where is payout timing?",
@@ -90,6 +91,7 @@ export default function ForAdministratorsPage() {
         <ul className={LIST}>
           <li>Most voters never create an account. A voter on an open link gets a random token stored in their own browser, and that token is what limits them to one vote.</li>
           <li>On a school kiosk, the roster holds each student&apos;s name and the code you give them. The roster records whether a student has voted. It does not link a student to which choice they picked.</li>
+          <li>Prefer to store no student names at all? Code-only voting creates random single-use codes with no names attached, and students enter just the code. This is the better fit for younger students.</li>
           <li>Voters who choose to sign up give a username and birthday, plus gender and ethnicity, and can add more to their profile. Signing up requires being 13 or older.</li>
         </ul>
         <h3 className="mb-2 mt-6 text-lg font-bold">From organizers</h3>
@@ -98,6 +100,12 @@ export default function ForAdministratorsPage() {
           <li>Roster entries can include an optional student reference and email if you add them.</li>
           <li>Kiosks are identified by a label you give them and a hashed device token, with a log of ballots cast and failed attempts.</li>
         </ul>
+        <h3 className="mb-2 mt-6 text-lg font-bold">How long we keep it</h3>
+        <p className={P}>
+          The voting roster (names, student IDs, emails and codes) is deleted automatically {ROSTER_RETENTION_DAYS} days
+          after an election closes. An organizer can delete it sooner with one button once voting has closed. Results and
+          the final turnout count are kept.
+        </p>
         <p className={`${P} mt-5`} style={{ color: "var(--text-dim)" }}>
           Voting never asks for a payment card, and ballots are not tied to a student&apos;s name.
         </p>

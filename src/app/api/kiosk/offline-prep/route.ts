@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const r = await checkKioskPin(token, pin);
   if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: r.status });
 
-  const { data: el } = await r.admin.from("school_elections").select("id, title, school_name, status, closes_at, require_registration").eq("id", r.electionId).maybeSingle();
+  const { data: el } = await r.admin.from("school_elections").select("id, title, school_name, code_only, status, closes_at, require_registration").eq("id", r.electionId).maybeSingle();
   if (!el || el.status !== "live") return NextResponse.json({ ok: false, error: "closed" }, { status: 400 });
   const [{ data: ballot }, { data: voters }] = await Promise.all([
     r.admin.rpc("election_ballot", { p_election_id: r.electionId }),
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   ]);
   const fullBallot = await addClipUrls(r.admin, ballot);
   return NextResponse.json(
-    { ok: true, electionId: r.electionId, ballot: fullBallot, closesAt: el.closes_at, hashes: (voters ?? []).map((v) => voterHash(r.electionId, v.code, v.name)), preparedAt: new Date().toISOString() },
+    { ok: true, electionId: r.electionId, ballot: fullBallot, closesAt: el.closes_at, hashes: (voters ?? []).map((v) => voterHash(r.electionId, v.code, el.code_only ? "" : v.name)), preparedAt: new Date().toISOString() },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

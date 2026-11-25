@@ -4,6 +4,7 @@ import SbdRosterImport from "@/components/SbdRosterImport";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { LIVE_VOTE_TIERS } from "@/lib/liveVoteEvents/tiers";
+import { ROSTER_RETENTION_DAYS } from "@/lib/rosterRetention";
 import ElectionFundraiserPanel from "@/components/ElectionFundraiserPanel";
 import ElectionCampaignPanel from "@/components/ElectionCampaignPanel";
 import ElectionForumPanel from "@/components/ElectionForumPanel";
@@ -19,7 +20,7 @@ type Data = {
   interim?: boolean;
   viewerIsAdmin?: boolean;
   viewerRole?: "owner" | "admin" | "moderator";
-  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; link_voting?: boolean; sbd_school_id?: string | null; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
+  election: { id: string; title: string; school_name: string | null; tier: "free" | "small" | "medium" | "large"; kiosks: number; days: number; price_cents: number; show_tally?: boolean; open_ended?: boolean; is_practice?: boolean; certified_at?: string | null; certified_note?: string | null; fundraiser_enabled?: boolean; require_registration?: boolean; code_only?: boolean; roster_purged_at?: string | null; roster_final_total?: number | null; roster_final_voted?: number | null; registration_closes_at?: string | null; campaign_page_enabled?: boolean; forum_enabled?: boolean; link_voting?: boolean; sbd_school_id?: string | null; status: "draft" | "live" | "closed"; starts_at: string | null; closes_at: string | null };
   closed: boolean;
   turnout: { total: number; voted: number; registered?: number };
   kiosks: { id: string; label: string; created_at: string; locked_until: string | null }[];
@@ -48,6 +49,7 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(checkout === "success" ? "Payment received. Your election goes live within a moment. Refresh if it still says draft." : null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [codeCount, setCodeCount] = useState("");
   const [paste, setPaste] = useState("");
   const [newLink, setNewLink] = useState<{ label: string; url: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -100,6 +102,13 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
     } finally {
       setBusy(null);
     }
+  }
+
+  async function addCodes() {
+    const n = Math.floor(Number(codeCount));
+    if (!n || n < 1) return setError("Enter how many codes to create.");
+    const r = await call("roster", `/api/school-election/${id}/roster`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ anonymous: n }) });
+    if (r) { setCodeCount(""); setNotice(`Created ${r.added} code${r.added === 1 ? "" : "s"}. Download them below and hand one to each student.`); load(); }
   }
 
   async function addRoster(text: string) {
@@ -223,6 +232,14 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
         {!closed && data.election.sbd_school_id && <SbdRosterImport id={id} onDone={load} />}
         {!closed && (
           <>
+            <div className="mb-3 mt-2 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
+              <p className="text-sm font-bold">Code-only voting (no student names stored)</p>
+              <p className="mb-2 text-xs" style={{ color: "var(--text-faint)" }}>Creates random single-use codes with no names attached. Students enter just the code at the kiosk. Good for younger students and for keeping student data out of BoutCasts. Not available with vote-by-email.</p>
+              <div className="flex flex-wrap gap-2">
+                <input value={codeCount} onChange={(ev) => setCodeCount(ev.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="How many students?" aria-label="How many codes" className="w-44 rounded-[10px] border px-3 py-2 text-sm" style={box} />
+                <button onClick={addCodes} disabled={busy !== null || !codeCount} className="rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-50" style={{ borderColor: "var(--border)" }}>Create codes</button>
+              </div>
+            </div>
             <p className="mb-2 mt-1 text-xs" style={{ color: "var(--text-faint)" }}>One student per line: &quot;Name&quot;, &quot;Name, Student ID&quot; or &quot;Name, Student ID, email&quot;. Each gets a random 6-character code a teacher hands out at the booth. Add an email to send them their code for voting by link.</p>
             <textarea value={paste} onChange={(e) => setPaste(e.target.value)} rows={4} placeholder={"Jordan Smith, 1042\nAvery Johnson, 1043"} className="w-full rounded-[10px] border px-3 py-2 text-sm" style={box} />
             <div className="mt-2 flex flex-wrap gap-2">
@@ -234,6 +251,15 @@ export default function SchoolElectionManager({ id, checkout }: { id: string; ch
               )}
             </div>
           </>
+        )}
+        {e.roster_purged_at && (
+          <p className="mt-2 text-sm" style={{ color: "var(--text-dim)" }}>Roster deleted on {new Date(e.roster_purged_at).toLocaleDateString()}. Final turnout: {(e.roster_final_voted ?? 0).toLocaleString()} of {(e.roster_final_total ?? 0).toLocaleString()} voted.</p>
+        )}
+        {closed && !e.roster_purged_at && !isMod && (
+          <div className="mt-3">
+            <button onClick={async () => { if (confirm("Delete the whole roster now? Names, student IDs, emails and codes are removed permanently. Results and the turnout totals are kept.")) { await call("purge", `/api/school-election/${id}/roster?purge=1`, { method: "DELETE" }); load(); } }} className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: "var(--border)" }}>Delete roster now</button>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-faint)" }}>Rosters are also deleted automatically {ROSTER_RETENTION_DAYS} days after an election closes.</p>
+          </div>
         )}
         {turnout.total > 0 && (
           <div className="mt-3 flex flex-wrap gap-3 text-sm font-bold">
